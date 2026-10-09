@@ -1,0 +1,5 @@
+/* 九溪 · 全局样式入口
+ * Tailwind CSS v4：一行 import 即可启用原子化工具类。
+ * 主题令牌与玻璃效果在 themes.css / glass.css 中定义（Phase 1 充实）。
+ */
+@import "tailwindcss";

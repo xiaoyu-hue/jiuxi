@@ -1,0 +1,20 @@
+{
+  "name": "jiuxi",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "九溪 · 综合信息聚集地（AI 为主，热点新闻为辅）。本地优先的静态信息站。",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "astro": "^5.0.0",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/vite": "^4.0.0"
+  }
+}
