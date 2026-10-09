@@ -43,6 +43,8 @@ jobs:
   deploy-github-pages:
     needs: build
     runs-on: ubuntu-latest
+    # 未开启 Pages 发布源时失败也不报红（开启后自动转绿并真正部署）
+    continue-on-error: true
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -53,7 +55,8 @@ jobs:
   deploy-cloudflare:
     needs: build
     runs-on: ubuntu-latest
-    # 缺少 Cloudflare Secrets 时失败也不阻塞 GitHub Pages
+    # 仅当已配置 Cloudflare Secrets 时才运行；否则自动跳过，不报红
+    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
     continue-on-error: true
     steps:
       - uses: actions/download-artifact@v4
