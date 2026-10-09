@@ -1,0 +1,53 @@
+---
+// 九溪 · 关于
+import BaseLayout from '../layouts/BaseLayout.astro';
+import GlassCard from '../components/GlassCard.astro';
+---
+
+<BaseLayout title="九溪 · 关于" description="项目说明与致谢">
+  <header class="page-head">
+    <h2>关于九溪</h2>
+    <p>综合信息聚集地</p>
+  </header>
+
+  <GlassCard class="about-card">
+    <h3>这是什么</h3>
+    <p>
+      九溪是一个以 AI 为主、热点新闻为辅的综合信息聚集地。全站为纯静态站点，无需后端服务器：动态资讯在浏览器端实时聚合，策展内容由仓库文件驱动。
+    </p>
+    <h3>技术</h3>
+    <p>
+      基于 Astro 5 + Tailwind CSS 4 构建，液态玻璃视觉，支持 4 套主题（晨曦 / 午夜 / 极光 / 樱粉）。托管于 Cloudflare Pages（主站）与 GitHub Pages（备用副站）。
+    </p>
+    <h3>数据来源致谢</h3>
+    <ul>
+      <li>Google News RSS（中文资讯）</li>
+      <li>Hacker News（科技 / AI 头条）</li>
+      <li>各时间线 / 工具 / 读书条目的原始来源（见对应页面链接）</li>
+    </ul>
+    <h3>友链 / 联系</h3>
+    <p>待补充。</p>
+  </GlassCard>
+</BaseLayout>
+
+<style>
+  .about-card {
+    padding: 24px;
+  }
+  .about-card h3 {
+    margin: 18px 0 8px;
+  }
+  .about-card h3:first-child {
+    margin-top: 0;
+  }
+  .about-card p {
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin: 0;
+  }
+  .about-card ul {
+    color: var(--text-muted);
+    line-height: 1.8;
+    margin: 0;
+  }
+</style>

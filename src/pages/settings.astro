@@ -1,0 +1,212 @@
+---
+// 九溪 · 设置与数据（纯前端，localStorage）
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ThemeSwitcher from '../components/ThemeSwitcher.astro';
+import GlassCard from '../components/GlassCard.astro';
+---
+
+<BaseLayout title="九溪 · 设置与数据" description="主题、偏好与数据管理">
+  <header class="page-head">
+    <h2>设置与数据</h2>
+    <p>所有设置仅保存在本机浏览器</p>
+  </header>
+
+  <GlassCard class="set-card">
+    <h3>主题</h3>
+    <ThemeSwitcher />
+  </GlassCard>
+
+  <GlassCard class="set-card">
+    <h3>外观</h3>
+    <label class="set-row">
+      <span>降低动效</span>
+      <input type="checkbox" id="reduce-motion" />
+    </label>
+    <label class="set-row">
+      <span>磨砂强度 <em id="blur-val">16px</em></span>
+      <input type="range" id="glass-blur" min="4" max="30" step="1" value="16" />
+    </label>
+  </GlassCard>
+
+  <GlassCard class="set-card">
+    <h3>数据</h3>
+    <div class="set-row">
+      <span>导出设置与收藏</span>
+      <button class="glass-btn" id="export-btn" type="button">导出 JSON</button>
+    </div>
+    <div class="set-row">
+      <span>导入 JSON</span>
+      <input type="file" id="import-file" accept="application/json" />
+    </div>
+    <div class="set-row">
+      <span>清除资讯缓存</span>
+      <button class="glass-btn" id="clear-btn" type="button">清除</button>
+    </div>
+  </GlassCard>
+
+  <GlassCard class="set-card">
+    <h3>我的收藏</h3>
+    <ul id="fav-list" class="fav-list"></ul>
+    <p id="fav-empty" class="muted">暂无收藏。在资讯卡片右上角点 ♥ 即可收藏。</p>
+  </GlassCard>
+
+  <p id="set-toast" class="set-toast"></p>
+</BaseLayout>
+
+<script>
+  import {
+    getSettings,
+    saveSettings,
+    applySettings,
+    exportData,
+    importData,
+    clearCaches,
+    getFavorites,
+  } from '../lib/store';
+
+  const esc = (s: string) =>
+    (s || '').replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
+    );
+
+  const settings = getSettings();
+  const reduce = document.getElementById('reduce-motion') as HTMLInputElement | null;
+  const blur = document.getElementById('glass-blur') as HTMLInputElement | null;
+  const blurVal = document.getElementById('blur-val');
+  const toast = document.getElementById('set-toast');
+
+  if (reduce) reduce.checked = settings.reduceMotion;
+  if (blur) blur.value = String(settings.glassBlur);
+  if (blurVal) blurVal.textContent = settings.glassBlur + 'px';
+  applySettings(settings);
+
+  function showToast(msg: string) {
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    setTimeout(() => {
+      if (toast) toast.style.opacity = '0';
+    }, 2200);
+  }
+
+  reduce?.addEventListener('change', () => {
+    const s = getSettings();
+    s.reduceMotion = !!reduce.checked;
+    saveSettings(s);
+    applySettings(s);
+  });
+  blur?.addEventListener('input', () => {
+    const v = Number(blur.value);
+    if (blurVal) blurVal.textContent = v + 'px';
+    const s = getSettings();
+    s.glassBlur = v;
+    saveSettings(s);
+    applySettings(s);
+  });
+
+  document.getElementById('export-btn')?.addEventListener('click', () => {
+    const blob = new Blob([exportData()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'jiuxi-data.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('已导出 jiuxi-data.json');
+  });
+
+  document.getElementById('import-file')?.addEventListener('change', (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const ok = importData(String(reader.result));
+      if (ok) {
+        const s = getSettings();
+        if (reduce) reduce.checked = s.reduceMotion;
+        if (blur) blur.value = String(s.glassBlur);
+        if (blurVal) blurVal.textContent = s.glassBlur + 'px';
+        applySettings(s);
+        renderFavs();
+        showToast('导入成功');
+      } else {
+        showToast('导入失败：文件格式不正确');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById('clear-btn')?.addEventListener('click', () => {
+    clearCaches();
+    showToast('资讯缓存已清除，下次访问将重新抓取');
+  });
+
+  function renderFavs() {
+    const list = document.getElementById('fav-list');
+    const empty = document.getElementById('fav-empty');
+    if (!list) return;
+    const favs = getFavorites();
+    list.innerHTML = favs
+      .map((l) => `<li><a href="${esc(l)}" target="_blank" rel="noopener">${esc(l)}</a></li>`)
+      .join('');
+    if (empty) empty.style.display = favs.length ? 'none' : 'block';
+  }
+  renderFavs();
+</script>
+
+<style>
+  .set-card {
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+  .set-card h3 {
+    margin: 0 0 12px;
+    font-size: 1.15rem;
+  }
+  .set-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+  }
+  .set-row span {
+    font-size: 0.95rem;
+  }
+  #blur-val {
+    font-style: normal;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+  }
+  .fav-list {
+    margin: 0;
+    padding-left: 18px;
+  }
+  .fav-list li {
+    margin: 4px 0;
+    word-break: break-all;
+  }
+  .fav-list a {
+    color: var(--accent);
+    font-size: 0.85rem;
+  }
+  .muted {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .set-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    color: var(--text-strong);
+    padding: 10px 18px;
+    border-radius: 14px;
+    box-shadow: var(--glass-shadow);
+    opacity: 0;
+    transition: opacity 0.3s;
+    border: 1px solid var(--glass-border);
+    font-size: 0.9rem;
+  }
+</style>

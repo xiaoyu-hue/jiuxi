@@ -22,7 +22,7 @@ const { section, title, description = '' } = Astro.props;
 </BaseLayout>
 
 <script>
-  import { loadFeed, renderItems } from '../lib/feeds';
+  import { loadFeed, renderItems, wireFavorites } from '../lib/feeds';
 
   document.querySelectorAll<HTMLElement>('.feed-grid').forEach(async (el) => {
     const section = el.dataset.section as any;
@@ -34,6 +34,7 @@ const { section, title, description = '' } = Astro.props;
         return;
       }
       renderItems(el, items);
+      wireFavorites(el);
       if (status) status.textContent = `已更新 · ${new Date().toLocaleString('zh-CN')}`;
     } catch {
       if (status) status.textContent = '加载失败，稍后重试';

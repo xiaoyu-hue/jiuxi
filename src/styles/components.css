@@ -52,6 +52,30 @@
   overflow: hidden;
 }
 
+/* 资讯卡收藏按钮 */
+.fav-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent-soft);
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: transform 0.15s, color 0.2s;
+}
+.feed-card {
+  position: relative;
+}
+.fav-btn.active {
+  color: #ff5b7f;
+  transform: scale(1.1);
+}
+
 /* ── 通用页面标题 ── */
 .page-head {
   margin: 20px 0 16px;

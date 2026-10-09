@@ -7,6 +7,8 @@
 //
 // 安全：所有外部文本在渲染前都经 HTML 转义，避免 XSS。
 
+import { isFavorite, toggleFavorite } from './store';
+
 export type Section = 'ai' | 'news' | 'tech' | 'gaming';
 
 export interface FeedItem {
@@ -198,10 +200,24 @@ export function renderItems(container: HTMLElement, items: FeedItem[]): void {
     .map(
       (it) => `
     <a class="glass feed-card" href="${escapeHtml(it.link)}" target="_blank" rel="noopener noreferrer">
+      <button class="fav-btn${isFavorite(it.link) ? ' active' : ''}" data-link="${escapeHtml(it.link)}" type="button" aria-label="收藏">♥</button>
       <h3>${escapeHtml(it.title)}</h3>
       <p class="feed-meta">${escapeHtml(it.source || '未知来源')} · ${escapeHtml(formatDate(it.pubDate))}</p>
       ${it.snippet ? `<p class="feed-snippet">${escapeHtml(it.snippet)}</p>` : ''}
     </a>`,
     )
     .join('');
+}
+
+/** 为已渲染的资讯卡绑定收藏按钮 */
+export function wireFavorites(container: HTMLElement): void {
+  container.querySelectorAll<HTMLButtonElement>('.fav-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const link = btn.dataset.link || '';
+      const nowFav = toggleFavorite(link);
+      btn.classList.toggle('active', nowFav);
+    });
+  });
 }
