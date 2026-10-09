@@ -102,7 +102,7 @@ jobs:
         # secrets 上下文不能用于 if 条件（会导致 workflow 解析失败/红叉），
         # 此处仅在 run 内比较布尔结果并以 output 暴露，不会泄露 token 内容。
         run: echo "has-token=${{ secrets.CLOUDFLARE_API_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         if: steps.check.outputs.has-token == 'true'
         with:
           name: cf-dist
