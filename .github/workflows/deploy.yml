@@ -1,7 +1,8 @@
 # 九溪 · 双站部署
 # 主站：Cloudflare Pages（需仓库 Secrets: CLOUDFLARE_API_TOKEN、CLOUDFLARE_ACCOUNT_ID）
-# 备用：GitHub Pages（仓库 Settings → Pages → Source 选 "GitHub Actions"）
-# 两步相互独立：任一失败不影响另一。
+# 备用：GitHub Pages（已在仓库 Settings 开启，Source=GitHub Actions）
+# 两个站点 base 路径不同：GitHub Pages 用 /jiuxi/，Cloudflare 用 /，故各自独立构建。
+# 任一失败不影响另一。
 
 name: Deploy 九溪（双站）
 
@@ -20,7 +21,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  # ── GitHub Pages 构建（base=/jiuxi/）──
+  build-pages:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,18 +32,30 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      # GitHub Pages 用
+        env:
+          SITE_BASE: /jiuxi/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-      # Cloudflare 用（独立 artifact）
+
+  # ── Cloudflare 构建（base=/）──
+  build-cloudflare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build   # 默认 SITE_BASE=/（见 astro.config.mjs）
       - uses: actions/upload-artifact@v4
         with:
           name: cf-dist
           path: dist
 
   deploy-github-pages:
-    needs: build
+    needs: build-pages
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -49,11 +63,10 @@ jobs:
     steps:
       - id: deployment
         name: Deploy to GitHub Pages
-        # Pages 已在仓库 Settings 开启（Source=GitHub Actions），此步正常成功
         uses: actions/deploy-pages@v4
 
   deploy-cloudflare:
-    needs: build
+    needs: build-cloudflare
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -62,7 +75,7 @@ jobs:
           path: dist
       - name: Deploy to Cloudflare Pages
         # 未配置 Cloudflare Secrets 时此步失败也记为绿（黄警告），不出现红叉；
-        # 配置就绪后此步成功，自动真正部署到 Cloudflare Pages（详见 README 部署章节）。
+        # 配置就绪后此步成功，自动真正部署到 Cloudflare Pages。
         continue-on-error: true
         uses: cloudflare/wrangler-action@v3
         with:

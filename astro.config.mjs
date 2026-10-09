@@ -1,14 +1,13 @@
 import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
 
-// 九溪站点配置
-// base：站点在域名下的子路径。
-//   - GitHub Pages 项目站点固定为 https://<用户名>.github.io/<仓库名>/，
-//     所以 base 必须设为 /jiuxi/，否则 CSS/JS/图片会因路径错误而 404。
-//   - 若日后改用 Cloudflare Pages 并绑定自定义域名（根路径），需把 base 改回 '/'。
+// base：站点在域名下的子路径，可由环境变量 SITE_BASE 覆盖（默认根路径，方便本地开发）。
+//   - 本地开发 / Cloudflare Pages（根路径或自定义域名）：base = '/'（SITE_BASE 留空）
+//   - GitHub Pages 项目站点固定为 https://<用户名>.github.io/<仓库名>/：
+//     构建时注入 SITE_BASE=/jiuxi/（见 .github/workflows/deploy.yml 的 build-pages job）
 export default defineConfig({
   site: 'https://xiaoyu-hue.github.io',
-  base: '/jiuxi/',
+  base: process.env.SITE_BASE || '/',
   // 输出为静态站点（默认 'static'），无需任何服务器
   output: 'static',
   vite: {
