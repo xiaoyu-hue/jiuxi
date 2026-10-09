@@ -1,0 +1,194 @@
+# 九溪（JiuXi）· 技术调研报告
+
+> 调研目的：在「不会后端、目前只用手机、最终推送 GitHub」的约束下，为「九溪——综合信息聚集地」找到**最省心、可长期维护、能支撑多板块 + 液态玻璃视觉 + 多主题 + 实时更新**的开源技术组合，并补充板块规划。
+> 调研方式：2026‑10‑09 全网检索（GitHub 开源项目、开源 Skill 技能、开源技术栈、公开数据源），结论均来自可访问的真实项目与文档。
+
+---
+
+## 一、核心约束与结论速览
+
+| 约束 | 对你意味着什么 | 调研结论 |
+|---|---|---|
+| 不会后端 | 不能自己写/运维服务器、数据库 | 选**纯静态站点 + 可选无服务器函数（Serverless）**，不碰传统后端 |
+| 只有手机 | 大部分时间在手机上操作 | 内容用 **GitHub 仓库里的 Markdown/JSON** 存储，手机浏览器即可编辑；部署交给 GitHub Actions 自动完成 |
+| 推 GitHub | 代码进 Git 仓库 | 用 Astro 这类「源码进仓库、自动构建出静态站」的框架最顺 |
+| 实时更新 | 新闻/时间线要常新 | 动态内容走**浏览器端实时抓取 + 本地缓存**；时间线走「仓库数据 + 定时重建」 |
+| 液态玻璃 + 多主题 | 视觉是重点 | 已有成熟开源液态玻璃组件库可直接借鉴；多主题用 **CSS 变量 + data‑theme** 实现 |
+
+**一句话推荐组合**：`Astro（静态生成） + Tailwind CSS 4（样式） + 自研液态玻璃组件 + Cloudflare Pages（托管/可选函数代理） + GitHub Actions（自动部署） + 仓库内 Markdown/JSON（内容） + 浏览器端抓取（新闻实时）`。
+
+---
+
+## 二、建站技术栈调研
+
+### 2.1 静态站点生成器（SSG）对比
+
+| 框架 | 特点 | 适合你吗 | 备注 |
+|---|---|---|---|
+| **Astro** | 内容优先、默认零 JS、构建快、Content Collections（内容集合）+ MDX、生态现代 | ✅ **首选** | 最适合「信息聚合 + 多板块 + 内容策展」，中文资料也多 |
+| Hugo | 构建极快（万页秒级）、Go 模板 | ⚠️ 模板语法偏硬核 | 内容极多时更强，但上手成本高于 Astro |
+| Hexo | Node 生态、中文主题多 | ✅ 备选 | 纯博客向，定制液态玻璃需自己写 |
+| Jekyll | GitHub Pages 原生、最简单 | ⚠️ 视觉定制弱 | NHLOCAL/AiTimeline 即用 Jekyll |
+| Next.js / Vite | 交互强但偏重 | ❌ 过度 | 你不需要重前端框架 |
+
+> 结论：**Astro 在「内容站点 + 性能 + 现代开发体验 + 易部署」上最均衡**，且天然支持把数据当「内容集合」管理——非常契合九溪「AI 时间线、读书推荐」这类策展内容。
+
+### 2.2 托管平台对比
+
+| 平台 | 免费额度 | 是否需要后端知识 | 适合九溪的点 | 风险 |
+|---|---|---|---|---|
+| **Cloudflare Pages** | 无限带宽/请求、500 次构建/月、100 自定义域名、自带 DDoS/SSL | 否（连 GitHub 即推即部署） | 全球 CDN 快、**可挂 Pages Functions 做 CORS 代理与定时任务**、实时更新友好 | 需注册 Cloudflare 账号（免费） |
+| **GitHub Pages** | 无限静态站、100GB/月带宽、1GB 仓库 | 否（push 即上线） | 最简单、与 GitHub 一体 | 无函数能力、亚洲节点慢、需第三方代理解决 CORS |
+| Vercel | 100GB/月、Hobby 仅个人非商用 | 否 | 体验丝滑 | Hobby 禁止商用 |
+| Netlify | 100GB/月、表单/函数 | 否 | 表单方便 | 免费额度偏紧 |
+
+> 结论：**主推 Cloudflare Pages**（带宽无限、可做无服务器代理实现真正的实时聚合与定时刷新）；**GitHub Pages 作为零配置备选**。两者都能「连 GitHub 仓库 → push → 自动上线」。
+
+### 2.3 无服务器（Serverless）作为「伪后端」
+
+- **Cloudflare Pages Functions（基于 Workers）**：可在仓库 `functions/` 目录写 TS/JS，实现：
+  - **CORS 代理**：替浏览器去抓任意 RSS / 新闻 API，规避跨域限制（这是纯 GitHub Pages 做不到的）。
+  - **定时任务（Cron）**：每小时/每天自动重建站点或刷新缓存，支撑「实时更新」。
+  - **表单/留言**：若以后要「投稿」「订阅」可在此实现，无需自建服务器。
+- 免费额度：100,000 次请求/天，对个人站点绰绰有余。
+- 关键点：这仍属于「无后端」——你**不管理服务器**，Cloudflare 自动跑。
+
+---
+
+## 三、视觉体系调研（液态玻璃 + 多主题）
+
+### 3.1 液态玻璃开源实现（可直接借鉴）
+
+| 项目 | 技术 | 亮点 | 链接 |
+|---|---|---|---|
+| **nikdelvin/liquid‑glass** | 纯 CSS + SVG 滤镜（feDisplacementMap），Astro 项目 | 像素级还原 iOS 26 液态玻璃，含容器/文字/按钮组件，Safari 自动降级为毛玻璃 | https://github.com/nikdelvin/liquid-glass |
+| **liquid‑glass‑framework**（Oliver） | 纯 CSS + JS，零依赖 | 玻璃组件 + 明/暗主题 + 强调色 + 响应式栅格 | https://github.com/javascript2025course-Oliver/liquid-glass-framework |
+| **GlassBlog** | Astro 5 + Tailwind 4 | 现成毛玻璃博客主题，含明/暗 | https://github.com/XIYUEKONGLING/GlassBlog |
+| **Astro Haze** | Astro 7 主题 | 玻璃 UI 系统 + 明/暗 + SEO/RSS/MDX | https://astro.build/themes/details/astro-haze/ |
+| **Airy Personal Page** | Astro + Preact | Bento 栅格 + 玻璃拟态 + 暖色极简 | https://preview.astro.build/themes/details/airy-personal-page |
+
+> 结论：液态玻璃本质 = `backdrop-filter: blur()` + 半透明层 + 高光/阴影 +（进阶）SVG 位移滤镜。建议**以 nikdelvin 的 SVG 滤镜思路为参考，自研一组轻量 GlassCard / GlassPanel 组件**，避免引入过重依赖；Safari 等不支持时自动降级为普通毛玻璃。
+
+### 3.2 多主题切换方案（已验证）
+
+- 机制：**CSS 变量（`--color-bg` 等语义令牌）定义在 `:root`，用 `[data-theme="xxx"]` 覆盖**；JS 切换 `document.documentElement.dataset.theme` 并写入 `localStorage`。
+- 防闪烁：在 `<head>` 内联一小段脚本，在首屏绘制前应用已保存主题。
+- 支持「跟随系统（`prefers-color-scheme`）/ 明 / 暗 / 自定义多套」。
+- 可扩展多套预设主题（如：晨曦、午夜、极光、樱粉、墨黑…），用户自由切换——完全满足你「多种主题选择」的需求。
+
+---
+
+## 四、内容数据源调研（AI / 新闻 / 科技 / 游戏 / 读书）
+
+### 4.1 免 Key、可前端直连的数据源
+
+| 数据源 | 内容 | 是否需 Key | CORS 友好 | 说明 |
+|---|---|---|---|---|
+| **Google News RSS** | 任意关键词最新 100 条（`news.google.com/rss/search?q=...`） | 否 | 是（公开 RSS） | 覆盖全品类，按关键词抓 AI/科技/游戏 |
+| **freenewsapi.ai** | AI News Feed 等，JSON/RSS/JSON Feed | 否 | 是 | 专为 AI 新闻设计，每小时刷新 |
+| **PluseNews 模式** | Guardian / HN / Reddit 公开 API，浏览器直连 | 否 | 是 | 证明「纯前端聚合」可行，无服务器 |
+| **Hacker News API**（Algolia） | 科技/AI 实时帖 | 否 | 是 | 技术圈风向标 |
+| **GitHub Trending / RSS** | 开发热点 | 否 | 需代理 | 可走 CF 函数 |
+
+> 结论：新闻类（热点、科技、游戏、AI）可**在浏览器端实时抓取上述公开源并本地缓存 15 分钟**，无需后端；中文源建议混合 Google News RSS（指定 `hl=zh-CN`）保证中文覆盖。
+
+### 4.2 RSS / Feed 解析库（前端）
+
+| 库 | 特点 |
+|---|---|
+| **vanilla‑rss** | 纯 JS，易用，支持 limit/排序/模板，社区成熟 |
+| **nanofeed** | 极简、无依赖、异步、多源 |
+| **pulse‑feed‑parser** | 浏览器端 RSS/Atom/JSON 解析，TypeScript、类型安全 |
+| **rss2json / allorigins** | 第三方代理，把任意 RSS 转 JSON（GitHub Pages 方案下的兜底） |
+
+### 4.3 AI 发展时间线数据源
+
+- **NHLOCAL/AiTimeline**（https://github.com/NHLOCAL/AiTimeline）：Jekyll 静态站，数据即 `_data/timeline.md`，**改一个文件即可增删事件**，GitHub Actions 自动转 YAML→构建→部署。你的「AI 发展时间线」可直接借鉴此「单文件数据源 + 自动部署」模式。
+- **patnir411/ai‑timeline**、**Joko2005/Machine‑Learning‑Timeline**：交互式时间线（年代导航、筛选、明暗、搜索），可作为视觉与交互参考。
+- 「实时更新」实现：时间线主体为**策展数据（仓库内 Markdown/JSON）**，辅以 CF Cron 定时拉取 AI 新闻源自动追加「近期里程碑」。
+
+---
+
+## 五、可借鉴的开源项目（信息聚合 / 门户 / 仪表盘）
+
+| 项目 | 借鉴点 |
+|---|---|
+| **Glance**（glanceapp/glance） | 轻量自托管仪表盘，RSS/Reddit/HN/天气/YouTube 等 widget，单一 YAML 配置，**极适合做九溪「首页聚合卡片」的架构范本** |
+| **NHLOCAL/AiTimeline** | 时间线单文件数据源 + 自动部署，直接复用模式 |
+| **Daily‑Dashboard‑HTML** | 纯前端聚合（天气/新闻/股票/书签），玻璃拟态卡片，**证明无后端可做漂亮仪表盘** |
+| **Personal‑news‑app**（Next.js） | 分类内容流 + 收藏 + 趋势 + 暗色 + 多语言，功能结构可参考 |
+| **personal‑dashboard**（Pamir‑AI） | 多源聚合 + 6 套主题 + cron 自动更新（但它用了 Flask 后端，你不需要） |
+
+> 核心借鉴：**Glance 的「widget 化板块」+ AiTimeline 的「单文件数据源」+ Daily‑Dashboard 的「玻璃卡片视觉」**。
+
+---
+
+## 六、开源 Skill / 代理技能调研（降低你的操作门槛）
+
+> 你用 AI Agent 制作，下列开源 Skill 能让 Agent 直接帮你部署，省去手敲命令。
+
+| Skill | 作用 | 适合九溪 |
+|---|---|---|
+| **github‑pages**（社区） | 开启 Pages、生成 GitHub Actions 工作流、配置自定义域名 | ✅ 若选 GitHub Pages |
+| **cloudflare**（官方/社区） | 部署 Workers/Pages、配置 Wrangler、KV/D1/R2 | ✅ 若选 Cloudflare Pages |
+| **publishing‑astro‑websites**（社区） | 脚手架生成 Astro 站点（内容集合/搜索/i18n）并部署到多平台 | ✅ 与 Astro 主栈契合 |
+| **Cloudflare Skills**（https://github.com/cloudflare/skills） | 官方 8 个技能包（Workers/Pages/KV/D1/AI 等），让 Agent 会部署与管资源 | ✅ 进阶可用 |
+| **Skill MarketPlace**（dukelyuu/skills‑marketplace） | 代理技能市场，可检索/复用他人技能 | ⚠️ 参考生态 |
+
+> 结论：部署环节**不靠你手动操作**，而是由 Agent 借助上述 Skill 自动完成。你只需在 GitHub 上做「内容编辑 + 推送」。
+
+---
+
+## 七、板块补充建议（在你说的基础上）
+
+你已列：AI、热点新闻、科技、游戏娱乐、读书阅读推荐、设置与数据、AI 发展时间线。
+按「AI 为主、热点为辅、其它次辅」的层级，建议补充分层如下（可增删）：
+
+**核心层（Tier 1）**
+- **AI 板块**（主引擎）：模型动态、工具、论文、行业资讯。
+
+**辅助层（Tier 2）**
+- 热点新闻、科技、AI 发展时间线（你已定）。
+
+**次辅层（Tier 3，按需开启）**
+- **AI 工具箱**：精选 AI 工具/产品导航（很贴合「AI 为主」）。
+- 影视音乐、财经市场、学习课程、设计美学、体育、编程开发者、生活日常、幽默梗图。
+
+**系统层（Tier 4）**
+- 设置与数据（你已定）、**我的收藏/书签**、**关于九溪**。
+
+> 建议首版先做「核心 + 辅助 + AI 工具箱 + 读书 + 游戏 + 设置数据 + 时间线 + 关于」，其余板块以「模块化开关」预留，日后一键开启。
+
+---
+
+## 八、最终推荐架构（概览，详细见实施计划）
+
+```
+九溪
+├─ 内容数据：仓库内 Markdown/JSON（手机可改）  ← 时间线/读书/工具箱
+├─ 动态数据：浏览器端实时抓取公开源 + 本地缓存   ← 新闻/科技/游戏/AI
+├─ 前端：Astro + Tailwind + 自研 Glass 组件 + CSS 变量多主题
+├─ 可选代理：Cloudflare Pages Functions（CORS 代理 + 定时刷新）
+└─ 部署：GitHub Actions → Cloudflare Pages / GitHub Pages（自动上线）
+```
+
+---
+
+## 九、参考来源（真实可查）
+
+- Astro 官方：https://astro.build
+- Cloudflare Pages：https://pages.cloudflare.com
+- 液态玻璃组件 nikdelvin/liquid‑glass：https://github.com/nikdelvin/liquid-glass
+- GlassBlog（Astro 毛玻璃主题）：https://github.com/XIYUEKONGLING/GlassBlog
+- Astro Haze 主题：https://astro.build/themes/details/astro-haze/
+- Glance 仪表盘：https://github.com/glanceapp/glance
+- NHLOCAL/AiTimeline：https://github.com/NHLOCAL/AiTimeline
+- Daily‑Dashboard‑HTML：https://github.com/aaravriyer193/Daily-Dashboard-HTML
+- Google News RSS 用法、freenewsapi.ai、PluseNews（https://plusenews.com/about）
+- RSS 解析：vanilla‑rss / nanofeed / pulse‑feed‑parser
+- 部署 Skill：github‑pages、cloudflare、publishing‑astro‑websites；Cloudflare Skills：https://github.com/cloudflare/skills
+- 多主题方案参考：Stellae / TideWave 的 CSS 变量主题指南
+
+---
+
+*（调研报告完。下一份为 PRD 产品需求文档。）*

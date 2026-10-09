@@ -1,0 +1,257 @@
+# 九溪（JiuXi）· 详细实施计划（待确认）
+
+> 本文是**架构与执行细节**，在你确认前**不会开始写代码**。
+> 配套：调研报告、PRD。技术结论均来自调研报告。
+
+---
+
+## 0. 总体架构（文字架构图）
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                        访客浏览器                          │
+│   九溪站点（静态 HTML/CSS/JS）                               │
+│   ├─ 玻璃组件（GlassCard/Panel/Button）                     │
+│   ├─ 多主题（CSS 变量 + data-theme）                         │
+│   └─ 客户端脚本：主题切换 / 数据抓取 / 缓存 / 时间线交互      │
+└───────────┬───────────────────────────┬──────────────────┘
+            │ 运行时实时抓取              │ 编辑内容
+            ▼                            ▼
+   ┌─────────────────┐          ┌────────────────────┐
+   │ 公开数据源        │          │ GitHub 仓库         │
+   │ (Google News RSS │          │ ・源码(Astro)       │
+   │  freenewsapi/HN) │          │ ・内容(MD/JSON)     │
+   └─────────────────┘          └─────────┬──────────┘
+            │ 若遇 CORS                    │ push
+            ▼                              ▼
+   ┌─────────────────┐          ┌────────────────────┐
+   │ Cloudflare      │          │ GitHub Actions     │
+   │ Pages Functions │          │ 构建 → 部署         │
+   │ (CORS 代理/定时) │          └─────────┬──────────┘
+   └─────────────────┘                    ▼
+                                  ┌────────────────────┐
+                                  │ Cloudflare Pages   │
+                                  │ 或 GitHub Pages    │
+                                  │ （全球 CDN 上线）   │
+                                  └────────────────────┘
+```
+
+**数据流两类**
+1. **动态流（新闻/科技/游戏/AI）**：浏览器端实时抓取公开源 → 本地缓存 15 分钟 → 渲染。无需重建。
+2. **策展流（时间线/工具箱/读书）**：你改 GitHub 仓库里的数据文件 → 推送 → GitHub Actions 自动重建部署 → 上线。
+
+---
+
+## 1. 技术选型与理由
+
+| 层 | 选型 | 理由（简要） |
+|---|---|---|
+| 站点框架 | **Astro 5** | 内容优先、零 JS 默认、Content Collections 管理策展数据、易部署 |
+| 样式 | **Tailwind CSS 4** + 自研玻璃 CSS | 原子化高效；玻璃效果用原生 `backdrop-filter` + SVG 滤镜 |
+| 玻璃组件 | 自研（参考 nikdelvin/liquid‑glass） | 轻量、可控、Safari 降级；不绑定重依赖 |
+| 主题 | CSS 变量 + `data-theme` + localStorage | 运行时切换、防闪烁、可扩多套 |
+| 托管 | **Cloudflare Pages**（主）/ GitHub Pages（备） | 免费、无限带宽、可做函数代理与定时任务 |
+| 无服务器 | Cloudflare Pages Functions（可选） | CORS 代理 + Cron 刷新，仍属「无后端」 |
+| CI/CD | GitHub Actions | push 即构建部署 |
+| 内容 | 仓库内 Markdown/JSON | 手机浏览器即可编辑，零运维 |
+| 部署技能 | github‑pages / cloudflare / publishing‑astro‑websites | Agent 自动部署，你少动手 |
+
+---
+
+## 2. 目录结构（草案）
+
+```
+jiuxi/
+├─ src/
+│  ├─ components/           # 可复用组件
+│  │  ├─ GlassCard.astro
+│  │  ├─ GlassPanel.astro
+│  │  ├─ GlassButton.astro
+│  │  ├─ SiteNav.astro       # 导航（含主题切换器）
+│  │  ├─ ThemeSwitcher.astro
+│  │  ├─ FeedCard.astro      # 动态资讯卡
+│  │  └─ TimelineItem.astro
+│  ├─ layouts/
+│  │  └─ BaseLayout.astro    # 液态玻璃外壳 + head 防闪烁脚本
+│  ├─ pages/
+│  │  ├─ index.astro         # 首页聚合
+│  │  ├─ ai.astro
+│  │  ├─ news.astro
+│  │  ├─ tech.astro
+│  │  ├─ gaming.astro
+│  │  ├─ timeline.astro
+│  │  ├─ tools.astro         # AI 工具箱
+│  │  ├─ reading.astro
+│  │  ├─ settings.astro
+│  │  └─ about.astro
+│  ├─ content/               # Astro Content Collections（策展数据）
+│  │  ├─ timeline/           # AI 时间线 .md
+│  │  ├─ tools/              # 工具箱 .md
+│  │  └─ reading/            # 读书 .md
+│  ├─ styles/
+│  │  ├─ glass.css           # 液态玻璃效果
+│  │  └─ themes.css          # 多套主题 CSS 变量
+│  ├─ lib/
+│  │  ├─ theme.ts            # 主题管理
+│  │  ├─ feeds.ts            # 数据源适配 + 缓存
+│  │  └─ store.ts            # 本地收藏/数据
+│  └─ scripts/               # 客户端脚本（抓取/交互）
+├─ functions/                # Cloudflare Pages Functions（可选）
+│  ├─ api/news.ts            # CORS 代理
+│  └─ api/rss.ts
+├─ public/                   # 静态资源（图标/壁纸）
+├─ .github/workflows/
+│  └─ deploy.yml             # 构建 + 部署
+├─ astro.config.mjs
+├─ tailwind.config.ts
+├─ package.json
+├─ wrangler.toml             # 仅 Cloudflare 方案需要
+└─ README.md                 # 使用/编辑/部署说明
+```
+
+---
+
+## 3. 分阶段实施（每阶段可验证）
+
+> 节奏：**每阶段交付一个可运行最小版本**，你确认后再进下一阶段。
+
+### Phase 0 · 工程初始化
+- 初始化 Astro + Tailwind；配置 `astro.config.mjs`、Tailwind、基础布局。
+- 写 README（含本地运行、编辑内容、部署步骤）。
+- **验证**：`npm run build` 通过，本地预览出空白玻璃外壳。
+
+### Phase 1 · 视觉系统与主题
+- 实现 `glass.css`（玻璃材质 + Safari 降级）、`themes.css`（≥4 套主题变量）。
+- 实现 `BaseLayout` + `ThemeSwitcher` + 防闪烁内联脚本 + localStorage 记忆。
+- **验证**：切换主题即时生效、刷新不闪、移动端正常。
+
+### Phase 2 · 导航与首页聚合
+- `SiteNav`（移动优先，桌面增强）+ 首页 Bento 卡片壳。
+- **验证**：导航在各板块间跳转，首页布局美观响应式。
+
+### Phase 3 · 动态资讯板块（AI/新闻/科技/游戏）
+- `feeds.ts` 接入 Google News RSS（含 `hl=zh-CN`）、freenewsapi.ai、HN API。
+- `FeedCard` + 客户端抓取脚本 + 15 分钟缓存 + 失败兜底。
+- 分类/关键词切换（Should）。
+- **验证**：打开板块即见最新内容；断网/限流时显示缓存或提示。
+
+### Phase 4 · 策展板块（时间线/工具箱/读书）
+- Content Collections 定义 schema（Zod 校验）。
+- 时间线：年代分段 + 筛选 + 搜索 + 事件来源展开（借鉴 AiTimeline）。
+- 工具箱/读书：卡片/标签/外链。
+- 提供数据模板与示例，便于手机编辑。
+- **验证**：改一个数据文件 → 推送 → 自动上线；时间线可筛选搜索。
+
+### Phase 5 · 系统板块（设置与数据/关于）
+- 设置页：主题、动效开关、透明度、本地收藏/进度、导出导入 JSON、清缓存。
+- 关于页：项目说明、数据源致谢、友链。
+- **验证**：设置即时生效并持久；导出 JSON 可用；关于页信息完整。
+
+### Phase 6 · 部署上线
+- 配置 GitHub Actions + Cloudflare Pages（或 GitHub Pages）。
+- 接入部署 Skill（cloudflare / github‑pages）由 Agent 执行。
+- 可选：Pages Functions 代理 + Cron 定时刷新。
+- **验证**：push main → 自动构建部署 → 公网 URL 可访问；自定义域名（Should）。
+
+---
+
+## 4. 各板块实现要点
+
+- **首页聚合**：读各板块「精选」字段，渲染 Bento 卡片；实时卡走 Phase 3 的抓取器。
+- **AI/新闻/科技/游戏**：共用 `FeedCard` + `feeds.ts`，仅数据源配置不同；关键词在配置文件集中管理。
+- **AI 发展时间线**：数据用 Markdown  frontmatter（年份/月份/事件/类别/来源）；前端按年分组渲染；筛选用类别标签；搜索为客户端文本匹配。
+- **AI 工具箱**：数据含名称/链接/分类/简介；标签筛选。
+- **读书推荐**：含书名/作者/封面/短评/链接；卡片网格。
+- **设置与数据**：纯前端，读写 localStorage/IndexedDB；导出为 JSON 文件下载。
+
+---
+
+## 5. 主题系统设计细节
+
+- `themes.css` 中：` :root` 定义默认（明）令牌；`[data-theme="midnight"]`、`[data-theme="aurora"]`、`[data-theme="sakura"]` 等各自覆盖。
+- 令牌集：`--bg / --surface / --text / --text-muted / --accent / --border / --shadow / --radius / --glass-blur / --glass-opacity`。
+- `theme.ts`：`applyTheme(name)` 写 `dataset.theme` + localStorage；初始化读系统偏好。
+- 防闪烁：`<head>` 内联脚本在 CSS 加载前应用已存主题。
+- 扩展：新增主题 = 在 `themes.css` 加一段 + 在切换器加一个选项，**无需改组件**。
+
+---
+
+## 6. 数据层设计细节
+
+- **策展数据**：Astro Content Collections（`src/content/*.json` 或 `.md`），用 Zod schema 校验，构建时类型安全。
+- **动态数据**：`feeds.ts` 维护「源 → 板块」映射；客户端 `fetch` + `sessionStorage/localStorage` 缓存（15 分钟）；多源并行 + 超时；失败回退缓存。
+- **用户数据**：`store.ts` 封装收藏/进度/偏好；优先 IndexedDB，退化到 localStorage。
+- **实时更新**：动态=运行时抓取；时间线=策展 +（可选）CF Cron 拉 AI 新闻自动追加。
+
+---
+
+## 7. 部署方案（二选一，建议 A）
+
+### 方案 A：Cloudflare Pages（推荐）
+- 仓库连 Cloudflare → push 自动部署；无限带宽、全球快。
+- `wrangler.toml` 定义项目；`functions/` 放 CORS 代理与 Cron。
+- GitHub Actions 用 `cloudflare/wrangler-action` + API Token（最小权限：仅 Pages Edit）。
+- 自定义域名（Should）。
+
+### 方案 B：GitHub Pages（最简/备用）
+- 仓库开 Pages + `deploy.yml`（actions/checkout + build + upload‑pages）。
+- 无函数能力；动态抓取依赖 CORS 友好源或 rss2json/allorigins 兜底。
+
+### 方案 C：双站部署（已确认采用）
+- **主站：Cloudflare Pages**（方案 A）—— 实时聚合、定时刷新、无限带宽、全球快。
+- **备用副站：GitHub Pages**（方案 B）—— 同一份静态构建产物直接部署，作为容灾/镜像；Cloudflare 不可用时仍可访问。
+- 实现：同一 `npm run build` 产物，分别由 `cloudflare/wrangler-action` 与 `actions/deploy-pages` 部署；CI 中两步相互独立，任一失败不影响另一。
+- 主站绑自定义域名，副站用默认 `*.github.io`（也可另绑域名）。
+
+> 三者都「push 即上线」，你无需管服务器。Agent 借助部署 Skill（cloudflare / github‑pages / publishing‑astro‑websites）完成配置。
+
+---
+
+## 8. 手机端协作流程（没电脑时怎么用）
+
+1. **看站点**：手机浏览器直接访问公网 URL。
+2. **改内容**（时间线/工具箱/读书）：手机浏览器登录 GitHub → 打开对应数据文件 → 点铅笔编辑 → 提交 → 自动上线。
+3. **大改动**（重构/批量）：留到新年电脑，或交由 Agent 在沙箱改后你推送。
+4. **部署**：推送即自动部署，你不用敲命令。
+
+---
+
+## 9. 验收标准（每阶段）
+
+- 构建零错误；移动端（≤390px）与桌面均可用。
+- 玻璃视觉正确渲染，Safari 降级正常。
+- 至少 4 套主题可切换、记忆、不闪。
+- 动态板块能拉到真实最新内容；失败有兜底。
+- 策展板块改文件即更新；时间线可筛选/搜索。
+- 设置与数据可持久、可导出。
+- 公网可访问，push 自动部署。
+
+---
+
+## 10. 风险与权衡（已识别）
+
+- **CORS**：Cloudflare 方案用函数代理根除；GitHub Pages 方案用第三方代理（隐私/稳定性弱于前者）。→ 推荐 A。
+- **公开源限流**：多源冗余 + 缓存 + 兜底。
+- **玻璃性能**：低端机提供「减少动效/降低透明度」开关。
+- **手机编辑大文件不便**：提供模板与示例，大改延后。
+
+---
+
+## 11. 已确认决策（2026‑10‑09，待最终开工确认）
+
+| # | 决策点 | 你的选择 |
+|---|---|---|
+| 1 | 托管方案 | **Cloudflare Pages 主站 + GitHub Pages 备用副站**（方案 C） |
+| 2 | 首版板块 | **PRD 3.1 十板块全做** |
+| 3 | 主题套数 | **4 套**：晨曦（明）/ 午夜（暗）/ 极光 / 樱粉 |
+| 4 | 动态抓取 | 主站用 Cloudflare 函数代理（方案 A 自带），副站用 CORS 友好源 + rss2json 兜底 |
+| 5 | 交付节奏 | **逐阶段确认**（Phase 0→6，每阶段交付可运行最小版本，你确认后再进下一阶段） |
+
+### 下一步
+- 你审阅三份文档（调研报告 / PRD / 实施计划）后，回复「开始」或「开始 Phase 0」。
+- 我将从 **Phase 0 · 工程初始化** 动手，交付一个能本地构建预览的空白液态玻璃骨架，再与你确认后推进 Phase 1。
+- 任何板块增减、主题配色、文案措辞，审阅时一并告诉我即可。
+
+---
+
+*（实施计划完。三份文档齐全且决策已回填：调研报告、PRD、实施计划。请审阅后确认，我再开始 Phase 0。）*

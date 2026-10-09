@@ -1,0 +1,30 @@
+# ── 依赖 ──
+node_modules/
+
+# ── 构建产物 ──
+dist/
+# Astro 缓存
+.astro/
+
+# ── 项目智能体数据（非交付物）──
+.codebuddy/
+
+# ── 日志 ──
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── 编辑器 / 系统 ──
+.DS_Store
+Thumbs.db
+*.swp
+
+# ── 环境变量（私密，勿提交）──
+.env
+.env.*
+!.env.example
+
+# ── 临时 / 本地 ──
+*.tmp
+.cache/
