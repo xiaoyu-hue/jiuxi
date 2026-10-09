@@ -1,0 +1,106 @@
+/* 九溪 · 多套主题令牌
+ *
+ * 通过 <html data-theme="..."> 切换。新增主题 = 复制一段 [data-theme="xxx"]
+ * 并改令牌值，再在 src/lib/theme.ts 的 THEMES 里加一项即可，组件无需改动。
+ *
+ * 令牌集：
+ *   --bg-from/via/to   背景渐变三停
+ *   --glass-*          玻璃材质（背景/边框/阴影/模糊/饱和）
+ *   --text-strong/muted 文字
+ *   --accent/soft      强调色
+ *   --radius           圆角
+ *   --surface/border   实色面板（非玻璃）
+ */
+
+/* 晨曦（明）默认 */
+:root,
+[data-theme="chenxi"] {
+  --bg-from: #a5c8ff;
+  --bg-via: #c9b6ff;
+  --bg-to: #ffd6e8;
+
+  --glass-bg: rgba(255, 255, 255, 0.38);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.18);
+  --glass-blur: 16px;
+  --glass-saturate: 160%;
+
+  --text-strong: #1f2540;
+  --text-muted: rgba(31, 37, 64, 0.62);
+
+  --accent: #4f7cff;
+  --accent-soft: rgba(79, 124, 255, 0.16);
+
+  --radius: 24px;
+  --surface: rgba(255, 255, 255, 0.72);
+  --border: rgba(255, 255, 255, 0.55);
+}
+
+/* 午夜（暗） */
+[data-theme="midnight"] {
+  --bg-from: #0b1026;
+  --bg-via: #161a3a;
+  --bg-to: #05060f;
+
+  --glass-bg: rgba(20, 24, 48, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --glass-blur: 18px;
+  --glass-saturate: 140%;
+
+  --text-strong: #eaf0ff;
+  --text-muted: rgba(234, 240, 255, 0.6);
+
+  --accent: #5ad1ff;
+  --accent-soft: rgba(90, 209, 255, 0.18);
+
+  --radius: 24px;
+  --surface: rgba(20, 24, 48, 0.72);
+  --border: rgba(255, 255, 255, 0.12);
+}
+
+/* 极光（暗，青绿紫） */
+[data-theme="aurora"] {
+  --bg-from: #04231f;
+  --bg-via: #072a3a;
+  --bg-to: #1a0b2e;
+
+  --glass-bg: rgba(10, 40, 40, 0.42);
+  --glass-border: rgba(120, 255, 210, 0.22);
+  --glass-shadow: 0 8px 32px rgba(0, 40, 40, 0.5);
+  --glass-blur: 18px;
+  --glass-saturate: 150%;
+
+  --text-strong: #e6fff6;
+  --text-muted: rgba(230, 255, 246, 0.62);
+
+  --accent: #38f5b0;
+  --accent-soft: rgba(56, 245, 176, 0.18);
+
+  --radius: 24px;
+  --surface: rgba(10, 40, 40, 0.72);
+  --border: rgba(120, 255, 210, 0.2);
+}
+
+/* 樱粉（明，粉紫） */
+[data-theme="sakura"] {
+  --bg-from: #ffd9e8;
+  --bg-via: #f3d6ff;
+  --bg-to: #ffe9d6;
+
+  --glass-bg: rgba(255, 255, 255, 0.42);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-shadow: 0 8px 32px rgba(180, 90, 140, 0.2);
+  --glass-blur: 16px;
+  --glass-saturate: 165%;
+
+  --text-strong: #4a2438;
+  --text-muted: rgba(74, 36, 56, 0.6);
+
+  --accent: #ff6fae;
+  --accent-soft: rgba(255, 111, 174, 0.16);
+
+  --radius: 24px;
+  --surface: rgba(255, 255, 255, 0.74);
+  --border: rgba(255, 255, 255, 0.55);
+}

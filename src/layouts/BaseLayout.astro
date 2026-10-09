@@ -1,9 +1,10 @@
 ---
-// 九溪 · 基础布局（液态玻璃外壳）
-// Phase 0：先提供「渐变背景 + 居中玻璃卡」的最简外壳；
-// Phase 1 将在此加入 <head> 防闪烁脚本、主题切换器、站点导航。
+// 九溪 · 基础布局（液态玻璃外壳 + 主题系统）
+// Phase 1：渐变背景、悬浮玻璃顶栏（含主题切换）、防闪烁内联脚本。
 import '../styles/global.css';
+import '../styles/themes.css';
 import '../styles/glass.css';
+import ThemeSwitcher from '../components/ThemeSwitcher.astro';
 
 interface Props {
   title?: string;
@@ -24,37 +25,78 @@ const {
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <!-- 防闪烁：CSS 加载前先按已存主题（或系统偏好）设置 data-theme -->
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem('jiuxi-theme');
+          if (!t) {
+            t = window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'midnight'
+              : 'chenxi';
+          }
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
-    <main class="jiuxi-shell">
-      <section class="glass jiuxi-card">
-        <slot />
-      </section>
+    <header class="site-header glass">
+      <a class="brand" href="/">九溪</a>
+      <ThemeSwitcher />
+    </header>
+    <main class="site-main">
+      <slot />
     </main>
+    <footer class="site-footer">九溪 · 综合信息聚集地</footer>
   </body>
 </html>
 
 <style>
   html,
   body {
-    height: 100%;
     margin: 0;
   }
-
-  .jiuxi-shell {
+  body {
     min-height: 100vh;
-    display: grid;
-    place-items: center;
-    padding: 24px;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
     background: linear-gradient(135deg, var(--bg-from), var(--bg-via) 50%, var(--bg-to));
-    font-family: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background-attachment: fixed;
     color: var(--text-strong);
+    font-family: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    transition: background 0.45s ease, color 0.45s ease;
   }
-
-  .jiuxi-card {
-    width: min(520px, 100%);
-    padding: 44px 32px;
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 12px;
+    padding: 10px 18px;
+  }
+  .brand {
+    font-weight: 800;
+    font-size: 1.3rem;
+    letter-spacing: 0.12em;
+    color: var(--text-strong);
+    text-decoration: none;
+  }
+  .site-main {
+    flex: 1;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 16px 32px;
+    box-sizing: border-box;
+  }
+  .site-footer {
     text-align: center;
+    padding: 20px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
   }
 </style>

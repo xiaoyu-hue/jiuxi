@@ -1,0 +1,68 @@
+---
+// 九溪 · 主题切换器（4 套主题圆点）
+import { THEMES } from '../lib/theme';
+---
+
+<div class="theme-switcher" role="group" aria-label="主题切换">
+  {
+    THEMES.map((t) => (
+      <button
+        type="button"
+        class="theme-dot"
+        data-theme-name={t.name}
+        title={t.label}
+        aria-label={`切换到${t.label}主题`}
+      />
+    ))
+  }
+</div>
+
+<script>
+  import { THEMES, applyTheme, getStoredTheme } from '../lib/theme';
+
+  const stored = getStoredTheme();
+  const dots = document.querySelectorAll<HTMLButtonElement>('.theme-dot');
+
+  dots.forEach((btn) => {
+    const name = btn.dataset.themeName as (typeof THEMES)[number]['name'];
+    if (name === stored) btn.classList.add('active');
+    btn.addEventListener('click', () => {
+      applyTheme(name);
+      dots.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+</script>
+
+<style>
+  .theme-switcher {
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .theme-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--glass-border);
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .theme-dot.active {
+    transform: scale(1.18);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .theme-dot[data-theme-name='chenxi'] {
+    background: linear-gradient(135deg, #a5c8ff, #ffd6e8);
+  }
+  .theme-dot[data-theme-name='midnight'] {
+    background: linear-gradient(135deg, #0b1026, #5ad1ff);
+  }
+  .theme-dot[data-theme-name='aurora'] {
+    background: linear-gradient(135deg, #04231f, #38f5b0);
+  }
+  .theme-dot[data-theme-name='sakura'] {
+    background: linear-gradient(135deg, #ffd9e8, #ff6fae);
+  }
+</style>

@@ -1,35 +1,9 @@
-/* 九溪 · 液态玻璃基础层（Phase 0 最小集，Phase 1 扩充为多套主题）
+/* 九溪 · 液态玻璃材质层
  *
- * 这里只定义：
- *   1) 默认（晨曦 / 明）背景与玻璃令牌 —— 让 Phase 0 预览即可见玻璃外壳；
- *   2) .glass 玻璃材质类 —— 用 backdrop-filter 实现毛玻璃，带 Safari 前缀兼容。
- *
- * 完整的多套主题变量（data-theme 切换）在 Phase 1 的 themes.css 中补充，
- * 届时新增主题只需加一段变量，无需改动组件。
+ * 只定义玻璃“材质”，所有颜色令牌来自 themes.css（按 data-theme 切换）。
+ * 主题切换时通过 transition 平滑过渡，避免突兀。
  */
 
-:root {
-  /* 默认背景渐变（晨曦 / 明） */
-  --bg-from: #a5c8ff;
-  --bg-via: #c9b6ff;
-  --bg-to: #ffd6e8;
-
-  /* 玻璃令牌 */
-  --glass-bg: rgba(255, 255, 255, 0.35);
-  --glass-border: rgba(255, 255, 255, 0.55);
-  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.18);
-  --glass-blur: 16px;
-  --glass-saturate: 160%;
-
-  /* 文字 */
-  --text-strong: #1f2540;
-  --text-muted: rgba(31, 37, 64, 0.62);
-
-  /* 形状 */
-  --radius: 24px;
-}
-
-/* 玻璃容器：毛玻璃材质 */
 .glass {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -37,4 +11,11 @@
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border-radius: var(--radius);
+  transition: background 0.45s ease, border-color 0.45s ease, box-shadow 0.45s ease;
+}
+
+/* 更强玻璃（用于主卡片/弹层） */
+.glass-strong {
+  --glass-blur: 22px;
+  --glass-saturate: 180%;
 }
