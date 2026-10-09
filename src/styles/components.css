@@ -1,0 +1,66 @@
+/* 九溪 · 共享组件样式（全局）
+ * 这些类名会被客户端脚本用 innerHTML 注入，因此必须全局生效，
+ * 不能用 Astro 作用域样式（作用域样式不会作用于动态注入的节点）。
+ */
+
+/* ── 动态资讯卡片 ── */
+.feed-head {
+  margin: 20px 0 16px;
+}
+.feed-head h2 {
+  margin: 0 0 4px;
+  font-size: 1.6rem;
+}
+.feed-status {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.feed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.feed-card {
+  display: block;
+  padding: 18px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.feed-card:hover {
+  transform: translateY(-3px);
+}
+.feed-card h3 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+.feed-meta {
+  margin: 0 0 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.feed-snippet {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── 通用页面标题 ── */
+.page-head {
+  margin: 20px 0 16px;
+}
+.page-head h2 {
+  margin: 0 0 4px;
+  font-size: 1.6rem;
+}
+.page-head p {
+  margin: 0;
+  color: var(--text-muted);
+}

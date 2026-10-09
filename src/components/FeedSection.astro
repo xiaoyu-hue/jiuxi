@@ -1,0 +1,42 @@
+---
+// 九溪 · 动态资讯板块（客户端实时抓取渲染）
+// 用法：<FeedSection section="ai" title="AI 板块" description="..." />
+import BaseLayout from '../layouts/BaseLayout.astro';
+import type { Section } from '../lib/feeds';
+
+interface Props {
+  section: Section;
+  title: string;
+  description?: string;
+}
+const { section, title, description = '' } = Astro.props;
+---
+
+<BaseLayout title={`九溪 · ${title}`} description={description}>
+  <header class="page-head">
+    <h2>{title}</h2>
+    <p>{description}</p>
+    <div class="feed-status" id={`status-${section}`}>正在加载最新资讯…</div>
+  </header>
+  <div class="feed-grid" id={`feed-${section}`} data-section={section}></div>
+</BaseLayout>
+
+<script>
+  import { loadFeed, renderItems } from '../lib/feeds';
+
+  document.querySelectorAll<HTMLElement>('.feed-grid').forEach(async (el) => {
+    const section = el.dataset.section as any;
+    const status = document.getElementById(`status-${section}`);
+    try {
+      const items = await loadFeed(section);
+      if (!items.length) {
+        if (status) status.textContent = '暂时无法获取资讯，请稍后重试或检查网络';
+        return;
+      }
+      renderItems(el, items);
+      if (status) status.textContent = `已更新 · ${new Date().toLocaleString('zh-CN')}`;
+    } catch {
+      if (status) status.textContent = '加载失败，稍后重试';
+    }
+  });
+</script>
