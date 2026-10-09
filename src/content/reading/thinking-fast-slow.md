@@ -1,8 +1,8 @@
 ---
-title: 思考，快与慢
-author: 丹尼尔·卡尼曼
-link: https://book.douban.com/subject/10785583/
+title: "思考，快与慢"
+author: "Daniel Kahneman"
 rating: 5
-tag: 思维
+tag: "思维"
 ---
-揭示人类两套思维系统，理解直觉与偏差，对理解 AI 与人类决策都极有帮助。
+
+诺贝尔经济学奖得主剖析人类两套思维系统，理解决策与偏见的好书。
