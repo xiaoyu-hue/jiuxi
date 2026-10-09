@@ -111,7 +111,7 @@ jobs:
         # 仅当配置了 Cloudflare Secrets 才部署；否则跳过（灰，不红叉）。
         # 配置就绪后若部署真失败，本步会如实变红，便于及时发现。
         if: steps.check.outputs.has-token == 'true'
-        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd  # v3
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0  # v4.1.3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
