@@ -9,6 +9,10 @@ name: Deploy 九溪（双站）
 on:
   push:
     branches: [main]
+  # PR 也跑质量门禁（类型检查 + 测试），避免“盲合并”：
+  # 之前仅 push main 触发，导致 PR 上完全看不到构建/测试结果。
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -16,8 +20,10 @@ permissions:
   pages: write
   id-token: write
 
+# 按「工作流 + 分支」隔离排队，PR 与主分支互不阻塞；
+# main 仍只有一个并发组，可防止 Pages 部署互相冲突。
 concurrency:
-  group: pages
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -38,6 +44,8 @@ jobs:
 
   # ── GitHub Pages 构建（base=/jiuxi/）──
   build-pages:
+    # 构建与部署只在推送到 main 时进行；PR 上仅跑上面的 quality 门禁，绝不触发部署。
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: quality
     runs-on: ubuntu-latest
     steps:
@@ -56,6 +64,7 @@ jobs:
 
   # ── Cloudflare 构建（base=/）──
   build-cloudflare:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: quality
     runs-on: ubuntu-latest
     steps:
@@ -72,6 +81,7 @@ jobs:
           path: dist
 
   deploy-github-pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build-pages
     runs-on: ubuntu-latest
     environment:
@@ -83,6 +93,7 @@ jobs:
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4
 
   deploy-cloudflare:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build-cloudflare
     runs-on: ubuntu-latest
     steps:
