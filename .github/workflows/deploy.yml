@@ -1,0 +1,68 @@
+# 九溪 · 双站部署
+# 主站：Cloudflare Pages（需仓库 Secrets: CLOUDFLARE_API_TOKEN、CLOUDFLARE_ACCOUNT_ID）
+# 备用：GitHub Pages（仓库 Settings → Pages → Source 选 "GitHub Actions"）
+# 两步相互独立：任一失败不影响另一。
+
+name: Deploy 九溪（双站）
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # GitHub Pages 用
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      # Cloudflare 用（独立 artifact）
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cf-dist
+          path: dist
+
+  deploy-github-pages:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  deploy-cloudflare:
+    needs: build
+    runs-on: ubuntu-latest
+    # 缺少 Cloudflare Secrets 时失败也不阻塞 GitHub Pages
+    continue-on-error: true
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: cf-dist
+          path: dist
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=jiuxi --commit-dirty=true
