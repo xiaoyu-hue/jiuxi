@@ -1,0 +1,70 @@
+---
+// 九溪 · 主导航（移动优先：横向滚动胶囊；桌面内联）
+const links = [
+  { href: '/', label: '首页' },
+  { href: '/ai', label: 'AI' },
+  { href: '/news', label: '热点' },
+  { href: '/tech', label: '科技' },
+  { href: '/gaming', label: '游戏' },
+  { href: '/timeline', label: '时间线' },
+  { href: '/tools', label: '工具箱' },
+  { href: '/reading', label: '读书' },
+  { href: '/settings', label: '设置' },
+  { href: '/about', label: '关于' },
+];
+const path = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === '/' ? path === '/' : path.startsWith(href);
+---
+
+<nav class="site-nav glass" aria-label="主导航">
+  <ul>
+    {
+      links.map((l) => (
+        <li>
+          <a
+            href={l.href}
+            class:list={['nav-link', { active: isActive(l.href) }]}
+          >
+            {l.label}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+
+<style>
+  .site-nav {
+    margin: 0 12px 12px;
+    padding: 8px 10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  ul {
+    display: flex;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .nav-link {
+    display: block;
+    padding: 8px 14px;
+    border-radius: 14px;
+    white-space: nowrap;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    transition: background 0.2s, color 0.2s;
+  }
+  .nav-link:hover {
+    color: var(--text-strong);
+    background: var(--accent-soft);
+  }
+  .nav-link.active {
+    color: var(--text-strong);
+    background: var(--accent-soft);
+    font-weight: 600;
+  }
+</style>

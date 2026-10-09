@@ -1,10 +1,10 @@
 ---
-// 九溪 · 基础布局（液态玻璃外壳 + 主题系统）
-// Phase 1：渐变背景、悬浮玻璃顶栏（含主题切换）、防闪烁内联脚本。
+// 九溪 · 基础布局（液态玻璃外壳 + 主题系统 + 导航）
 import '../styles/global.css';
 import '../styles/themes.css';
 import '../styles/glass.css';
 import ThemeSwitcher from '../components/ThemeSwitcher.astro';
+import SiteNav from '../components/SiteNav.astro';
 
 interface Props {
   title?: string;
@@ -45,6 +45,7 @@ const {
       <a class="brand" href="/">九溪</a>
       <ThemeSwitcher />
     </header>
+    <SiteNav />
     <main class="site-main">
       <slot />
     </main>

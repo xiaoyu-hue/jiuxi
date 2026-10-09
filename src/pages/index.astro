@@ -1,37 +1,68 @@
 ---
-// 九溪 · 首页（Phase 1 临时 hero，Phase 2 替换为 Bento 聚合）
+// 九溪 · 首页聚合（Bento 卡片）
 import BaseLayout from '../layouts/BaseLayout.astro';
+import GlassCard from '../components/GlassCard.astro';
+
+const blocks = [
+  { href: '/ai', title: 'AI 板块', desc: 'AI 前沿资讯与动态聚合', span: 2 },
+  { href: '/news', title: '热点新闻', desc: '实时热点，全球视角' },
+  { href: '/tech', title: '科技', desc: '科技圈新进展' },
+  { href: '/gaming', title: '游戏娱乐', desc: '游戏与泛娱乐' },
+  { href: '/timeline', title: 'AI 发展时间线', desc: '从起源到今天' },
+  { href: '/tools', title: 'AI 工具箱', desc: '好用的 AI 工具推荐' },
+  { href: '/reading', title: '读书推荐', desc: '值得一读的书' },
+  { href: '/settings', title: '设置与数据', desc: '主题、偏好与导出' },
+  { href: '/about', title: '关于九溪', desc: '项目说明与致谢' },
+];
 ---
 
 <BaseLayout title="九溪">
-  <section class="glass hero">
-    <h1 class="hero-title">九溪</h1>
-    <p class="hero-sub">综合信息聚集地</p>
-    <p class="hero-tag">AI 为主 · 热点新闻为辅 · 建设中</p>
-  </section>
+  <h2 class="welcome">欢迎来到九溪</h2>
+  <p class="lead">综合信息聚集地 · AI 为主，热点新闻为辅</p>
+  <div class="bento">
+    {
+      blocks.map((b) => (
+        <GlassCard href={b.href} class:list={['bento-card', b.span === 2 && 'span-2']}>
+          <h3>{b.title}</h3>
+          <p>{b.desc}</p>
+        </GlassCard>
+      ))
+    }
+  </div>
 </BaseLayout>
 
 <style>
-  .hero {
-    max-width: 560px;
-    margin: 48px auto;
-    padding: 48px 32px;
-    text-align: center;
+  .welcome {
+    margin: 24px 0 4px;
+    font-size: 1.8rem;
   }
-  .hero-title {
-    margin: 0;
-    font-size: 3.2rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
+  .lead {
+    margin: 0 0 20px;
+    color: var(--text-muted);
   }
-  .hero-sub {
-    margin: 14px 0 6px;
-    font-size: 1.2rem;
-    font-weight: 600;
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
   }
-  .hero-tag {
+  .bento-card h3 {
+    margin: 0 0 6px;
+    font-size: 1.15rem;
+  }
+  .bento-card p {
     margin: 0;
     color: var(--text-muted);
-    font-size: 0.92rem;
+    font-size: 0.9rem;
+  }
+  .span-2 {
+    grid-column: span 2;
+  }
+  @media (min-width: 768px) {
+    .bento {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .span-2 {
+      grid-column: span 2;
+    }
   }
 </style>

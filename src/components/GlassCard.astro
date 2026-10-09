@@ -1,0 +1,33 @@
+---
+// 九溪 · 玻璃卡片（可点击为链接，否则为容器）
+interface Props {
+  href?: string;
+  class?: string;
+}
+const { href, class: cls } = Astro.props;
+---
+
+{
+  href ? (
+    <a class:list={['glass', 'card', cls]} href={href}>
+      <slot />
+    </a>
+  ) : (
+    <div class:list={['glass', 'card', cls]}>
+      <slot />
+    </div>
+  )
+}
+
+<style>
+  .card {
+    display: block;
+    padding: 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+  }
+</style>

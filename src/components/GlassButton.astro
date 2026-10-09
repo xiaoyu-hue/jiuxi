@@ -1,0 +1,39 @@
+---
+// 九溪 · 玻璃按钮（可为链接或按钮）
+interface Props {
+  href?: string;
+  type?: 'button' | 'submit' | 'reset';
+  class?: string;
+}
+const { href, type = 'button', class: cls } = Astro.props;
+---
+
+{
+  href ? (
+    <a class:list={['glass-btn', cls]} href={href}>
+      <slot />
+    </a>
+  ) : (
+    <button class:list={['glass-btn', cls]} type={type}>
+      <slot />
+    </button>
+  )
+}
+
+<style>
+  .glass-btn {
+    display: inline-block;
+    padding: 10px 18px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: var(--accent-soft);
+    color: var(--text-strong);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.2s ease;
+  }
+  .glass-btn:hover {
+    transform: translateY(-2px);
+  }
+</style>
