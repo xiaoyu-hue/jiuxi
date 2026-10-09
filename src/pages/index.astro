@@ -1,0 +1,30 @@
+---
+// 九溪 · 首页（Phase 0 占位骨架）
+// 当前仅展示玻璃外壳与项目名，后续 Phase 2 替换为 Bento 聚合卡片。
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="九溪 · 建设中">
+  <h1 class="brand">九溪</h1>
+  <p class="subtitle">综合信息聚集地</p>
+  <p class="tagline">AI 为主 · 热点新闻为辅 · 建设中</p>
+</BaseLayout>
+
+<style>
+  .brand {
+    margin: 0;
+    font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+  }
+  .subtitle {
+    margin: 12px 0 4px;
+    font-size: 1.15rem;
+    font-weight: 600;
+  }
+  .tagline {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+</style>
