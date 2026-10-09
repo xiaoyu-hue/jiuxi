@@ -1,0 +1,80 @@
+---
+// 九溪 · 读书推荐（策展卡片网格）
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const entries = await getCollection('reading');
+---
+
+<BaseLayout title="九溪 · 读书推荐" description="值得一读的书">
+  <header class="page-head">
+    <h2>读书推荐</h2>
+    <p>好书分享，持续收录</p>
+  </header>
+
+  <div class="book-grid">
+    {
+      entries.map((e) => (
+        <article class="glass book-card">
+          <h3>{e.data.title}</h3>
+          {e.data.author && <p class="book-author">{e.data.author}</p>}
+          {e.data.rating != null && (
+            <p class="book-rating">
+              {'★'.repeat(e.data.rating)}
+              {'☆'.repeat(5 - e.data.rating)}
+            </p>
+          )}
+          <span class="book-tag">{e.data.tag}</span>
+          {e.data.link && (
+            <a class="book-link" href={e.data.link} target="_blank" rel="noopener">
+              了解更多 →
+            </a>
+          )}
+        </article>
+      ))
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .book-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .book-card {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .book-card h3 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+  .book-author {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+  }
+  .book-rating {
+    margin: 0;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .book-tag {
+    align-self: flex-start;
+    font-size: 0.75rem;
+    padding: 2px 10px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--text-strong);
+  }
+  .book-link {
+    margin-top: 4px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+  }
+</style>

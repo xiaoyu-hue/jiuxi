@@ -1,0 +1,120 @@
+---
+// 九溪 · AI 工具箱（策展 + 客户端分类筛选）
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const entries = await getCollection('tools');
+const categories = [...new Set(entries.map((e) => e.data.category))].sort();
+---
+
+<BaseLayout title="九溪 · AI 工具箱" description="好用的 AI 工具推荐">
+  <header class="page-head">
+    <h2>AI 工具箱</h2>
+    <p>精选 AI 工具，点击直达</p>
+    <div class="tool-filters" id="tool-filters">
+      <button class="tool-chip active" data-cat="all">全部</button>
+      {
+        categories.map((c) => (
+          <button class="tool-chip" data-cat={c}>
+            {c}
+          </button>
+        ))
+      }
+    </div>
+  </header>
+
+  <div class="tool-grid">
+    {
+      entries.map((e) => (
+        <a
+          class="glass tool-card"
+          href={e.data.url}
+          target="_blank"
+          rel="noopener"
+          data-category={e.data.category}
+        >
+          <h3>{e.data.name}</h3>
+          <span class="tool-cat">{e.data.category}</span>
+          {e.data.tagline && <p class="tool-tagline">{e.data.tagline}</p>}
+        </a>
+      ))
+    }
+  </div>
+</BaseLayout>
+
+<script>
+  const filters = document.getElementById('tool-filters');
+  let activeCat = 'all';
+  function apply() {
+    document.querySelectorAll<HTMLElement>('.tool-card').forEach((el) => {
+      const cat = el.dataset.category || '';
+      el.style.display = activeCat === 'all' || cat === activeCat ? '' : 'none';
+    });
+  }
+  filters?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.tool-chip');
+    if (!btn) return;
+    filters
+      .querySelectorAll('.tool-chip')
+      .forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeCat = btn.getAttribute('data-cat') || 'all';
+    apply();
+  });
+</script>
+
+<style>
+  .tool-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .tool-chip {
+    padding: 6px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .tool-chip.active {
+    color: var(--text-strong);
+    background: var(--accent-soft);
+    font-weight: 600;
+  }
+  .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .tool-card {
+    display: block;
+    padding: 18px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease;
+  }
+  .tool-card:hover {
+    transform: translateY(-3px);
+  }
+  .tool-card h3 {
+    margin: 0 0 8px;
+    font-size: 1.15rem;
+  }
+  .tool-cat {
+    font-size: 0.75rem;
+    padding: 2px 10px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--text-strong);
+  }
+  .tool-tagline {
+    margin: 10px 0 0;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+</style>

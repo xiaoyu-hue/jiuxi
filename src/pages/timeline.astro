@@ -1,0 +1,209 @@
+---
+// 九溪 · AI 发展时间线（策展 + 客户端筛选/搜索）
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const entries = await getCollection('timeline');
+const sorted = entries.sort(
+  (a, b) =>
+    b.data.year - a.data.year || (b.data.month ?? 0) - (a.data.month ?? 0),
+);
+
+// 按年份分组，并预渲染每篇正文（避免模板内 await）
+const byYear = new Map<number, typeof sorted>();
+for (const e of sorted) {
+  if (!byYear.has(e.data.year)) byYear.set(e.data.year, []);
+  byYear.get(e.data.year)!.push(e);
+}
+const years = [...byYear.keys()].sort((a, b) => b - a);
+const yearsData = await Promise.all(
+  years.map(async (year) => ({
+    year,
+    items: await Promise.all(
+      byYear.get(year)!.map(async (e) => ({
+        e,
+        Content: (await render(e)).Content,
+      })),
+    ),
+  })),
+);
+
+const categories = [...new Set(entries.map((e) => e.data.category))].sort();
+---
+
+<BaseLayout
+  title="九溪 · AI 发展时间线"
+  description="从最原始的开始，到至今，持续更新"
+>
+  <header class="page-head">
+    <h2>AI 发展时间线</h2>
+    <p>从最原始的开始，到至今，持续更新</p>
+    <input
+      id="tl-search"
+      class="glass tl-search"
+      type="search"
+      placeholder="搜索事件…"
+    />
+    <div class="tl-filters" id="tl-filters">
+      <button class="tl-chip active" data-cat="all">全部</button>
+      {
+        categories.map((c) => (
+          <button class="tl-chip" data-cat={c}>
+            {c}
+          </button>
+        ))
+      }
+    </div>
+  </header>
+
+  {
+    yearsData.map(({ year, items }) => (
+      <section class="tl-year" data-year={year}>
+        <h3 class="tl-year-title">{year}</h3>
+        <div class="tl-list">
+          {items.map(({ e, Content }) => (
+            <article
+              class="glass tl-item"
+              data-category={e.data.category}
+              data-search={`${e.data.title} ${e.data.category} ${e.body}`}
+            >
+              <div class="tl-meta">
+                {e.data.month && <span class="tl-date">{e.data.month} 月</span>}
+                <span class="tl-cat">{e.data.category}</span>
+              </div>
+              <h4 class="tl-title">{e.data.title}</h4>
+              <div class="tl-body">
+                <Content />
+              </div>
+              {e.data.source && (
+                <p class="tl-source">
+                  来源：
+                  {e.data.sourceUrl ? (
+                    <a href={e.data.sourceUrl} target="_blank" rel="noopener">
+                      {e.data.source}
+                    </a>
+                  ) : (
+                    e.data.source
+                  )}
+                </p>
+              )}
+            </article>
+          ))}
+        </div>
+      </section>
+    ))
+  }
+</BaseLayout>
+
+<script>
+  const search = document.getElementById('tl-search') as HTMLInputElement | null;
+  const filters = document.getElementById('tl-filters');
+  let activeCat = 'all';
+
+  function apply() {
+    const q = (search?.value || '').trim().toLowerCase();
+    document.querySelectorAll<HTMLElement>('.tl-item').forEach((el) => {
+      const cat = el.dataset.category || '';
+      const text = el.dataset.search || '';
+      const okCat = activeCat === 'all' || cat === activeCat;
+      const okText = !q || text.toLowerCase().includes(q);
+      el.style.display = okCat && okText ? '' : 'none';
+    });
+    document.querySelectorAll<HTMLElement>('.tl-year').forEach((sec) => {
+      const visible = sec.querySelectorAll(
+        '.tl-item:not([style*="display: none"])',
+      ).length;
+      sec.style.display = visible ? '' : 'none';
+    });
+  }
+
+  search?.addEventListener('input', apply);
+  filters?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('.tl-chip');
+    if (!btn) return;
+    filters
+      .querySelectorAll('.tl-chip')
+      .forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeCat = btn.getAttribute('data-cat') || 'all';
+    apply();
+  });
+</script>
+
+<style>
+  .tl-search {
+    width: 100%;
+    max-width: 320px;
+    margin: 12px 0;
+    padding: 10px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--text-strong);
+    outline: none;
+  }
+  .tl-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .tl-chip {
+    padding: 6px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  .tl-chip.active {
+    color: var(--text-strong);
+    background: var(--accent-soft);
+    font-weight: 600;
+  }
+  .tl-year-title {
+    font-size: 1.5rem;
+    margin: 24px 0 12px;
+  }
+  .tl-list {
+    display: grid;
+    gap: 14px;
+  }
+  .tl-item {
+    padding: 18px;
+  }
+  .tl-meta {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .tl-date {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .tl-cat {
+    font-size: 0.75rem;
+    padding: 2px 10px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--text-strong);
+  }
+  .tl-title {
+    margin: 0 0 8px;
+    font-size: 1.1rem;
+  }
+  .tl-body {
+    color: var(--text-muted);
+    line-height: 1.6;
+    font-size: 0.92rem;
+  }
+  .tl-source {
+    margin: 10px 0 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .tl-source a {
+    color: var(--accent);
+  }
+</style>
