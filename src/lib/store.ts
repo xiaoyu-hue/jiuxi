@@ -1,23 +1,38 @@
 // 九溪 · 本地数据与偏好（localStorage）
 // 全部读写都在浏览器端，无需后端。
 
+import { z } from 'zod';
+
 export interface JiuxiSettings {
   reduceMotion: boolean; // 降低动效
   glassBlur: number; // 磨砂强度（px）
 }
 
+// 用 zod 约束结构与类型，避免被破坏/伪造的 localStorage 污染外观
+const SettingsSchema = z.object({
+  reduceMotion: z.boolean(),
+  glassBlur: z.number().min(0).max(40),
+});
+const ImportSchema = z.object({
+  settings: SettingsSchema.optional(),
+  favorites: z.array(z.string()).optional(),
+});
+
 const SETTINGS_KEY = 'jiuxi-settings';
 const FAV_KEY = 'jiuxi-favorites';
-const FEED_PREFIX = 'jiuxi-feed-';
+export const FEED_PREFIX = 'jiuxi-feed-';
 
-const DEFAULTS: JiuxiSettings = { reduceMotion: false, glassBlur: 16 };
+export const DEFAULTS: JiuxiSettings = { reduceMotion: false, glassBlur: 16 };
 
 export function getSettings(): JiuxiSettings {
   try {
-    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
-    if (s && typeof s === 'object') return { ...DEFAULTS, ...s };
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const parsed = SettingsSchema.safeParse(JSON.parse(raw));
+      if (parsed.success) return parsed.data;
+    }
   } catch {
-    /* ignore */
+    /* 损坏值回退默认 */
   }
   return { ...DEFAULTS };
 }
@@ -68,16 +83,17 @@ export function exportData(): string {
   return JSON.stringify({ settings: getSettings(), favorites: getFavorites() }, null, 2);
 }
 
-/** 从 JSON 字符串导入（合并到现有），成功返回 true */
+/** 从 JSON 字符串导入（合并到现有），结构与类型校验通过才写入，成功返回 true */
 export function importData(json: string): boolean {
   try {
     const o = JSON.parse(json);
-    if (o && typeof o === 'object') {
-      if (o.settings) saveSettings({ ...getSettings(), ...o.settings });
-      if (Array.isArray(o.favorites))
-        localStorage.setItem(FAV_KEY, JSON.stringify(o.favorites));
-      return true;
-    }
+    const parsed = ImportSchema.safeParse(o);
+    if (!parsed.success) return false;
+    if (parsed.data.settings)
+      saveSettings({ ...getSettings(), ...parsed.data.settings });
+    if (parsed.data.favorites)
+      localStorage.setItem(FAV_KEY, JSON.stringify(parsed.data.favorites));
+    return true;
   } catch {
     /* ignore */
   }

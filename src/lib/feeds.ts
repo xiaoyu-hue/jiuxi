@@ -7,7 +7,8 @@
 //
 // 安全：所有外部文本在渲染前都经 HTML 转义，避免 XSS。
 
-import { isFavorite, toggleFavorite } from './store';
+import { isFavorite, toggleFavorite, FEED_PREFIX } from './store';
+import { sanitizeUrl, escapeHtml } from './security';
 
 export type Section = 'ai' | 'news' | 'tech' | 'gaming';
 
@@ -69,16 +70,6 @@ const SOURCES: Record<Section, FeedSource[]> = {
   ],
 };
 
-// ── 转义（防 XSS）──
-function escapeHtml(s: string): string {
-  return (s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 function formatDate(d?: string): string {
   if (!d) return '';
   const t = new Date(d);
@@ -99,7 +90,7 @@ function parseRss(xml: string): FeedItem[] {
   }));
 }
 
-function parseHn(json: any): FeedItem[] {
+export function parseHn(json: any): FeedItem[] {
   const hits = Array.isArray(json?.hits) ? json.hits : [];
   return hits.slice(0, 24).map((h: any) => ({
     title: h.title || h.story_title || '',
@@ -128,15 +119,36 @@ async function fetchText(url: string): Promise<string> {
 }
 
 function cacheKey(section: Section): string {
-  return `jiuxi-feed-${section}`;
+  return `${FEED_PREFIX}${section}`;
 }
 
-function readCache(section: Section): FeedItem[] | null {
+/** 读取未过期的缓存（15 分钟内），过期或缺失返回 null */
+function readCacheFresh(section: Section): FeedItem[] | null {
   try {
     const raw = localStorage.getItem(cacheKey(section));
     if (!raw) return null;
     const obj = JSON.parse(raw);
-    if (Array.isArray(obj?.items)) return obj.items as FeedItem[];
+    if (
+      typeof obj?.t === 'number' &&
+      Date.now() - obj.t < CACHE_TTL &&
+      Array.isArray(obj.items) &&
+      obj.items.length
+    )
+      return obj.items as FeedItem[];
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+/** 读取任意缓存（含过期），仅在刷新全部失败时兜底 */
+function readCacheAny(section: Section): FeedItem[] | null {
+  try {
+    const raw = localStorage.getItem(cacheKey(section));
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (Array.isArray(obj?.items) && obj.items.length)
+      return obj.items as FeedItem[];
   } catch {
     /* ignore */
   }
@@ -151,14 +163,13 @@ function writeCache(section: Section, items: FeedItem[]): void {
   }
 }
 
-/** 加载某板块资讯：优先缓存（15 分钟内），否则抓取；全部失败回退旧缓存 */
+/** 加载某板块资讯：优先未过期缓存，否则抓取；全部失败回退旧缓存 */
 export async function loadFeed(section: Section): Promise<FeedItem[]> {
-  const cached = readCache(section);
-  if (cached && cached.length) {
-    // 仍尝试后台刷新；这里先返回缓存保证即时可见（简单策略）
-    // 为避免阻塞，直接返回缓存并异步刷新
+  const fresh = readCacheFresh(section);
+  if (fresh) {
+    // 缓存未过期：先即时展示，后台静默刷新（下次访问生效）
     refreshInBackground(section);
-    return cached;
+    return fresh;
   }
   return await refreshInBackground(section);
 }
@@ -168,7 +179,10 @@ async function refreshInBackground(section: Section): Promise<FeedItem[]> {
   for (const s of sources) {
     try {
       if (s.type === 'hn') {
-        const res = await fetch(s.url);
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 9000);
+        const res = await fetch(s.url, { signal: ctrl.signal });
+        clearTimeout(timer);
         if (!res.ok) continue;
         const json = await res.json();
         const items = parseHn(json);
@@ -188,8 +202,8 @@ async function refreshInBackground(section: Section): Promise<FeedItem[]> {
       /* 试下一个源 */
     }
   }
-  // 全部失败：回退旧缓存（即使过期）
-  const stale = readCache(section);
+  // 全部失败：回退旧缓存（即使过期），保证有内容可看
+  const stale = readCacheAny(section);
   if (stale && stale.length) return stale;
   return [];
 }
@@ -199,22 +213,22 @@ export function renderItems(container: HTMLElement, items: FeedItem[]): void {
   container.innerHTML = items
     .map(
       (it) => `
-    <a class="glass feed-card" href="${escapeHtml(it.link)}" target="_blank" rel="noopener noreferrer">
-      <button class="fav-btn${isFavorite(it.link) ? ' active' : ''}" data-link="${escapeHtml(it.link)}" type="button" aria-label="收藏">♥</button>
-      <h3>${escapeHtml(it.title)}</h3>
-      <p class="feed-meta">${escapeHtml(it.source || '未知来源')} · ${escapeHtml(formatDate(it.pubDate))}</p>
-      ${it.snippet ? `<p class="feed-snippet">${escapeHtml(it.snippet)}</p>` : ''}
-    </a>`,
+    <article class="glass feed-card">
+      <a class="feed-link" href="${escapeHtml(sanitizeUrl(it.link))}" target="_blank" rel="noopener noreferrer">
+        <h3>${escapeHtml(it.title)}</h3>
+        <p class="feed-meta">${escapeHtml(it.source || '未知来源')} · ${escapeHtml(formatDate(it.pubDate))}</p>
+        ${it.snippet ? `<p class="feed-snippet">${escapeHtml(it.snippet)}</p>` : ''}
+      </a>
+      <button class="fav-btn${isFavorite(it.link) ? ' active' : ''}" data-link="${escapeHtml(sanitizeUrl(it.link))}" type="button" aria-label="收藏">♥</button>
+    </article>`,
     )
     .join('');
 }
 
-/** 为已渲染的资讯卡绑定收藏按钮 */
+/** 为已渲染的资讯卡绑定收藏按钮（按钮为 <a> 的兄弟节点，点击不会触发导航） */
 export function wireFavorites(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>('.fav-btn').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    btn.addEventListener('click', () => {
       const link = btn.dataset.link || '';
       const nowFav = toggleFavorite(link);
       btn.classList.toggle('active', nowFav);

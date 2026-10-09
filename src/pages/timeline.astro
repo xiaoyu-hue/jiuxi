@@ -2,6 +2,7 @@
 // 九溪 · AI 发展时间线（策展 + 客户端筛选/搜索）
 import { getCollection, render } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { sanitizeUrl } from '../lib/security';
 
 const entries = await getCollection('timeline');
 const sorted = entries.sort(
@@ -79,7 +80,7 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
                 <p class="tl-source">
                   来源：
                   {e.data.sourceUrl ? (
-                    <a href={e.data.sourceUrl} target="_blank" rel="noopener">
+                    <a href={sanitizeUrl(e.data.sourceUrl)} target="_blank" rel="noopener">
                       {e.data.source}
                     </a>
                   ) : (

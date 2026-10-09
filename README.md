@@ -122,11 +122,11 @@ jiuxi/
 
 **数据格式**（每个条目是一个 Markdown 文件，Frontmatter 写元数据，正文写简介）：
 
-| 板块 | 文件位置 | 关键字段 |
+| 板块 | 文件位置 | 关键字段（带 `*` 为可选） |
 |---|---|---|
-| 时间线 | `src/content/timeline/*.md` | `year` / `title` / `category` / `source` |
-| 工具箱 | `src/content/tools/*.md` | `name` / `url` / `category` |
-| 读书 | `src/content/reading/*.md` | `title` / `author` / `rating` |
+| 时间线 | `src/content/timeline/*.md` | `year` / `title` / `category` / `month*` / `source*` / `sourceUrl*` |
+| 工具箱 | `src/content/tools/*.md` | `name` / `url` / `category*` / `tagline*` |
+| 读书 | `src/content/reading/*.md` | `title` / `author*` / `rating*`(0–5) / `tag*` / `cover*` / `link*` |
 
 > 改一处 = 改一个文件，推送后 CI 自动重建上线。
 

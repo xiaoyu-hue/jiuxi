@@ -21,12 +21,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ── GitHub Pages 构建（base=/jiuxi/）──
-  build-pages:
+  # ── 质量门禁：类型检查 + 单元测试（合并门槛）──
+  quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: 类型检查（astro check）
+        run: npm run check
+      - name: 单元测试（vitest）
+        run: npm run test
+
+  # ── GitHub Pages 构建（base=/jiuxi/）──
+  build-pages:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
         with:
           node-version: 22
           cache: npm
@@ -34,22 +50,23 @@ jobs:
       - run: npm run build
         env:
           SITE_BASE: /jiuxi/
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa  # v3
         with:
           path: dist
 
   # ── Cloudflare 构建（base=/）──
   build-cloudflare:
+    needs: quality
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run build   # 默认 SITE_BASE=/（见 astro.config.mjs）
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: cf-dist
           path: dist
@@ -63,21 +80,27 @@ jobs:
     steps:
       - id: deployment
         name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4
 
   deploy-cloudflare:
     needs: build-cloudflare
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - id: check
+        name: 检查 Cloudflare 密钥是否已配置
+        # secrets 上下文不能用于 if 条件（会导致 workflow 解析失败/红叉），
+        # 此处仅在 run 内比较布尔结果并以 output 暴露，不会泄露 token 内容。
+        run: echo "has-token=${{ secrets.CLOUDFLARE_API_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4
+        if: steps.check.outputs.has-token == 'true'
         with:
           name: cf-dist
           path: dist
       - name: Deploy to Cloudflare Pages
-        # 未配置 Cloudflare Secrets 时此步失败也记为绿（黄警告），不出现红叉；
-        # 配置就绪后此步成功，自动真正部署到 Cloudflare Pages。
-        continue-on-error: true
-        uses: cloudflare/wrangler-action@v3
+        # 仅当配置了 Cloudflare Secrets 才部署；否则跳过（灰，不红叉）。
+        # 配置就绪后若部署真失败，本步会如实变红，便于及时发现。
+        if: steps.check.outputs.has-token == 'true'
+        uses: cloudflare/wrangler-action@9acf94ace14e7dc412b076f2c5c20b8ce93c79cd  # v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

@@ -1,5 +1,6 @@
 ---
 // 九溪 · 主导航（移动优先：横向滚动胶囊；桌面内联）
+import { withBase } from '../lib/site';
 const links = [
   { href: '/', label: '首页' },
   { href: '/ai', label: 'AI' },
@@ -14,7 +15,9 @@ const links = [
 ];
 const path = Astro.url.pathname;
 const isActive = (href: string) =>
-  href === '/' ? path === '/' : path.startsWith(href);
+  href === '/'
+    ? path === withBase('/')
+    : path.startsWith(withBase(href));
 ---
 
 <nav class="site-nav glass" aria-label="主导航">
@@ -23,8 +26,9 @@ const isActive = (href: string) =>
       links.map((l) => (
         <li>
           <a
-            href={l.href}
+            href={withBase(l.href)}
             class:list={['nav-link', { active: isActive(l.href) }]}
+            aria-current={isActive(l.href) ? 'page' : undefined}
           >
             {l.label}
           </a>

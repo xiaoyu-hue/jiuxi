@@ -6,6 +6,7 @@ import '../styles/glass.css';
 import '../styles/components.css';
 import ThemeSwitcher from '../components/ThemeSwitcher.astro';
 import SiteNav from '../components/SiteNav.astro';
+import { withBase } from '../lib/site';
 
 interface Props {
   title?: string;
@@ -23,9 +24,14 @@ const {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <!-- 安全响应头兜底（GitHub Pages 不读 _headers，故此处用 meta 覆盖） -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://api.allorigins.win https://corsproxy.io https://hn.algolia.com; base-uri 'self'; form-action 'self'"
+    />
     <!-- 防闪烁：CSS 加载前先按已存主题（或系统偏好）设置 data-theme -->
     <script is:inline>
       (function () {
@@ -43,7 +49,7 @@ const {
   </head>
   <body>
     <header class="site-header glass">
-      <a class="brand" href="/">九溪</a>
+      <a class="brand" href={withBase('/')}>九溪</a>
       <ThemeSwitcher />
     </header>
     <SiteNav />

@@ -2,6 +2,7 @@
 // 九溪 · AI 工具箱（策展 + 客户端分类筛选）
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { sanitizeUrl } from '../lib/security';
 
 const entries = await getCollection('tools');
 const categories = [...new Set(entries.map((e) => e.data.category))].sort();
@@ -28,7 +29,7 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
       entries.map((e) => (
         <a
           class="glass tool-card"
-          href={e.data.url}
+          href={sanitizeUrl(e.data.url)}
           target="_blank"
           rel="noopener"
           data-category={e.data.category}

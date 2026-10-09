@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # 第三方 GitHub Action 已锁定到 commit SHA（见 .github/workflows/deploy.yml）。
+  # Dependabot 负责把 SHA 滚动到各 Action 的最新发布版本，兼顾供应链安全与可更新性。
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # npm 生产/开发依赖的安全与版本更新
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "build"
+    labels:
+      - "dependencies"
+      - "npm"

@@ -2,6 +2,7 @@
 // 九溪 · 读书推荐（策展卡片网格）
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { sanitizeUrl } from '../lib/security';
 
 const entries = await getCollection('reading');
 ---
@@ -26,7 +27,7 @@ const entries = await getCollection('reading');
           )}
           <span class="book-tag">{e.data.tag}</span>
           {e.data.link && (
-            <a class="book-link" href={e.data.link} target="_blank" rel="noopener">
+            <a class="book-link" href={sanitizeUrl(e.data.link)} target="_blank" rel="noopener">
               了解更多 →
             </a>
           )}

@@ -3,3 +3,42 @@
  * 主题令牌与玻璃效果在 themes.css / glass.css 中定义（Phase 1 充实）。
  */
 @import "tailwindcss";
+
+/* ── 无障碍：降低动效 ──
+ * 1) 系统级偏好：用户操作系统中开启“减少动效”时自动生效。
+ * 2) 应用级开关：设置页“降低动效”勾选后，store.ts 会给 <body> 加 .reduce-motion。
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+.reduce-motion,
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ── 无障碍：键盘焦点可见 ── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ── 玻璃材质降级：不支持 backdrop-filter 的浏览器用实色面板兜底 ── */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--surface) !important;
+  }
+}
+

@@ -2,6 +2,7 @@
 // 九溪 · 首页聚合（Bento 卡片）
 import BaseLayout from '../layouts/BaseLayout.astro';
 import GlassCard from '../components/GlassCard.astro';
+import { withBase } from '../lib/site';
 
 const blocks = [
   { href: '/ai', title: 'AI 板块', desc: 'AI 前沿资讯与动态聚合', span: 2 },
@@ -22,7 +23,7 @@ const blocks = [
   <div class="bento">
     {
       blocks.map((b) => (
-        <GlassCard href={b.href} class:list={['bento-card', b.span === 2 && 'span-2']}>
+        <GlassCard href={withBase(b.href)} class:list={['bento-card', b.span === 2 && 'span-2']}>
           <h3>{b.title}</h3>
           <p>{b.desc}</p>
         </GlassCard>

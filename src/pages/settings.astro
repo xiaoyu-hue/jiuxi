@@ -63,11 +63,7 @@ import GlassCard from '../components/GlassCard.astro';
     clearCaches,
     getFavorites,
   } from '../lib/store';
-
-  const esc = (s: string) =>
-    (s || '').replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
-    );
+  import { sanitizeUrl, escapeHtml } from '../lib/security';
 
   const settings = getSettings();
   const reduce = document.getElementById('reduce-motion') as HTMLInputElement | null;
@@ -147,7 +143,7 @@ import GlassCard from '../components/GlassCard.astro';
     if (!list) return;
     const favs = getFavorites();
     list.innerHTML = favs
-      .map((l) => `<li><a href="${esc(l)}" target="_blank" rel="noopener">${esc(l)}</a></li>`)
+      .map((l) => `<li><a href="${escapeHtml(sanitizeUrl(l))}" target="_blank" rel="noopener">${escapeHtml(l)}</a></li>`)
       .join('');
     if (empty) empty.style.display = favs.length ? 'none' : 'block';
   }
