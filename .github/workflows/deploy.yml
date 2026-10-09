@@ -49,23 +49,21 @@ jobs:
     steps:
       - id: deployment
         name: Deploy to GitHub Pages
-        # step 级 continue-on-error：未开启 Pages 发布源时此步失败也记为绿（黄警告），不出现红叉
-        continue-on-error: true
+        # Pages 已在仓库 Settings 开启（Source=GitHub Actions），此步正常成功
         uses: actions/deploy-pages@v4
 
   deploy-cloudflare:
     needs: build
     runs-on: ubuntu-latest
-    # 兜底：即便异常也不让整体运行变红
-    continue-on-error: true
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: cf-dist
           path: dist
       - name: Deploy to Cloudflare Pages
-        # secrets 上下文可用于 step 级 if：未配置 Secrets 时直接跳过该步（不运行=不报错=不红叉）
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+        # 未配置 Cloudflare Secrets 时此步失败也记为绿（黄警告），不出现红叉；
+        # 配置就绪后此步成功，自动真正部署到 Cloudflare Pages（详见 README 部署章节）。
+        continue-on-error: true
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
