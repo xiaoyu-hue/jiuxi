@@ -8,7 +8,7 @@
 |---|---|
 | 当前版本 | **v1.0.0**（全站基础版，十板块 + 4 套主题已落地） |
 | 技术栈 | Astro 5 · Tailwind CSS 4 · TypeScript（纯静态输出） |
-| 托管目标 | Cloudflare Pages（主站）+ GitHub Pages（备用副站，双站容灾） |
+| 托管目标 | [Cloudflare Pages](https://jiuxi-bm1.pages.dev/)（主站）+ [GitHub Pages](https://xiaoyu-hue.github.io/jiuxi/)（备用副站，双站容灾） |
 | 许可证 | 代码 Apache-2.0 / 文档与内容 CC BY-NC 4.0 |
 
 ---
@@ -133,6 +133,12 @@ jiuxi/
 ---
 
 ## 八、部署指南（推送到 GitHub 后自动上线）
+
+**🌐 线上访问地址（均已上线）：**
+- **主站 · Cloudflare Pages**：[https://jiuxi-bm1.pages.dev/](https://jiuxi-bm1.pages.dev/)
+- **备用副站 · GitHub Pages**：[https://xiaoyu-hue.github.io/jiuxi/](https://xiaoyu-hue.github.io/jiuxi/)
+
+> 主站由全球 CDN 加速、无限带宽，优先访问；副站为 GitHub 原生托管，作容灾备份。两者内容完全一致，任一不可用可切到另一个。
 
 采用**双站部署**，由 `.github/workflows/deploy.yml`（push 即构建并双发）驱动，两步在 CI 中相互独立，任一失败不影响另一：
 
