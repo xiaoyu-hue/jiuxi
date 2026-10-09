@@ -28,3 +28,4 @@ Thumbs.db
 # ── 临时 / 本地 ──
 *.tmp
 .cache/
+.wrangler/

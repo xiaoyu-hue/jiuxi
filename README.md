@@ -9,7 +9,7 @@
 | 当前版本 | **v1.0.0**（全站基础版，十板块 + 4 套主题已落地） |
 | 技术栈 | Astro 5 · Tailwind CSS 4 · TypeScript（纯静态输出） |
 | 托管目标 | Cloudflare Pages（主站）+ GitHub Pages（备用副站，双站容灾） |
-| 许可证 | 暂未选定（见文末「许可证」章节） |
+| 许可证 | 代码 Apache-2.0 / 文档与内容 CC BY-NC 4.0 |
 
 ---
 
@@ -104,7 +104,8 @@ jiuxi/
 ├─ wrangler.toml                 # Cloudflare Pages 配置
 ├─ astro.config.mjs              # Astro 配置
 ├─ package.json                  # 依赖与脚本
-└─ README.md
+├─ README.md                     # 本文件
+└─ docs/                         # 规划与架构文档（调研报告 / PRD / 架构文档 / 实施计划）
 ```
 
 页面清单：`index`(首页) · `ai` · `news` · `tech` · `gaming` · `timeline` · `tools` · `reading` · `settings` · `about`
@@ -156,7 +157,7 @@ jiuxi/
 | Phase 6 | 双站部署配置 | ✅ 已完成 |
 
 后续可规划（未开工）：更多彩色主题、第一方 Cloudflare 函数 CORS 代理、定时自动追加时间线里程碑、更多策展板块。
-详见仓库内《九溪-PRD.md》《九溪-实施计划.md》《九溪-调研报告.md》。
+详见仓库 `docs/` 内《九溪-PRD.md》《九溪-实施计划.md》《九溪-调研报告.md》《九溪-架构文档.md》。
 
 ---
 
@@ -203,7 +204,7 @@ jiuxi/
 | 类别 | 许可证 | 覆盖范围 |
 |---|---|---|
 | **代码** | [Apache License 2.0](./LICENSE) | `src/`（组件、样式、脚本、配置）、`astro.config.mjs`、`wrangler.toml`、CI 配置等所有源代码与构建配置 |
-| **文档与内容** | [CC BY-NC 4.0](./LICENSE-CONTENT.md) | `README.md`、三份规划文档，以及 `src/content/` 下所有原创文字（时间线 / 工具箱 / 读书等策展内容） |
+| **文档与内容** | [CC BY-NC 4.0](./LICENSE-CONTENT.md) | `README.md`、四份规划与架构文档（`docs/` 下），以及 `src/content/` 下所有原创文字（时间线 / 工具箱 / 读书等策展内容） |
 | **第三方** | 保留各自原有许可证 | 依赖包见 `package.json`；借鉴的开源项目见「十、致谢与开源声明」 |
 
 要点：
@@ -217,13 +218,16 @@ jiuxi/
 
 ---
 
-## 十二、相关文档
+## 十二、文档索引
 
-仓库内另含三份规划文档，供深入了解背景：
+仓库 `docs/` 目录收录完整规划与架构文档，建议按「调研报告 → PRD → 架构文档 → 实施计划」顺序阅读：
 
-- `九溪-调研报告.md`：全网技术 / UI / 数据源 / 开源项目调研结论
-- `九溪-PRD.md`：产品需求文档（定位、架构、功能优先级、风险）
-- `九溪-实施计划.md`：分阶段实施方案、技术选型理由、部署细节
+- `docs/九溪-调研报告.md`：全网技术 / UI / 数据源 / 开源项目调研结论
+- `docs/九溪-PRD.md`：产品需求文档（定位、架构、功能优先级、风险）
+- `docs/九溪-架构文档.md`：技术架构与运行原理（模块协作、双站部署、安全与隐私）
+- `docs/九溪-实施计划.md`：分阶段实施方案、技术选型理由、部署细节
+
+> 四份文档均为 Markdown，统一存放在 `docs/` 目录，便于集中管理与移动端阅读。
 
 ---
 
