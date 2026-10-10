@@ -1,9 +1,20 @@
 # 九溪 · 安全门禁（独立于 deploy.yml，便于分层查看）
 #
 # 涵盖：密钥扫描(gitleaks) / SAST(CodeQL) / 依赖漏洞(osv-scanner) / 死链(lychee) / PR 依赖审查。
-# 当前均为 advisory（continue-on-error），避免一次性引入即阻断既有绿流水线；
-# 待首次运行转绿后，可逐个去掉 continue-on-error 转为强制门禁。
-# 版本标签由 dependabot.yml 的 pin-actions 自动锁定为 SHA（见该文件配置）。
+#
+# 当前均为 advisory：continue-on-error 写在 **job 级别**（不是 step 级别）。
+# 原因：step 级别的 continue-on-error 无法覆盖 action 引用解析失败
+# （失败发生在 “Set up job” 阶段，不属于任何 step），一旦某个门禁挂掉整条
+# 工作流就会变红，advisory 语义形同虚设。写在 job 级别才能真正做到
+# “单个门禁失败不影响流水线结论”，同时在 job 行仍保留红叉便于排查。
+# 待各门禁连续转绿后，可逐个去掉 continue-on-error 转为强制门禁。
+#
+# ⚠️ 版本标签约定：并非所有 Action 都提供大版本移动标签（如 @v2 / @v4）。
+# 引用前必须确认标签真实存在，否则 job 会在 “Set up job” 阶段直接失败。
+# 本文件已逐个核实：
+#   - google/osv-scanner-action      → 无 v1/v2 移动标签，只能 pin 具体版本（v2.6.0）
+#   - actions/dependency-review-action → v4 移动标签不存在，只能 pin 具体版本（v4.9.0）
+#   - gitleaks@v2 / lychee@v2 / codeql@v3 → 移动标签存在，可用
 
 name: 安全门禁
 
@@ -24,19 +35,20 @@ jobs:
   # ── 密钥扫描 ──
   gitleaks:
     runs-on: ubuntu-latest
+    continue-on-error: true # advisory：失败只标红本 job，不阻断整条流水线
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Gitleaks（密钥扫描）
         uses: gitleaks/gitleaks-action@v2
-        continue-on-error: true
         env:
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
 
   # ── SAST：CodeQL（公开库免费，无需 token）──
   codeql:
     runs-on: ubuntu-latest
+    continue-on-error: true # advisory
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: 初始化 CodeQL
@@ -45,18 +57,18 @@ jobs:
           languages: javascript-typescript
       - name: CodeQL 分析
         uses: github/codeql-action/analyze@v3
-        continue-on-error: true
 
   # ── 依赖漏洞扫描 ──
   osv-scanner:
     runs-on: ubuntu-latest
+    continue-on-error: true # advisory
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: OSV Scanner
-        # 注意：该 action 无 v1 标签（可用 tag 自 v2.0.3 起），写 @v1 会导致 job 在
-        # “Set up job”阶段即失败（continue-on-error 无法覆盖该阶段），故必须用 @v2。
-        uses: google/osv-scanner-action@v2
-        continue-on-error: true
+        # ⚠️ 该 action 不提供 v1/v2 大版本移动标签（仅 v2.6.0、v2.5.1… 等具体版本），
+        # 写 @v1 或 @v2 都会 404，导致 job 在 “Set up job” 阶段直接失败。
+        # 升级时须手动核对 https://github.com/google/osv-scanner-action/tags
+        uses: google/osv-scanner-action@v2.6.0
         with:
           scan-args: |-
             --recursive
@@ -66,11 +78,11 @@ jobs:
   # ── 死链校验（文档/页面外链）──
   lychee:
     runs-on: ubuntu-latest
+    continue-on-error: true # advisory
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Lychee 死链检查
         uses: lycheeverse/lychee-action@v2
-        continue-on-error: true
         with:
           args: --no-progress --max-concurrency 4 --exclude-mail './**/*.md'
           fail: false
@@ -79,8 +91,10 @@ jobs:
   dependency-review:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    continue-on-error: true # advisory
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Dependency Review
-        uses: actions/dependency-review-action@v4
-        continue-on-error: true
+        # ⚠️ 该 action 的 v4 移动标签不存在（实测 404），只能 pin 具体版本。
+        # 该 job 仅在 PR 触发，本地无法验证，故更需谨慎核对标签。
+        uses: actions/dependency-review-action@v4.9.0
