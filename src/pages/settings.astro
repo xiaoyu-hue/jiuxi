@@ -1,5 +1,6 @@
 ---
 // 九溪 · 设置与数据（纯前端，localStorage）
+// 使用轻量 settings.ts（不含 Zod），避免生产 bundle 膨胀。
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ThemeSwitcher from '../components/ThemeSwitcher.astro';
 import GlassCard from '../components/GlassCard.astro';
@@ -62,7 +63,7 @@ import GlassCard from '../components/GlassCard.astro';
     importData,
     clearCaches,
     getFavorites,
-  } from '../lib/store';
+  } from '../lib/settings';
   import { sanitizeUrl, escapeHtml } from '../lib/security';
 
   const settings = getSettings();
@@ -132,8 +133,15 @@ import GlassCard from '../components/GlassCard.astro';
     reader.readAsText(file);
   });
 
-  document.getElementById('clear-btn')?.addEventListener('click', () => {
+  document.getElementById('clear-btn')?.addEventListener('click', async () => {
     clearCaches();
+    // 同时清除 IndexedDB（仅 Chromium 内核；Firefox 静默失败）
+    try {
+      const db = await import('../lib/db').then((m) => m.openDB());
+      for (const name of db.objectStoreNames) {
+        db.transaction(name, 'readwrite').objectStore(name).clear();
+      }
+    } catch { /* ignore */ }
     showToast('资讯缓存已清除，下次访问将重新抓取');
   });
 

@@ -7,8 +7,10 @@
 //
 // 安全：所有外部文本在渲染前都经 HTML 转义，避免 XSS。
 
-import { isFavorite, toggleFavorite, FEED_PREFIX } from './store';
+import { isFavorite, toggleFavorite } from './favorites';
+import { FEED_PREFIX } from './settings';
 import { sanitizeUrl, escapeHtml } from './security';
+import { readIndexedDB, writeIndexedDB } from './db';
 
 export type Section = 'ai' | 'news' | 'tech' | 'gaming';
 
@@ -163,14 +165,33 @@ function writeCache(section: Section, items: FeedItem[]): void {
   }
 }
 
-/** 加载某板块资讯：优先未过期缓存，否则抓取；全部失败回退旧缓存 */
+/** 加载某板块资讯：优先级链
+ *  1) localStorage 新鲜缓存（15分钟内）→ 直接展示，后台刷新
+ *  2) localStorage 过期缓存（临时兜底）
+ *  3) IndexedDB 持久化缓存（跨会话）→ 直接展示，后台刷新
+ *  4) 在线抓取 → 同时写入 localStorage + IndexedDB
+ *  5) 全部失败 → 返回空数组（页面提示）
+ */
 export async function loadFeed(section: Section): Promise<FeedItem[]> {
+  // 第1步：先读 localStorage 新鲜缓存，立即展示
   const fresh = readCacheFresh(section);
   if (fresh) {
-    // 缓存未过期：先即时展示，后台静默刷新（下次访问生效）
     refreshInBackground(section);
     return fresh;
   }
+
+  // 第2步：读 localStorage 过期缓存（临时兜底）
+  const staleLs = readCacheAny(section);
+  if (staleLs && staleLs.length) return staleLs;
+
+  // 第3步：读 IndexedDB 持久化缓存（跨会话保留）
+  const dbItems = await readIndexedDB(section);
+  if (dbItems && dbItems.length) {
+    refreshInBackground(section);
+    return dbItems as FeedItem[];
+  }
+
+  // 第4步：在线抓取
   return await refreshInBackground(section);
 }
 
@@ -178,33 +199,31 @@ async function refreshInBackground(section: Section): Promise<FeedItem[]> {
   const sources = SOURCES[section];
   for (const s of sources) {
     try {
+      let items: FeedItem[] = [];
       if (s.type === 'hn') {
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), 9000);
         const res = await fetch(s.url, { signal: ctrl.signal });
         clearTimeout(timer);
         if (!res.ok) continue;
-        const json = await res.json();
-        const items = parseHn(json);
-        if (items.length) {
-          writeCache(section, items);
-          return items;
-        }
+        items = parseHn(await res.json());
       } else {
         const xml = await fetchText(s.url);
-        const items = parseRss(xml);
-        if (items.length) {
-          writeCache(section, items);
-          return items;
-        }
+        items = parseRss(xml);
+      }
+      if (items.length) {
+        // 同时写入 localStorage 和 IndexedDB
+        writeCache(section, items);
+        writeIndexedDB(section, items);
+        return items;
       }
     } catch {
       /* 试下一个源 */
     }
   }
-  // 全部失败：回退旧缓存（即使过期），保证有内容可看
-  const stale = readCacheAny(section);
-  if (stale && stale.length) return stale;
+  // 全部失败：仍回退 IndexedDB（比 localStorage 更持久）
+  const dbItems = await readIndexedDB(section);
+  if (dbItems && dbItems.length) return dbItems as FeedItem[];
   return [];
 }
 

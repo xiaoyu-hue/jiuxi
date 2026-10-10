@@ -1,0 +1,113 @@
+# 九溪 · 每周提案周报
+#
+# 每周一 09:00 UTC 自动运行：
+#   1. 检查 src/content/timeline/ 中最新的条目年份
+#   2. 如果最新条目早于当前年份，创建 Issue 提醒补充
+#   3. 不修改任何文件，仅提醒人工审核后再合并
+
+name: Weekly Timeline Proposal
+
+on:
+  schedule:
+    # 每周一 09:00 UTC（北京时间 17:00）
+    - cron: '0 9 * * 1'
+  workflow_dispatch:  # 支持手动触发
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-timeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Find latest timeline entry
+        id: latest
+        run: |
+          # 按 frontmatter year 字段排序，取最新一条
+          latest_year=$(rg -h 'year:' --glob '*.md' src/content/timeline/ 2>/dev/null | \
+            grep -E 'year:\s*\d{4}' | \
+            sed 's/.*year:\s*//' | \
+            sort -rn | \
+            head -n 1 || echo "0")
+
+          # 如果 rg 不可用，回退到 grep
+          if [ -z "$latest_year" ]; then
+            latest_year=$(grep -rhE 'year:\s*\d{4}' src/content/timeline/ 2>/dev/null | \
+              sed 's/.*year:\s*//' | \
+              sort -rn | \
+              head -n 1 || echo "0")
+          fi
+
+          # 获取当前年份
+          current_year=$(date -u +%Y)
+
+          echo "latest_year=$latest_year" >> "$GITHUB_OUTPUT"
+          echo "current_year=$current_year" >> "$GITHUB_OUTPUT"
+
+      - name: Create issue if outdated
+        if: steps.latest.outputs.latest_year != '' && steps.latest.outputs.latest_year != '0' && steps.latest.outputs.latest_year < steps.latest.outputs.current_year
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const latestYear = parseInt('${{ steps.latest.outputs.latest_year }}');
+            const currentYear = parseInt('${{ steps.latest.outputs.current_year }}');
+            const gap = currentYear - latestYear;
+
+            const title = `📅 九溪时间线提醒：建议补充 ${currentYear} 年的 AI 里程碑`;
+            const body = [
+              '## 定时提醒',
+              '',
+              `九溪的 AI 发展时间线目前收录至 **${latestYear} 年**，与当前年份（${currentYear} 年）相差 ${gap} 年。`,
+              '',
+              '### 建议补充的事件',
+              '- ${currentYear} 年的重要 AI 发布或里程碑（如新模型、新框架、重大行业事件等）',
+              '',
+              '### 如何添加',
+              '1. 在 GitHub 网页端打开 [`src/content/timeline/`](https://github.com/xiaoyu-hue/jiuxi/tree/main/src/content/timeline)',
+              '2. 新建 Markdown 文件，命名格式：`${currentYear}-描述.md`（如 `2026-deepseek-v3.md`）',
+              '3. Frontmatter 示例：',
+              '```yaml',
+              '---',
+              `year: ${currentYear}`,
+              'title: "事件标题"',
+              'category: "里程碑"',
+              'month: 1',
+              'source: "来源"',
+              'sourceUrl: "https://..."',
+              '---',
+              '',
+              '正文写简要介绍（2-3 句）。',
+              '4. 提交后 GitHub Actions 自动重建并上线。',
+              '',
+              '---',
+              '*本提醒由九溪自动周报生成，可忽略或关闭。*',
+            ].join('\n');
+
+            // 检查是否已有同年份 issue（避免重复创建）
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'timeline-reminder'
+            });
+
+            const hasOpenReminder = existing.data.some(
+              issue => issue.title.includes(currentYear.toString())
+            );
+
+            if (!hasOpenReminder) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['timeline-reminder']
+              });
+              console.log(`Created issue: ${title}`);
+            } else {
+              console.log('Issue already exists for this year, skipping.');
+            }

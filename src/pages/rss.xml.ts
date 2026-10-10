@@ -6,6 +6,10 @@ import { withBase } from '../lib/site';
 // 九溪 · RSS 订阅源
 // 聚合三个策展集合（时间线 / 工具箱 / 读书），供读者订阅更新。
 // 绝对地址依赖 astro.config 的 site + base（双站自动正确）。
+//
+// 注意：RSS 仅包含静态策展内容。动态资讯板块（AI / 热点 / 科技 / 游戏）
+// 依赖浏览器端实时抓取，无法在构建时预取。如需订阅动态资讯，
+// 请直接在各板块页面内收藏，或通过浏览器的 RSS 阅读器订阅 Google News。
 export async function GET(context: APIContext) {
   const [timeline, tools, reading] = await Promise.all([
     getCollection('timeline'),
