@@ -10,7 +10,7 @@
 // 用法：<FeedSection section="ai" title="AI 板块" description="..." />
 // 数据由 scripts/fetch-feeds.mjs 在构建后注入 HTML。
 import BaseLayout from '../layouts/BaseLayout.astro';
-import type { Section, FeedItem } from '../lib/feeds';
+import type { Section } from '../lib/feeds';
 
 interface Props {
   section: Section;
@@ -40,7 +40,7 @@ const { section, title, description = '' } = Astro.props;
     const embeddedScript = document.getElementById(`jiuxi-feed-${section}`);
     if (embeddedScript) {
       try {
-        const items = JSON.parse(embeddedScript.textContent ?? '[]') as FeedItem[];
+        const items = JSON.parse(embeddedScript.textContent ?? '[]') as any[];
         if (items.length) {
           renderItems(el, items);
           wireFavorites(el);
