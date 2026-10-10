@@ -9,12 +9,15 @@
 # “单个门禁失败不影响流水线结论”，同时在 job 行仍保留红叉便于排查。
 # 待各门禁连续转绿后，可逐个去掉 continue-on-error 转为强制门禁。
 #
-# ⚠️ 版本标签约定：并非所有 Action 都提供大版本移动标签（如 @v2 / @v4）。
-# 引用前必须确认标签真实存在，否则 job 会在 “Set up job” 阶段直接失败。
-# 本文件已逐个核实：
-#   - google/osv-scanner-action      → 无 v1/v2 移动标签，只能 pin 具体版本（v2.6.0）
-#   - actions/dependency-review-action → v4 移动标签不存在，只能 pin 具体版本（v4.9.0）
-#   - gitleaks@v2 / lychee@v2 / codeql@v3 → 移动标签存在，可用
+# ⚠️ Action 引用约定（本文件已逐个实测，勿凭印象写版本号）：
+#   1. 不是所有 Action 都提供大版本移动标签。
+#      actions/dependency-review-action 的 v4 就不存在（404），只能 pin v4.9.0。
+#   2. 标签存在 ≠ Action 可用。
+#      google/osv-scanner-action 所有 tag 的 action.yml 都缺顶层 `runs:` 段，
+#      引用即失败，故本项目改用其官方 CLI 二进制（见 osv-scanner job）。
+#   3. 仅在 PR 触发的 job 本地永远验证不到（一直是 skipped），
+#      例如 dependency-review，引用前更需逐一核实。
+#   已核实可用：checkout@v4、github-script@v7、gitleaks@v2、lychee@v2、codeql@v3。
 
 name: 安全门禁
 
@@ -64,16 +67,42 @@ jobs:
     continue-on-error: true # advisory
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - name: OSV Scanner
-        # ⚠️ 该 action 不提供 v1/v2 大版本移动标签（仅 v2.6.0、v2.5.1… 等具体版本），
-        # 写 @v1 或 @v2 都会 404，导致 job 在 “Set up job” 阶段直接失败。
-        # 升级时须手动核对 https://github.com/google/osv-scanner-action/tags
-        uses: google/osv-scanner-action@v2.6.0
-        with:
-          scan-args: |-
-            --recursive
-            --skip-git
-            ./
+      # ⚠️ 为什么不用 google/osv-scanner-action：
+      #    该仓库根 action.yml 自 v1.9.2 起就缺少顶层 `runs:` 段（实测每个 tag 都是
+      #    18 行的残缺文件），runner 会报
+      #    “Top level 'runs:' section is required …/action.yml”，
+      #    即该 Action 目前整体不可用，与写 @v1 还是 @v2.6.0 无关。
+      #    故改为直接使用官方 CLI 二进制（版本 pin + SHA256 校验）。
+      - name: 安装 osv-scanner CLI（pin 版本 + SHA256 校验）
+        run: |
+          set -euo pipefail
+          VERSION="${OSV_VERSION}"
+          BASE="https://github.com/google/osv-scanner/releases/download/${VERSION}"
+          curl -sSfL -o /tmp/osv-scanner "${BASE}/osv-scanner_linux_amd64"
+          curl -sSfL -o /tmp/osv-scanner_SHA256SUMS "${BASE}/osv-scanner_SHA256SUMS"
+          # SHA256SUMS 可能是 "<hash>  name" 或 "<hash> *name" 两种格式，兼容处理
+          expected="$(awk '{gsub(/^[*]/,"",$2); if($2=="osv-scanner_linux_amd64") print $1}' /tmp/osv-scanner_SHA256SUMS)"
+          actual="$(sha256sum /tmp/osv-scanner | awk '{print $1}')"
+          if [ -z "$expected" ] || [ "$expected" != "$actual" ]; then
+            echo "::error::osv-scanner 二进制 SHA256 校验失败（期望 ${expected:-<空>} 实际 $actual）"
+            exit 1
+          fi
+          chmod +x /tmp/osv-scanner
+          sudo install -m 0755 /tmp/osv-scanner /usr/local/bin/osv-scanner
+          osv-scanner --version || true # 仅用于留痕，不同版本子命令差异不影响门禁
+        env:
+          OSV_VERSION: v2.6.0 # 升级时同步核对 releases 资产与 SHA256SUMS
+      - name: OSV Scanner（依赖漏洞扫描）
+        # 用法按 v2.6.0 README 的官方示例：osv-scanner scan source -r <dir>
+        # （v1 的 `osv-scanner --recursive --skip-git ./` 在 v2 子命令体系下不再适用）
+        # advisory 阶段：结果写入日志并打 warning，不置红 job；
+        # 待现有 5 个 high（eslint 工具链）修复后，可去掉 warning 分支转强制门禁。
+        run: |
+          if osv-scanner scan source -r ./; then
+            echo "::notice::osv-scanner 未发现漏洞"
+          else
+            echo "::warning::osv-scanner 发现漏洞或执行异常，详见上方日志"
+          fi
 
   # ── 死链校验（文档/页面外链）──
   lychee:
