@@ -53,7 +53,9 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: OSV Scanner
-        uses: google/osv-scanner-action@v1
+        # 注意：该 action 无 v1 标签（可用 tag 自 v2.0.3 起），写 @v1 会导致 job 在
+        # “Set up job”阶段即失败（continue-on-error 无法覆盖该阶段），故必须用 @v2。
+        uses: google/osv-scanner-action@v2
         continue-on-error: true
         with:
           scan-args: |-
