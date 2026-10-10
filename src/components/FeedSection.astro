@@ -1,8 +1,16 @@
 ---
-// 九溪 · 动态资讯板块（客户端实时抓取渲染）
+// 九溪 · 动态资讯板块（内置预渲染数据 + 客户端刷新）
+//
+// 数据加载优先级：
+//   1) <script type="application/json"> 内嵌数据（构建时注入，页面秒开）
+//   2) IndexedDB 持久化缓存（上次在线获取的）
+//   3) localStorage 缓存
+//   4) 在线抓取（后台刷新）
+//
 // 用法：<FeedSection section="ai" title="AI 板块" description="..." />
+// 数据由 scripts/fetch-feeds.mjs 在构建后注入 HTML。
 import BaseLayout from '../layouts/BaseLayout.astro';
-import type { Section } from '../lib/feeds';
+import type { Section, FeedItem } from '../lib/feeds';
 
 interface Props {
   section: Section;
@@ -27,6 +35,30 @@ const { section, title, description = '' } = Astro.props;
   document.querySelectorAll<HTMLElement>('.feed-grid').forEach(async (el) => {
     const section = el.dataset.section as any;
     const status = document.getElementById(`status-${section}`);
+
+    // 第1步：检查构建时内嵌的 JSON 数据（零等待，立即展示）
+    const embeddedScript = document.getElementById(`jiuxi-feed-${section}`);
+    if (embeddedScript) {
+      try {
+        const items = JSON.parse(embeddedScript.textContent ?? '[]') as FeedItem[];
+        if (items.length) {
+          renderItems(el, items);
+          wireFavorites(el);
+          if (status) status.textContent = `已加载 · ${new Date().toLocaleString('zh-CN')}`;
+          // 后台异步刷新，有新数据则更新
+          loadFeed(section).then((fresh) => {
+            if (fresh.length > 0) {
+              renderItems(el, fresh);
+              wireFavorites(el);
+              if (status) status.textContent = `已更新 · ${new Date().toLocaleString('zh-CN')}`;
+            }
+          });
+          return;
+        }
+      } catch { /* 解析失败，降级到普通加载 */ }
+    }
+
+    // 第2步：无内嵌数据 → 走原来的加载逻辑（IndexedDB → localStorage → 在线）
     try {
       const items = await loadFeed(section);
       if (!items.length) {
