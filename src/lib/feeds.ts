@@ -226,15 +226,22 @@ export function renderItems(container: HTMLElement, items: FeedItem[]): void {
     .map(
       (it) => `
     <article class="glass feed-card">
-      <a class="feed-link" href="${escapeHtml(sanitizeUrl(it.link))}" target="_blank" rel="noopener noreferrer">
-        <h3>${escapeHtml(it.title)}</h3>
-        <p class="feed-meta">${escapeHtml(it.source || '未知来源')} · ${escapeHtml(formatDate(it.pubDate))}</p>
-        ${it.snippet ? `<p class="feed-snippet">${escapeHtml(it.snippet)}</p>` : ''}
+      <a class="feed-link" href="${escapeHtml(decodeHtmlEntities(sanitizeUrl(it.link)))}" target="_blank" rel="noopener noreferrer">
+        <h3>${escapeHtml(decodeHtmlEntities(it.title))}</h3>
+        <p class="feed-meta">${escapeHtml(decodeHtmlEntities(it.source || '未知来源'))} · ${escapeHtml(formatDate(it.pubDate))}</p>
+        ${it.snippet ? `<p class="feed-snippet">${escapeHtml(decodeHtmlEntities(it.snippet))}</p>` : ''}
       </a>
       <button class="fav-btn${isFavorite(it.link) ? ' active' : ''}" data-link="${escapeHtml(sanitizeUrl(it.link))}" type="button" aria-label="收藏">♥</button>
     </article>`,
     )
     .join('');
+}
+
+/** 将 HTML 实体（如 &amp; &quot; &#39;）解码为普通字符 */
+function decodeHtmlEntities(text: string): string {
+  const el = document.createElement('textarea');
+  el.innerHTML = text;
+  return el.value;
 }
 
 /** 为已渲染的资讯卡绑定收藏按钮（按钮为 <a> 的兄弟节点，点击不会触发导航） */
