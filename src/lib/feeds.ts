@@ -3,7 +3,7 @@
 // 纯浏览器端实现，无需后端：
 //   1) Google News RSS（中文）作为主源，经公共 CORS 代理抓取；
 //   2) Hacker News Algolia API（CORS 友好）作为科技/AI 冗余源；
-//   3) localStorage 缓存 15 分钟，失败回退缓存或空。
+//   3) localStorage 缓存 30 分钟，失败回退缓存或空。
 //
 // 安全：所有外部文本在渲染前都经 HTML 转义，避免 XSS。
 
@@ -28,81 +28,30 @@ interface FeedSource {
   type: 'rss' | 'hn';
 }
 
-// 公共 CORS 代理兜底链（按速度和可靠性排序，任一可用即可）
-// 注意：代理可能随时失效，这里做了快速失败处理
+// 公共 CORS 代理兜底链（任一可用即可）
 const PROXIES: ((u: string) => string)[] = [
-  // 国内可访问的代理（优先）
   (u) => `https://cors.proxy.run?url=${encodeURIComponent(u)}`,
   (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-  // 国际代理（备用）
   (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-  (u) => `https://api.elsevier.com/content/article/doi/placeholder`, // 占位，实际不走这个
 ];
 
-// RSSHub 实例（开源 RSS 生成器，覆盖 Google News 等）
-// 如果直连 Google News 失败，尝试通过 RSSHub
-const RSSHUB_INSTANCES = [
-  'https://rsshub.app',
-  'https://rsshub.hamabune.com',
-  'https://rss.shab.tech',
-];
-
-const CACHE_TTL = 30 * 60 * 1000; // 延长到 30 分钟，减少重复请求
+const CACHE_TTL = 30 * 60 * 1000; // 30 分钟
 
 const SOURCES: Record<Section, FeedSource[]> = {
   ai: [
-    {
-      label: 'Google 新闻 · AI',
-      url: 'https://news.google.com/rss/search?q=人工智能+OR+AI&hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
-      type: 'rss',
-    },
-    {
-      label: 'RSSHub · AI新闻',
-      url: 'https://rsshub.app/google/news/人工智能',
-      type: 'rss',
-    },
-    {
-      label: 'Hacker News · AI',
-      url: 'https://hn.algolia.com/api/v1/search?tags=story&query=AI&hitsPerPage=20',
-      type: 'hn',
-    },
+    { label: 'Google 新闻 · AI', url: 'https://news.google.com/rss/search?q=人工智能+OR+AI&hl=zh-CN&gl=CN&ceid=CN:zh-Hans', type: 'rss' },
+    { label: 'Hacker News · AI', url: 'https://hn.algolia.com/api/v1/search?tags=story&query=AI&hitsPerPage=20', type: 'hn' },
   ],
   news: [
-    {
-      label: 'Google 新闻 · 热点',
-      url: 'https://news.google.com/rss?hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
-      type: 'rss',
-    },
-    {
-      label: 'RSSHub · 今日头条',
-      url: 'https://rsshub.app/toutiao',
-      type: 'rss',
-    },
+    { label: 'Google 新闻 · 热点', url: 'https://news.google.com/rss?hl=zh-CN&gl=CN&ceid=CN:zh-Hans', type: 'rss' },
   ],
   tech: [
-    {
-      label: 'Google 新闻 · 科技',
-      url: 'https://news.google.com/rss/search?q=科技&hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
-      type: 'rss',
-    },
-    {
-      label: 'Hacker News 头条',
-      url: 'https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=20',
-      type: 'hn',
-    },
+    { label: 'Google 新闻 · 科技', url: 'https://news.google.com/rss/search?q=科技&hl=zh-CN&gl=CN&ceid=CN:zh-Hans', type: 'rss' },
+    { label: 'Hacker News 头条', url: 'https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=20', type: 'hn' },
   ],
   gaming: [
-    {
-      label: 'Google 新闻 · 游戏',
-      url: 'https://news.google.com/rss/search?q=游戏&hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
-      type: 'rss',
-    },
-    {
-      label: 'RSSHub · 游戏新闻',
-      url: 'https://rsshub.app/google/news/游戏',
-      type: 'rss',
-    },
+    { label: 'Google 新闻 · 游戏', url: 'https://news.google.com/rss/search?q=游戏&hl=zh-CN&gl=CN&ceid=CN:zh-Hans', type: 'rss' },
   ],
 };
 
@@ -141,7 +90,7 @@ export function parseHn(json: any): FeedItem[] {
 async function fetchText(url: string): Promise<string> {
   const errors: unknown[] = [];
 
-  // 先试直连（有些源可能不需要代理）
+  // 先试直连
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 5000);
@@ -158,16 +107,11 @@ async function fetchText(url: string): Promise<string> {
   for (const make of PROXIES) {
     try {
       const proxyUrl = make(url);
-      // 跳过无效占位符
-      if (proxyUrl.includes('placeholder')) continue;
-
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 5000);
       const res = await fetch(proxyUrl, { signal: ctrl.signal });
       clearTimeout(timer);
-
       const text = await res.text();
-      // 验证返回的是 XML 而不是 HTML 错误页
       if (res.ok && (text.includes('<?xml') || text.includes('<rss') || text.includes('<feed'))) {
         return text;
       }
@@ -184,22 +128,16 @@ function cacheKey(section: Section): string {
   return `${FEED_PREFIX}${section}`;
 }
 
-/** 读取未过期的缓存（15 分钟内），过期或缺失返回 null */
+/** 读取未过期的缓存（30 分钟内），过期或缺失返回 null */
 function readCacheFresh(section: Section): FeedItem[] | null {
   try {
     const raw = localStorage.getItem(cacheKey(section));
     if (!raw) return null;
     const obj = JSON.parse(raw);
-    if (
-      typeof obj?.t === 'number' &&
-      Date.now() - obj.t < CACHE_TTL &&
-      Array.isArray(obj.items) &&
-      obj.items.length
-    )
+    if (typeof obj?.t === 'number' && Date.now() - obj.t < CACHE_TTL && Array.isArray(obj.items) && obj.items.length) {
       return obj.items as FeedItem[];
-  } catch {
-    /* ignore */
-  }
+    }
+  } catch { /* ignore */ }
   return null;
 }
 
@@ -209,20 +147,15 @@ function readCacheAny(section: Section): FeedItem[] | null {
     const raw = localStorage.getItem(cacheKey(section));
     if (!raw) return null;
     const obj = JSON.parse(raw);
-    if (Array.isArray(obj?.items) && obj.items.length)
-      return obj.items as FeedItem[];
-  } catch {
-    /* ignore */
-  }
+    if (Array.isArray(obj?.items) && obj.items.length) return obj.items as FeedItem[];
+  } catch { /* ignore */ }
   return null;
 }
 
 function writeCache(section: Section, items: FeedItem[]): void {
   try {
     localStorage.setItem(cacheKey(section), JSON.stringify({ t: Date.now(), items }));
-  } catch {
-    /* 容量满/隐私模式忽略 */
-  }
+  } catch { /* 容量满/隐私模式忽略 */ }
 }
 
 /** 加载某板块资讯：优先级链
@@ -233,25 +166,21 @@ function writeCache(section: Section, items: FeedItem[]): void {
  *  5) 全部失败 → 返回空数组（页面提示）
  */
 export async function loadFeed(section: Section): Promise<FeedItem[]> {
-  // 第1步：先读 IndexedDB 持久化缓存（最快，有内容就立即展示）
   const dbItems = await readIndexedDB(section);
   if (dbItems && dbItems.length) {
     refreshInBackground(section);
     return dbItems as FeedItem[];
   }
 
-  // 第2步：读 localStorage 新鲜缓存
   const fresh = readCacheFresh(section);
   if (fresh) {
     refreshInBackground(section);
     return fresh;
   }
 
-  // 第3步：读 localStorage 过期缓存（临时兜底）
   const staleLs = readCacheAny(section);
   if (staleLs && staleLs.length) return staleLs;
 
-  // 第4步：在线抓取
   return await refreshInBackground(section);
 }
 
@@ -274,7 +203,6 @@ async function refreshInBackground(section: Section): Promise<FeedItem[]> {
         items = parseRss(xml);
       }
       if (items.length) {
-        // 同时写入 localStorage 和 IndexedDB
         writeCache(section, items);
         await writeIndexedDB(section, items);
         return items;
@@ -285,7 +213,6 @@ async function refreshInBackground(section: Section): Promise<FeedItem[]> {
     }
   }
 
-  // 全部失败：回退 IndexedDB（比 localStorage 更持久）
   const dbItems = await readIndexedDB(section);
   if (dbItems && dbItems.length) return dbItems as FeedItem[];
 
