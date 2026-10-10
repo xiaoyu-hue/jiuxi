@@ -41,6 +41,7 @@
 - ✅ 液态玻璃 UI（毛玻璃材质 + 渐变背景，不支持的浏览器自动降级）
 - ✅ 4 套主题自由切换，防首屏闪烁，偏好写入 localStorage
 - ✅ 浏览器端实时资讯聚合（Google News RSS + Hacker News），公共 CORS 代理兜底链（allorigins / corsproxy），15 分钟缓存
+- ✅ SEO 增强：自动生成 sitemap / RSS / Open Graph 分享图，双站规范地址（canonical）
 - ✅ 策展数据用 Content Collections 管理，schema 校验，改一篇 = 改一个文件
 - ✅ 系统能力：收藏、外观设置、数据导出 / 导入（JSON）、清空缓存
 - ✅ 双站部署：Cloudflare Pages 主 + GitHub Pages 备，push 即上线
@@ -162,9 +163,9 @@ jiuxi/
 | Phase 5 | 系统板块（设置与数据/关于） | ✅ 已完成 |
 | Phase 6 | 双站部署配置 | ✅ 已完成 |
 
-已完成（v1.1.0）：定时提案周报（每周自动开 PR 提醒补充时间线里程碑，人工审核后合并）。
+已完成（v1.1.0）：定时提案周报（每周自动开 PR 提醒补充时间线里程碑，人工审核后合并）、SEO 增强（sitemap / RSS / OG 分享图）。
 
-后续可规划：第一方 Cloudflare Pages Functions CORS 代理、更多彩色主题、更多策展板块（影视 / 财经 / 学习等）、SEO 增强（sitemap / RSS / OG 图）、无障碍与多语言。
+后续可规划：第一方 Cloudflare Pages Functions CORS 代理、更多彩色主题、更多策展板块（影视 / 财经 / 学习等）、无障碍与多语言。
 详见仓库 `docs/` 内《九溪-PRD.md》《九溪-实施计划.md》《九溪-调研报告.md》《九溪-架构文档.md》。
 
 ---

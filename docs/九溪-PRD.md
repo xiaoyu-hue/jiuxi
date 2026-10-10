@@ -115,7 +115,7 @@
 | 性能 | Lighthouse 性能分 ≥ 90；首屏 < 2s（移动 4G） |
 | 可访问性 | 语义标签、键盘可达、尊重 `prefers-reduced-motion` / `prefers-reduced-transparency` |
 | 移动端 | 手机优先布局，触控友好 |
-| SEO | 各页 meta/OG、sitemap、RSS（Should） |
+| SEO | 各页 meta/OG、sitemap、RSS（Should，v1.1.0 已落地） |
 | 隐私 | 不收集访客隐私；本地数据仅存浏览器；动态抓取走公开源 |
 | 可维护 | 内容改文件即更新；组件/主题可复用；文档齐全 |
 | 成本 | 全免费（Cloudflare Pages / GitHub Pages 免费额度内） |

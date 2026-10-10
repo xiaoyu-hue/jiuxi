@@ -58,6 +58,8 @@ jobs:
       - run: npm run build
         env:
           SITE_BASE: /jiuxi/
+          # GitHub Pages 副站规范域名（origin；/jiuxi 子路径由 base 负责）
+          SITE_URL: https://xiaoyu-hue.github.io
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
         with:
           path: dist
@@ -75,6 +77,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build   # 默认 SITE_BASE=/（见 astro.config.mjs）
+        env:
+          # Cloudflare 主站规范域名（origin；base 为 /）
+          SITE_URL: https://jiuxi-bm1.pages.dev
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: cf-dist

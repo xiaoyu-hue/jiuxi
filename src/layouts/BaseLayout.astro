@@ -17,6 +17,10 @@ const {
   title = '九溪',
   description = '九溪 · 综合信息聚集地（AI 为主，热点新闻为辅）',
 } = Astro.props;
+
+// 规范地址与社交分享图（绝对地址，依赖 astro.config 的 site + base）
+const canonicalURL = Astro.url;
+const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
 ---
 
 <!doctype html>
@@ -26,6 +30,27 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <!-- 规范地址（避免双站内容重复被搜索引擎误判） -->
+    <link rel="canonical" href={canonicalURL.href} />
+    <!-- Open Graph / 社交分享预览 -->
+    <meta property="og:site_name" content="九溪" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalURL.href} />
+    <meta property="og:image" content={ogImageURL.href} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL.href} />
+    <!-- RSS 订阅 -->
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title="九溪 · 更新"
+      href={withBase('/rss.xml')}
+    />
     <!-- 安全响应头兜底（GitHub Pages 不读 _headers，故此处用 meta 覆盖） -->
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta
