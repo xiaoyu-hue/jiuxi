@@ -6,7 +6,7 @@
 
 | 项目 | 说明 |
 |---|---|
-| 当前版本 | **v1.1.0**（全站基础版 + 第一方 CORS 代理，十板块 + 4 套主题已落地） |
+| 当前版本 | **v1.1.0**（全站基础版 + 定时提案周报，十板块 + 4 套主题已落地） |
 | 技术栈 | Astro 5 · Tailwind CSS 4 · TypeScript（纯静态输出） |
 | 托管目标 | [Cloudflare Pages](https://jiuxi-bm1.pages.dev/)（主站）+ [GitHub Pages](https://xiaoyu-hue.github.io/jiuxi/)（备用副站，双站容灾） |
 | 许可证 | 代码 Apache-2.0 / 文档与内容 CC BY-NC 4.0 |
@@ -40,7 +40,7 @@
 - ✅ 十板块信息架构：首页聚合 / AI / 热点新闻 / 科技 / AI 发展时间线 / AI 工具箱 / 游戏娱乐 / 读书推荐 / 设置与数据 / 关于九溪
 - ✅ 液态玻璃 UI（毛玻璃材质 + 渐变背景，不支持的浏览器自动降级）
 - ✅ 4 套主题自由切换，防首屏闪烁，偏好写入 localStorage
-- ✅ 浏览器端实时资讯聚合（Google News RSS + Hacker News），主站走第一方 CORS 代理、副站公共代理兜底，15 分钟缓存
+- ✅ 浏览器端实时资讯聚合（Google News RSS + Hacker News），公共 CORS 代理兜底链（allorigins / corsproxy），15 分钟缓存
 - ✅ 策展数据用 Content Collections 管理，schema 校验，改一篇 = 改一个文件
 - ✅ 系统能力：收藏、外观设置、数据导出 / 导入（JSON）、清空缓存
 - ✅ 双站部署：Cloudflare Pages 主 + GitHub Pages 备，push 即上线
@@ -56,7 +56,7 @@
 | 语言 | **TypeScript** | 类型安全 |
 | 运行时 | **Node.js 22+** | 本地构建（部署侧由 CI 提供） |
 | 内容 | Astro Content Collections（Zod schema） | 时间线 / 工具箱 / 读书的结构化数据 |
-| 数据源 | Google News RSS、Hacker News（Algolia）；第一方 Cloudflare Functions 代理（主站）+ allorigins / corsproxy（副站兜底） | 动态资讯实时抓取 |
+| 数据源 | Google News RSS、Hacker News（Algolia）；allorigins / corsproxy（CORS 代理兜底） | 动态资讯实时抓取 |
 | 部署 | GitHub Actions + Cloudflare Pages / GitHub Pages | 自动构建与双站发布 |
 
 ---
@@ -162,9 +162,9 @@ jiuxi/
 | Phase 5 | 系统板块（设置与数据/关于） | ✅ 已完成 |
 | Phase 6 | 双站部署配置 | ✅ 已完成 |
 
-已完成（P1）：第一方 Cloudflare Pages Functions CORS 代理（根除对 allorigins / corsproxy 第三方代理的依赖）+ 定时提案周报（每周自动开 PR 提醒补充时间线里程碑，人工审核后合并）。
+已完成（v1.1.0）：定时提案周报（每周自动开 PR 提醒补充时间线里程碑，人工审核后合并）。
 
-后续可规划：更多彩色主题、更多策展板块（影视 / 财经 / 学习等）、SEO 增强（sitemap / RSS / OG 图）、无障碍与多语言。
+后续可规划：第一方 Cloudflare Pages Functions CORS 代理、更多彩色主题、更多策展板块（影视 / 财经 / 学习等）、SEO 增强（sitemap / RSS / OG 图）、无障碍与多语言。
 详见仓库 `docs/` 内《九溪-PRD.md》《九溪-实施计划.md》《九溪-调研报告.md》《九溪-架构文档.md》。
 
 ---

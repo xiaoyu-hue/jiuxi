@@ -1,7 +1,7 @@
 # 九溪 · Cloudflare Pages 配置
 # 主站部署：在 Cloudflare Pages 控制台「连接 Git 仓库」并设构建命令 `npm run build`、输出目录 `dist`；
 # 或用 CLI：`npx wrangler pages deploy dist`。
-# 第一方 CORS 代理已落地：functions/api/proxy.ts（主站 *.pages.dev 生效；副站自动回退公共代理）。
+# 如需第一方 CORS 代理（替代公共代理），可在 functions/ 下添加 api 函数（可选，需配合 Cloudflare Pages Functions 构建配置）。
 
 name = "jiuxi"
 pages_build_output_dir = "dist"

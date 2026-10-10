@@ -134,7 +134,7 @@
 
 ### 6.2 数据源（详见调研报告）
 - 新闻/科技/游戏：Google News RSS（含 `hl=zh-CN`）、freenewsapi.ai、Hacker News API、GitHub Trending。
-- 主站（Cloudflare Pages）已落地 Pages Functions 第一方 CORS 代理，根除跨域；副站用 rss2json/allorigins 兜底。
+- 主站（Cloudflare Pages）可挂 Pages Functions 第一方 CORS 代理根除跨域；副站用 rss2json/allorigins 兜底。
 
 ### 6.3 实时更新机制
 - 动态板块：**运行时客户端抓取**，天然实时，无需重建。
