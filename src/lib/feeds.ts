@@ -26,11 +26,27 @@ interface FeedSource {
   type: 'rss' | 'hn';
 }
 
-// 公共 CORS 代理兜底链（任一可用即可）
+// 公共 CORS 代理兜底链（任一可用即可，作为副站或主站函数不可用时的回退）
 const PROXIES: ((u: string) => string)[] = [
   (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
 ];
+
+// 第一方 Cloudflare Pages Functions CORS 代理（仅主站 *.pages.dev / 自定义域名生效）。
+// 副站（*.github.io）没有该函数，故自动判定为不可用、回退到上面的公共代理链。
+const FIRST_PARTY_PROXY = '/api/proxy?url=';
+
+function useFirstPartyProxy(): boolean {
+  try {
+    return typeof location !== 'undefined' && !location.hostname.endsWith('github.io');
+  } catch {
+    return false;
+  }
+}
+
+function firstPartyUrl(target: string): string {
+  return `${FIRST_PARTY_PROXY}${encodeURIComponent(target)}`;
+}
 
 const CACHE_TTL = 15 * 60 * 1000; // 15 分钟
 
@@ -101,14 +117,19 @@ export function parseHn(json: any): FeedItem[] {
   }));
 }
 
-// ── 抓取（带代理兜底与超时）──
+// ── 抓取（第一方代理优先，失败回退公共代理链，带超时）──
 async function fetchText(url: string): Promise<string> {
+  // 主站优先走第一方函数；副站或函数不可用时 firstPartyUrl 不进入列表
+  const endpoints: string[] = [];
+  if (useFirstPartyProxy()) endpoints.push(firstPartyUrl(url));
+  for (const make of PROXIES) endpoints.push(make(url));
+
   let lastErr: unknown;
-  for (const make of PROXIES) {
+  for (const endpoint of endpoints) {
     try {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 9000);
-      const res = await fetch(make(url), { signal: ctrl.signal });
+      const res = await fetch(endpoint, { signal: ctrl.signal });
       clearTimeout(timer);
       if (res.ok) return await res.text();
     } catch (e) {

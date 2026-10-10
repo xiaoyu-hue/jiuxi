@@ -1,0 +1,57 @@
+# 九溪 · 时间线里程碑「提案」周报
+#
+# 作用：每周一自动打开一个 PR，提醒并预填近期时间线补充模板（人类审核后再合并）。
+#       不自动写入任何内容、不编造里程碑，避免污染策展时间线。
+# 仅用 Actions 自带的 GITHUB_TOKEN，无需任何额外密钥 / 不依赖 Cloudflare。
+# 想关闭：删掉下面的 on.schedule 段即可（保留 workflow_dispatch 可手动触发）。
+#
+# 设计权衡（已与“不盲自动化 / 不编造”原则对齐）：
+#   原架构设想把定时任务放在 Cloudflare Pages Functions，但那需要把 GitHub PAT 存进
+#   Cloudflare 环境变量，存在凭证泄露面。改用 GitHub Actions 定时任务，复用仓库自带的
+#   GITHUB_TOKEN 即可开 PR，凭证不出 GitHub，更安全。
+
+name: 时间线里程碑周报（提案 PR）
+
+on:
+  schedule:
+    - cron: '0 1 * * 1'   # 每周一 01:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - name: 生成提案 PR（若已有同类开放 PR 则跳过）
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          MONTH=$(date +%Y-%m)
+          # 已有同类开放 PR 则跳过，避免重复噪声
+          OPEN=$(gh pr list --repo "$REPO" --state open --json title \
+            --jq '[.[] | select(.title | contains("周报补充提醒"))] | length')
+          if [ "$OPEN" != "0" ]; then
+            echo "已有开放的时间线提案 PR，跳过。"
+            exit 0
+          fi
+          BODY=$(cat <<EOF
+          ## 时间线补充提醒（$MONTH）
+
+          本 PR 由定时任务自动生成，**仅为提醒与模板，未自动写入任何内容**。请人工核对真实性后合并或关闭。
+
+          ### 建议补充的近期里程碑（请遵循「不编造」原则）
+          - 新建文件 \`src/content/timeline/${MONTH}-xxx.md\`
+          - 字段参考现有条目：\`year\` / \`title\` / \`category\` / \`month*\` / \`source*\` / \`sourceUrl*\`
+          - 只收录已确证的重大 AI 事件；不确定的留空或删除本 PR。
+
+          > 自动提案、人工裁决：避免机器人直接污染策展时间线。
+          EOF
+          )
+          gh pr create --repo "$REPO" \
+            --title "chore(timeline): 周报补充提醒 $MONTH" \
+            --body "$BODY" || echo "PR 创建失败，跳过"
