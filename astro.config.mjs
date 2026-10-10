@@ -13,7 +13,18 @@ import sitemap from '@astrojs/sitemap';
 export default defineConfig({
   site: process.env.SITE_URL || 'https://jiuxi-bm1.pages.dev',
   base: process.env.SITE_BASE || '/',
-  // 输出为静态站点（默认 'static'），无需任何服务器
+  // 输出为静态站点（默认 'static'），无需任何服务器。
+  // —— 进阶（可选，启用前请权衡）——
+  // 若要做到「每次访问都新鲜」且由服务端 sanitize，可升级为 hybrid + 第一方函数：
+  //   1) 安装适配器（注意版本需与 Astro 大版本匹配，本项目 Astro 5 对应 ^12）：
+  //      npm i -D @astrojs/cloudflare@^12
+  //      （当前 SSR 未启用，故未把它加入依赖，避免无用依赖与连带漏洞）
+  //   2) 上方 import 改为：import cloudflare from '@astrojs/cloudflare';
+  //   3) 设 output: 'hybrid'，并在 integrations 加 adapter: cloudflare()；
+  //   4) 将 FeedSection 的资讯渲染改为 Server Island（server:defer）走 /api/feed。
+  // ⚠️ 代价：开启 SSR 后 GitHub Pages 备站将无法承载（GH Pages 只托管静态产物），
+  //    必须二选一——放弃 GH Pages 备站，或把备站也放到 Cloudflare。当前先保留静态，
+  //    用「第一方 Functions 代理 + 定时重建」已能兼顾新鲜度与双站部署，故暂不开启 SSR。
   output: 'static',
   // SEO：自动生成 sitemap-index.xml（含全站页面绝对地址）
   integrations: [sitemap()],

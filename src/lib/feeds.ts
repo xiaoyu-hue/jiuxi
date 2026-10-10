@@ -9,8 +9,10 @@
 
 import { isFavorite, toggleFavorite } from './favorites';
 import { FEED_PREFIX } from './settings';
-import { sanitizeUrl, escapeHtml } from './security';
+import { sanitizeUrl } from './security';
 import { readIndexedDB, writeIndexedDB } from './db';
+import { extractFromXml } from '@extractus/feed-extractor';
+import feedsData from '../data/feeds.json';
 
 export type Section = 'ai' | 'news' | 'tech' | 'gaming';
 
@@ -28,56 +30,15 @@ interface FeedSource {
   type: 'rss' | 'hn';
 }
 
-// 公共 CORS 代理兜底链（任一可用即可）
-const PROXIES: ((u: string) => string)[] = [
-  (u) => `https://cors.proxy.run?url=${encodeURIComponent(u)}`,
-  (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-  (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-  (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
-];
+// 第一方 feed 代理（Cloudflare Pages Function，见 functions/api/feed.ts）。
+// 与站点同域，故浏览器端 fetch 不受 CORS 限制，且 CSP 只需 'self' 即可放行；
+// GitHub Pages 备站无 Functions，运行时刷新会失败，但构建期注入的数据仍可见（备站降级）。
+const FEED_PROXY_PATH = '/api/feed';
 
 const CACHE_TTL = 30 * 60 * 1000; // 30 分钟
 
-const SOURCES: Record<Section, FeedSource[]> = {
-  ai: [
-    {
-      label: 'Google 新闻 · AI',
-      url: 'https://news.google.com/rss/search?q=人工智能+OR+AI&hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
-      type: 'rss',
-    },
-    {
-      label: 'Hacker News · AI',
-      url: 'https://hn.algolia.com/api/v1/search?tags=story&query=AI&hitsPerPage=20',
-      type: 'hn',
-    },
-  ],
-  news: [
-    {
-      label: 'Google 新闻 · 热点',
-      url: 'https://news.google.com/rss?hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
-      type: 'rss',
-    },
-  ],
-  tech: [
-    {
-      label: 'Google 新闻 · 科技',
-      url: 'https://news.google.com/rss/search?q=科技&hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
-      type: 'rss',
-    },
-    {
-      label: 'Hacker News 头条',
-      url: 'https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=20',
-      type: 'hn',
-    },
-  ],
-  gaming: [
-    {
-      label: 'Google 新闻 · 游戏',
-      url: 'https://news.google.com/rss/search?q=游戏&hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
-      type: 'rss',
-    },
-  ],
-};
+// 数据源外置到 src/data/feeds.json（运行端与构建端共用的唯一配置）
+const SOURCES = (feedsData as { sections: Record<Section, FeedSource[]> }).sections;
 
 function formatDate(d?: string): string {
   if (!d) return '';
@@ -87,16 +48,23 @@ function formatDate(d?: string): string {
 }
 
 // ── 解析 ──
+// 用 @extractus/feed-extractor 解析 RSS/Atom（浏览器与 Node 双端、零正则 hack）。
+// 返回结构：{ entries: [{ title, link, published, description }] }，title 已自动解码实体。
 export function parseRss(xml: string): FeedItem[] {
-  const doc = new DOMParser().parseFromString(xml, 'application/xml');
-  const items = Array.from(doc.querySelectorAll('item'));
-  return items.slice(0, 24).map((it) => ({
-    title: it.querySelector('title')?.textContent?.trim() ?? '',
-    link: it.querySelector('link')?.textContent?.trim() ?? '',
-    source: it.querySelector('source')?.textContent?.trim() || undefined,
-    pubDate: it.querySelector('pubDate')?.textContent?.trim() || undefined,
-    snippet: (it.querySelector('description')?.textContent ?? '').slice(0, 140),
-  }));
+  try {
+    const feed = extractFromXml(xml);
+    const entries = Array.isArray((feed as { entries?: unknown[] })?.entries)
+      ? (feed as { entries: Record<string, unknown>[] }).entries
+      : [];
+    return entries.slice(0, 24).map((e) => ({
+      title: String(e.title ?? '').trim(),
+      link: String(e.link ?? '').trim(),
+      pubDate: e.published ? String(e.published) : undefined,
+      snippet: e.description ? String(e.description).slice(0, 140) : undefined,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 export function parseHn(json: any): FeedItem[] {
@@ -110,39 +78,38 @@ export function parseHn(json: any): FeedItem[] {
   }));
 }
 
-// ── 抓取（带代理兜底与快速失败）──
+// ── 抓取（直连优先，失败回退第一方同域代理）──
 async function fetchText(url: string): Promise<string> {
   const errors: unknown[] = [];
 
-  // 先试直连
+  // 1) 先试直连（HN 等 CORS 友好源可用）
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 5000);
     const res = await fetch(url, { signal: ctrl.signal });
     clearTimeout(timer);
-    if (res.ok && res.headers.get('content-type')?.includes('xml')) {
-      return await res.text();
+    if (res.ok) {
+      const text = await res.text();
+      if (text.includes('<?xml') || text.includes('<rss') || text.includes('<feed')) return text;
     }
   } catch (e) {
     errors.push(e);
   }
 
-  // 再试代理链（每个代理给 5 秒超时）
-  for (const make of PROXIES) {
-    try {
-      const proxyUrl = make(url);
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 5000);
-      const res = await fetch(proxyUrl, { signal: ctrl.signal });
-      clearTimeout(timer);
+  // 2) 回退第一方同域代理 /api/feed（Cloudflare Pages Function，同源无 CORS 问题）
+  try {
+    const proxyUrl = `${FEED_PROXY_PATH}?url=${encodeURIComponent(url)}`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    const res = await fetch(proxyUrl, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (res.ok) {
       const text = await res.text();
-      if (res.ok && (text.includes('<?xml') || text.includes('<rss') || text.includes('<feed'))) {
-        return text;
-      }
-      errors.push(new Error(`代理返回非XML: ${res.status}`));
-    } catch (e) {
-      errors.push(e);
+      if (text.includes('<?xml') || text.includes('<rss') || text.includes('<feed')) return text;
     }
+    errors.push(new Error(`第一方代理返回非 XML: ${res.status}`));
+  } catch (e) {
+    errors.push(e);
   }
 
   throw new Error(`抓取失败: ${errors.length} 次尝试均失败`);
@@ -239,7 +206,7 @@ async function refreshInBackground(section: Section): Promise<FeedItem[]> {
         items = parseHn(await res.json());
       } else {
         const xml = await fetchText(s.url);
-        items = parseRss(xml);
+        items = parseRss(xml).map((it) => ({ ...it, source: it.source || s.label }));
       }
       if (items.length) {
         writeCache(section, items);
@@ -259,28 +226,51 @@ async function refreshInBackground(section: Section): Promise<FeedItem[]> {
   return [];
 }
 
-/** 将资讯渲染进容器（客户端注入，须全局样式配合） */
+/**
+ * 将资讯渲染进容器（客户端注入，须全局样式配合）。
+ * 标题/来源/摘要一律用 textContent 写入（天然免疫 XSS，无需 HTML 转义）；
+ * 链接用 sanitizeUrl 校验后写 href / data-link。
+ */
 export function renderItems(container: HTMLElement, items: FeedItem[]): void {
-  container.innerHTML = items
-    .map(
-      (it) => `
-    <article class="glass feed-card">
-      <a class="feed-link" href="${escapeHtml(sanitizeUrl(it.link))}" target="_blank" rel="noopener noreferrer">
-        <h3>${escapeHtml(decodeHtmlEntities(it.title))}</h3>
-        <p class="feed-meta">${escapeHtml(decodeHtmlEntities(it.source || '未知来源'))} · ${escapeHtml(formatDate(it.pubDate))}</p>
-        ${it.snippet ? `<p class="feed-snippet">${escapeHtml(decodeHtmlEntities(it.snippet))}</p>` : ''}
-      </a>
-      <button class="fav-btn${isFavorite(it.link) ? ' active' : ''}" data-link="${escapeHtml(sanitizeUrl(it.link))}" type="button" aria-label="收藏">♥</button>
-    </article>`,
-    )
-    .join('');
-}
+  const frag = document.createDocumentFragment();
+  for (const it of items) {
+    const card = document.createElement('article');
+    card.className = 'glass feed-card';
 
-/** 将 HTML 实体（如 &amp; &quot; &#39;）解码为普通字符 */
-function decodeHtmlEntities(text: string): string {
-  const el = document.createElement('textarea');
-  el.innerHTML = text;
-  return el.value;
+    const a = document.createElement('a');
+    a.className = 'feed-link';
+    a.href = sanitizeUrl(it.link);
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+
+    const h3 = document.createElement('h3');
+    h3.textContent = it.title || '';
+    a.appendChild(h3);
+
+    const meta = document.createElement('p');
+    meta.className = 'feed-meta';
+    meta.textContent = `${it.source || '未知来源'} · ${formatDate(it.pubDate)}`;
+    a.appendChild(meta);
+
+    if (it.snippet) {
+      const snip = document.createElement('p');
+      snip.className = 'feed-snippet';
+      snip.textContent = it.snippet;
+      a.appendChild(snip);
+    }
+    card.appendChild(a);
+
+    const fav = document.createElement('button');
+    fav.className = `fav-btn${isFavorite(it.link) ? ' active' : ''}`;
+    fav.type = 'button';
+    fav.dataset.link = sanitizeUrl(it.link);
+    fav.setAttribute('aria-label', '收藏');
+    fav.textContent = '♥';
+    card.appendChild(fav);
+
+    frag.appendChild(card);
+  }
+  container.replaceChildren(frag);
 }
 
 /** 为已渲染的资讯卡绑定收藏按钮（按钮为 <a> 的兄弟节点，点击不会触发导航） */

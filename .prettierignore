@@ -4,3 +4,5 @@ src/data
 coverage
 pnpm-lock.yaml
 package-lock.json
+wrangler.toml
+worker/wrangler.toml

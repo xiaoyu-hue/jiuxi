@@ -1,0 +1,4 @@
+# 九溪 · 备站安全头注入 Worker 配置（可选，见 headers-inject.js 顶部说明）
+name = "jiuxi-fallback-headers"
+main = "headers-inject.js"
+compatibility_date = "2024-09-23"

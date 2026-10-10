@@ -1,0 +1,84 @@
+# 九溪 · 安全门禁（独立于 deploy.yml，便于分层查看）
+#
+# 涵盖：密钥扫描(gitleaks) / SAST(CodeQL) / 依赖漏洞(osv-scanner) / 死链(lychee) / PR 依赖审查。
+# 当前均为 advisory（continue-on-error），避免一次性引入即阻断既有绿流水线；
+# 待首次运行转绿后，可逐个去掉 continue-on-error 转为强制门禁。
+# 版本标签由 dependabot.yml 的 pin-actions 自动锁定为 SHA（见该文件配置）。
+
+name: 安全门禁
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '27 4 * * 1' # 每周一 04:27 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write # CodeQL 上传结果需要
+
+jobs:
+  # ── 密钥扫描 ──
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks（密钥扫描）
+        uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
+        env:
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
+
+  # ── SAST：CodeQL（公开库免费，无需 token）──
+  codeql:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: 初始化 CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - name: CodeQL 分析
+        uses: github/codeql-action/analyze@v3
+        continue-on-error: true
+
+  # ── 依赖漏洞扫描 ──
+  osv-scanner:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: OSV Scanner
+        uses: google/osv-scanner-action@v1
+        continue-on-error: true
+        with:
+          scan-args: |-
+            --recursive
+            --skip-git
+            ./
+
+  # ── 死链校验（文档/页面外链）──
+  lychee:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Lychee 死链检查
+        uses: lycheeverse/lychee-action@v2
+        continue-on-error: true
+        with:
+          args: --no-progress --max-concurrency 4 --exclude-mail './**/*.md'
+          fail: false
+
+  # ── PR 依赖审查（仅 PR 触发，比对 base 的依赖变更）──
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        continue-on-error: true

@@ -4,7 +4,10 @@
 // 若直接写进 href，javascript:/data:/file: 等协议可在某些上下文触发 XSS 或危险行为。
 // 这里只放行 http/https/mailto 与相对路径，其余一律降级为 "#"。
 
-/** 校验链接协议，危险协议返回 "#"，安全协议或相对路径原样返回 */
+/**
+ * 校验链接协议，危险协议返回 "#"，安全协议或相对路径原样返回。
+ * 采用原生 URL 解析 + 协议白名单（http/https/mailto），比手写正则更稳、零额外体积。
+ */
 export function sanitizeUrl(url: string): string {
   const u = String(url ?? '').trim();
   if (u === '') return '#';
@@ -13,12 +16,17 @@ export function sanitizeUrl(url: string): string {
   if (/[\u0000-\u001f\u007f]/.test(u)) return '#';
   // 协议相对 URL（//evil.com）在 href 中会跳转到外部域（钓鱼/开放重定向），按危险处理
   if (u.startsWith('//')) return '#';
-  // 允许的安全协议
-  if (/^(https?:|mailto:)/i.test(u)) return u;
-  // 任何其它“带协议”的写法（javascript: / data: / vbscript: / file: 等）一律拦截
-  if (/^[a-z][a-z0-9+.-]*:/i.test(u)) return '#';
-  // 其余视为相对路径或锚点（安全）
-  return u;
+  // 站内相对路径（/ai、./foo、../x）与锚点（#top）直接放行
+  if (u.startsWith('#')) return u;
+  if (/^(\/|\.\/|\.\.\/)/.test(u)) return u;
+  // 用原生 URL 解析，仅放行白名单协议；非合法绝对 URL 一律按危险处理
+  try {
+    const parsed = new URL(u);
+    if (/^(https?:|mailto:)$/i.test(parsed.protocol)) return u;
+  } catch {
+    /* 解析失败：不是合法绝对 URL */
+  }
+  return '#';
 }
 
 /**

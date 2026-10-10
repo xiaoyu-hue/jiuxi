@@ -1,9 +1,12 @@
 # 九溪 · 安全响应头（Cloudflare Pages 生效；GitHub Pages 不支持 _headers，见 BaseLayout 的 meta 兜底）
-# 说明：站内抓取需在 connect-src 放行 CORS 代理与 Hacker News；
-# 组件样式与防闪烁脚本均为内联，故 style-src / script-src 保留 'unsafe-inline'。
+# 说明：
+#   - 第一方 feed 代理 /api/feed 与站点同源，故 connect-src 只需 'self'（加 hn.algolia.com 直连）；
+#   - 组件样式与防闪烁脚本均为内联，故 style-src / script-src 保留 'unsafe-inline'（真实防线在代码转义）。
 /*
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
-  Permissions-Policy: geolocation=(), microphone=(), camera=()
-  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://cors.proxy.run https://api.codetabs.com https://api.allorigins.win https://corsproxy.io https://hn.algolia.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), interest-cohort=()
+  Cross-Origin-Resource-Policy: same-origin
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://hn.algolia.com; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'

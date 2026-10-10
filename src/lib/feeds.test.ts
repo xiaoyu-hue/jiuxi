@@ -25,13 +25,15 @@ describe('parseHn', () => {
 });
 
 describe('parseRss', () => {
-  it('解析标准 RSS 并还原 HTML 实体', () => {
-    const xml = `<?xml version="1.0"?><rss version="2.0"><channel><item><title>Hello &amp; World</title><link>https://a.com/p?x=1</link><source>SRC</source><pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate><description>some desc</description></item></channel></rss>`;
+  it('解析标准 RSS 并还原 HTML 实体（feed-extractor 自动解码）', () => {
+    const xml = `<?xml version="1.0"?><rss version="2.0"><channel><item><title>Hello &amp; World</title><link>https://a.com/p?x=1</link><source>SRC</source><pubDate>Mon, 01 Jan 2024 00:00:00 GMT</pubDate><description>some &lt;b&gt;desc&lt;/b&gt;</description></item></channel></rss>`;
     const items = parseRss(xml);
     expect(items).toHaveLength(1);
     expect(items[0].title).toBe('Hello & World');
     expect(items[0].link).toBe('https://a.com/p?x=1');
-    expect(items[0].source).toBe('SRC');
+    // feed-extractor 不提取 RSS <source> 元素；来源由调用处用源标签填充
+    expect(items[0].source).toBeUndefined();
+    expect(items[0].snippet).toBe('some desc');
   });
 
   it('无 item 时返回空数组，不抛错', () => {
@@ -51,8 +53,10 @@ describe('renderItems', () => {
         pubDate: '2024-01-01',
       },
     ]);
-    expect(c.innerHTML).not.toContain('<img');
-    expect(c.innerHTML).not.toContain('onerror');
+    // 安全断言：恶意输入被当作纯文本，不存在真实 <img> 元素，onerror 不成为可执行属性
+    expect(c.querySelector('img')).toBeNull();
+    expect(c.innerHTML).toContain('&lt;img');
+    expect(c.innerHTML).not.toContain('<img ');
   });
 
   it('对含 < 的纯文本标题做 HTML 转义', () => {
