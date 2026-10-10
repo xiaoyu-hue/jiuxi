@@ -29,3 +29,4 @@ Thumbs.db
 *.tmp
 .cache/
 .wrangler/
+src/data/feed.json
