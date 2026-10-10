@@ -81,7 +81,7 @@ function parseHn(body) {
 // ── 数据源 ─────────────────────────────────────────────────────────
 const SOURCES = {
   ai: [
-    { label: 'Hacker News · AI', url: 'https://hn.algolia.com/api/v1/search?tags=story&query=artificial+intelligence+OR+LLM&hitsPerPage=15', type: 'hn' },
+    { label: 'Hacker News · 最新', url: 'https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=15', type: 'hn' },
     { label: 'ArXiv · cs.AI', url: 'https://rss.arxiv.org/rss/cs.AI', type: 'rss' },
     { label: '爱范儿', url: 'https://www.ifanr.com/feed', type: 'rss' },
   ],
