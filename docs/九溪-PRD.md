@@ -134,11 +134,11 @@
 
 ### 6.2 数据源（详见调研报告）
 - 新闻/科技/游戏：Google News RSS（含 `hl=zh-CN`）、freenewsapi.ai、Hacker News API、GitHub Trending。
-- 若选 Cloudflare Pages：用 Pages Functions 做 CORS 代理，规避跨域；否则用 rss2json/allorigins 兜底。
+- 主站（Cloudflare Pages）已落地 Pages Functions 第一方 CORS 代理，根除跨域；副站用 rss2json/allorigins 兜底。
 
 ### 6.3 实时更新机制
 - 动态板块：**运行时客户端抓取**，天然实时，无需重建。
-- 时间线：**策展为主 + 可选定时任务**追加近期里程碑。
+- 时间线：**策展为主 + 定时提案周报**（每周自动开 PR 提醒补充近期里程碑，人工审核后合并，不自动编造）。
 - 全站：GitHub Actions 在每次推送时自动构建部署。
 
 ---
