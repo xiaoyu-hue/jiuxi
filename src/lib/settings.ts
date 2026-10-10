@@ -1,6 +1,6 @@
 // 九溪 · 设置与数据管理（轻量版，无 Zod 依赖）
-// settings.astro 使用本模块，避免将 Zod 整库打入生产 bundle。
-// 原始带校验版本保留在 store.ts，供 feeds.ts 等需要强类型的地方使用。
+// settings.astro、feeds.ts 等均使用本模块，避免将 Zod 整库打入生产 bundle。
+// 收藏逻辑见 ./favorites；偏好与缓存键见本文件 FEED_PREFIX。
 
 const SETTINGS_KEY = 'jiuxi-settings';
 const FAV_KEY = 'jiuxi-favorites';

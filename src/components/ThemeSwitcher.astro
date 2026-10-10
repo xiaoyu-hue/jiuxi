@@ -18,9 +18,10 @@ import { THEMES } from '../lib/theme';
 </div>
 
 <script>
-  import { THEMES, applyTheme, getStoredTheme } from '../lib/theme';
+  import { THEMES, applyTheme, getStoredTheme, type ThemeName } from '../lib/theme';
 
-  const stored = getStoredTheme();
+  // 优先读已存偏好；空白时回退到防闪烁脚本已写入 <html data-theme> 的真实生效主题，保证高亮正确
+  const stored = getStoredTheme() ?? (document.documentElement.getAttribute('data-theme') as ThemeName | null);
   const dots = document.querySelectorAll<HTMLButtonElement>('.theme-dot');
 
   dots.forEach((btn) => {

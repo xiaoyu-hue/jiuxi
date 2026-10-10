@@ -2,11 +2,11 @@
  * Tailwind CSS v4：一行 import 即可启用原子化工具类。
  * 主题令牌与玻璃效果在 themes.css / glass.css 中定义（Phase 1 充实）。
  */
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* ── 无障碍：降低动效 ──
  * 1) 系统级偏好：用户操作系统中开启“减少动效”时自动生效。
- * 2) 应用级开关：设置页“降低动效”勾选后，store.ts 会给 <body> 加 .reduce-motion。
+ * 2) 应用级开关：设置页“降低动效”勾选后，settings.ts 的 applySettings 会给 <body> 加 .reduce-motion。
  */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -41,4 +41,3 @@
     background: var(--surface) !important;
   }
 }
-

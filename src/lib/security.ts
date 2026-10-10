@@ -8,6 +8,11 @@
 export function sanitizeUrl(url: string): string {
   const u = String(url ?? '').trim();
   if (u === '') return '#';
+  // 含控制字符（含换行/Tab）视为构造型输入，直接拦截
+  // eslint-disable-next-line no-control-regex -- 故意匹配控制字符以拦截构造型 URL
+  if (/[\u0000-\u001f\u007f]/.test(u)) return '#';
+  // 协议相对 URL（//evil.com）在 href 中会跳转到外部域（钓鱼/开放重定向），按危险处理
+  if (u.startsWith('//')) return '#';
   // 允许的安全协议
   if (/^(https?:|mailto:)/i.test(u)) return u;
   // 任何其它“带协议”的写法（javascript: / data: / vbscript: / file: 等）一律拦截

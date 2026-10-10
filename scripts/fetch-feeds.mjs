@@ -9,7 +9,7 @@
 import { spawnSync } from 'node:child_process';
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -18,18 +18,19 @@ const TIMEOUT = 5;
 
 // ── HTTP 工具（spawnSync 同步方式，更稳定）─────────────────────────
 function curlGet(url) {
-  const r = spawnSync('curl', [
-    '-s', '--max-time', String(TIMEOUT), '-L',
-    '-H', 'User-Agent: Jiuxi/1.0', '--globoff',
-    url,
-  ], { encoding: 'utf8', timeout: (TIMEOUT + 2) * 1000 });
+  const r = spawnSync(
+    'curl',
+    ['-s', '--max-time', String(TIMEOUT), '-L', '-H', 'User-Agent: Jiuxi/1.0', '--globoff', url],
+    { encoding: 'utf8', timeout: (TIMEOUT + 2) * 1000 },
+  );
   if (r.status === 0) return { ok: true, body: r.stdout };
   return { ok: false, body: '' };
 }
 
 function fetchWithProxy(url) {
   const direct = curlGet(url);
-  if (direct.ok && (direct.body.includes('<?xml') || direct.body.includes('<rss'))) return direct.body;
+  if (direct.ok && (direct.body.includes('<?xml') || direct.body.includes('<rss')))
+    return direct.body;
   for (const make of [
     (u) => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
     (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
@@ -51,7 +52,9 @@ function parseRss(xml) {
     const title = match(block, 'title');
     const link = match(block, 'link');
     if (!title || !link) continue;
-    const desc = (match(block, 'description') || match(block, 'summary') || '').replace(/<[^>]+>/g, '').trim();
+    const desc = (match(block, 'description') || match(block, 'summary') || '')
+      .replace(/<[^>]+>/g, '')
+      .trim();
     const pubDate = match(block, 'pubDate') || match(block, 'updated') || undefined;
     const source = match(block, 'source');
     items.push({ title, link, source: source || undefined, pubDate, snippet: desc.slice(0, 120) });
@@ -75,13 +78,19 @@ function parseHn(body) {
       pubDate: h.created_at || undefined,
       snippet: '',
     }));
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 // ── 数据源 ─────────────────────────────────────────────────────────
 const SOURCES = {
   ai: [
-    { label: 'Hacker News · 最新', url: 'https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=15', type: 'hn' },
+    {
+      label: 'Hacker News · 最新',
+      url: 'https://hn.algolia.com/api/v1/search?tags=story&hitsPerPage=15',
+      type: 'hn',
+    },
     { label: 'ArXiv · cs.AI', url: 'https://rss.arxiv.org/rss/cs.AI', type: 'rss' },
     { label: '爱范儿', url: 'https://www.ifanr.com/feed', type: 'rss' },
   ],
@@ -90,13 +99,15 @@ const SOURCES = {
     { label: '爱范儿', url: 'https://www.ifanr.com/feed', type: 'rss' },
   ],
   tech: [
-    { label: 'Hacker News · 头条', url: 'https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=15', type: 'hn' },
+    {
+      label: 'Hacker News · 头条',
+      url: 'https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=15',
+      type: 'hn',
+    },
     { label: 'TechCrunch', url: 'https://techcrunch.com/feed/', type: 'rss' },
     { label: 'Ars Technica', url: 'https://arstechnica.com/feed/', type: 'rss' },
   ],
-  gaming: [
-    { label: 'IT之家', url: 'https://www.ithome.com/rss/', type: 'rss' },
-  ],
+  gaming: [{ label: 'IT之家', url: 'https://www.ithome.com/rss/', type: 'rss' }],
 };
 
 function fetchSource(source) {
@@ -108,11 +119,13 @@ function fetchSource(source) {
       const xml = fetchWithProxy(source.url);
       if (xml) return parseRss(xml);
     }
-  } catch { /* 跳过失败源 */ }
+  } catch {
+    /* 跳过失败源 */
+  }
   return [];
 }
 
-function fetchSection(section, sources) {
+function fetchSection(sources) {
   // 串行执行各源，第一个有结果的立即返回
   for (const s of sources) {
     const items = fetchSource(s);
@@ -128,13 +141,16 @@ function fetchSection(section, sources) {
 }
 
 // ── 注入数据到 HTML ────────────────────────────────────────────────
-function injectData(html, section, items) {
-  const jsonScript = `<script type="application/json" id="jiuxi-feed-${section}">${JSON.stringify(items)}</script>`;
+// 导出以便单元测试；注入前把 < 转义为 \u003c，阻止外部 RSS 标题里的
+// </script> 提前闭合脚本块（否则可造成全站存储型 XSS）。
+export function injectData(html, section, items) {
+  const json = JSON.stringify(items).replace(/</g, '\\u003c');
+  const jsonScript = `<script type="application/json" id="jiuxi-feed-${section}">${json}</script>`;
   html = html.replace('</head>', jsonScript + '\n</head>');
   // 更新状态文本
   html = html.replace(
     new RegExp(`id="status-${section}">[^<]*`, 'g'),
-    `id="status-${section}">已加载最新资讯`
+    `id="status-${section}">已加载最新资讯`,
   );
   return html;
 }
@@ -147,7 +163,7 @@ function main() {
   const result = { generatedAt: new Date().toISOString(), sections: {} };
 
   for (const [section, sources] of Object.entries(SOURCES)) {
-    const items = fetchSection(section, sources);
+    const items = fetchSection(sources);
     const seen = new Set();
     const unique = items.filter((it) => {
       if (seen.has(it.link)) return false;
@@ -192,4 +208,7 @@ function main() {
   console.log(`\n总耗时: ${Date.now() - t0}ms`);
 }
 
-main();
+// 仅在作为 CLI 入口（node scripts/fetch-feeds.mjs）执行；被测试 import 时不触发抓取
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
+}

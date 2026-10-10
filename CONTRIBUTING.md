@@ -55,16 +55,19 @@ npm test
 ## 代码规范
 
 ### 命名
+
 - 组件：PascalCase（如 `GlassCard.astro`）
 - 样式：kebab-case（如 `glass.css`）
 - 工具函数：camelCase（如 `withBase.ts`）
 
 ### 安全
+
 - 所有来自外部 RSS/API 的文本必须经 `escapeHtml()` 转义后再写入 `innerHTML`
 - 所有来自外部的链接必须经 `sanitizeUrl()` 校验后再写入 `href`
 - 禁止使用 `eval()` / `new Function()` / `dangerouslySetInnerHTML`
 
 ### 风格
+
 - 全文件使用 TypeScript，不使用 `var`
 - 组件优先使用 Astro 组件（而非手写 HTML 字符串）
 - CSS 使用语义化变量（见 `src/styles/themes.css`）
@@ -109,4 +112,4 @@ docs: 补充部署说明
 
 ---
 
-*九溪 · 综合信息聚集地 · 由开源技术构建*
+_九溪 · 综合信息聚集地 · 由开源技术构建_

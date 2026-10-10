@@ -1,7 +1,7 @@
 // 九溪 · IndexedDB 离线持久化
 //
 // 纯浏览器端轻量 IndexedDB 封装，用于跨会话保存动态资讯。
-// 优先级：实时抓取 > IndexedDB 旧缓存 > localStorage 临时缓存（15分钟）
+// 优先级：实时抓取 > IndexedDB 旧缓存 > localStorage 临时缓存（30分钟）
 // 全部操作异步，失败静默降级为本地缓存或直接空数组。
 
 const DB_NAME = 'jiuxi-feed-db';

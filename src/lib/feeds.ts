@@ -40,18 +40,42 @@ const CACHE_TTL = 30 * 60 * 1000; // 30 分钟
 
 const SOURCES: Record<Section, FeedSource[]> = {
   ai: [
-    { label: 'Google 新闻 · AI', url: 'https://news.google.com/rss/search?q=人工智能+OR+AI&hl=zh-CN&gl=CN&ceid=CN:zh-Hans', type: 'rss' },
-    { label: 'Hacker News · AI', url: 'https://hn.algolia.com/api/v1/search?tags=story&query=AI&hitsPerPage=20', type: 'hn' },
+    {
+      label: 'Google 新闻 · AI',
+      url: 'https://news.google.com/rss/search?q=人工智能+OR+AI&hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
+      type: 'rss',
+    },
+    {
+      label: 'Hacker News · AI',
+      url: 'https://hn.algolia.com/api/v1/search?tags=story&query=AI&hitsPerPage=20',
+      type: 'hn',
+    },
   ],
   news: [
-    { label: 'Google 新闻 · 热点', url: 'https://news.google.com/rss?hl=zh-CN&gl=CN&ceid=CN:zh-Hans', type: 'rss' },
+    {
+      label: 'Google 新闻 · 热点',
+      url: 'https://news.google.com/rss?hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
+      type: 'rss',
+    },
   ],
   tech: [
-    { label: 'Google 新闻 · 科技', url: 'https://news.google.com/rss/search?q=科技&hl=zh-CN&gl=CN&ceid=CN:zh-Hans', type: 'rss' },
-    { label: 'Hacker News 头条', url: 'https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=20', type: 'hn' },
+    {
+      label: 'Google 新闻 · 科技',
+      url: 'https://news.google.com/rss/search?q=科技&hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
+      type: 'rss',
+    },
+    {
+      label: 'Hacker News 头条',
+      url: 'https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=20',
+      type: 'hn',
+    },
   ],
   gaming: [
-    { label: 'Google 新闻 · 游戏', url: 'https://news.google.com/rss/search?q=游戏&hl=zh-CN&gl=CN&ceid=CN:zh-Hans', type: 'rss' },
+    {
+      label: 'Google 新闻 · 游戏',
+      url: 'https://news.google.com/rss/search?q=游戏&hl=zh-CN&gl=CN&ceid=CN:zh-Hans',
+      type: 'rss',
+    },
   ],
 };
 
@@ -63,7 +87,7 @@ function formatDate(d?: string): string {
 }
 
 // ── 解析 ──
-function parseRss(xml: string): FeedItem[] {
+export function parseRss(xml: string): FeedItem[] {
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
   const items = Array.from(doc.querySelectorAll('item'));
   return items.slice(0, 24).map((it) => ({
@@ -134,10 +158,17 @@ function readCacheFresh(section: Section): FeedItem[] | null {
     const raw = localStorage.getItem(cacheKey(section));
     if (!raw) return null;
     const obj = JSON.parse(raw);
-    if (typeof obj?.t === 'number' && Date.now() - obj.t < CACHE_TTL && Array.isArray(obj.items) && obj.items.length) {
+    if (
+      typeof obj?.t === 'number' &&
+      Date.now() - obj.t < CACHE_TTL &&
+      Array.isArray(obj.items) &&
+      obj.items.length
+    ) {
       return obj.items as FeedItem[];
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return null;
 }
 
@@ -148,14 +179,18 @@ function readCacheAny(section: Section): FeedItem[] | null {
     if (!raw) return null;
     const obj = JSON.parse(raw);
     if (Array.isArray(obj?.items) && obj.items.length) return obj.items as FeedItem[];
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return null;
 }
 
 function writeCache(section: Section, items: FeedItem[]): void {
   try {
     localStorage.setItem(cacheKey(section), JSON.stringify({ t: Date.now(), items }));
-  } catch { /* 容量满/隐私模式忽略 */ }
+  } catch {
+    /* 容量满/隐私模式忽略 */
+  }
 }
 
 /** 加载某板块资讯：优先级链
@@ -179,7 +214,11 @@ export async function loadFeed(section: Section): Promise<FeedItem[]> {
   }
 
   const staleLs = readCacheAny(section);
-  if (staleLs && staleLs.length) return staleLs;
+  if (staleLs && staleLs.length) {
+    // 仍有兜底数据：先展示，同时后台静默刷新（不阻塞首屏）
+    void refreshInBackground(section);
+    return staleLs;
+  }
 
   return await refreshInBackground(section);
 }
@@ -226,7 +265,7 @@ export function renderItems(container: HTMLElement, items: FeedItem[]): void {
     .map(
       (it) => `
     <article class="glass feed-card">
-      <a class="feed-link" href="${escapeHtml(decodeHtmlEntities(sanitizeUrl(it.link)))}" target="_blank" rel="noopener noreferrer">
+      <a class="feed-link" href="${escapeHtml(sanitizeUrl(it.link))}" target="_blank" rel="noopener noreferrer">
         <h3>${escapeHtml(decodeHtmlEntities(it.title))}</h3>
         <p class="feed-meta">${escapeHtml(decodeHtmlEntities(it.source || '未知来源'))} · ${escapeHtml(formatDate(it.pubDate))}</p>
         ${it.snippet ? `<p class="feed-snippet">${escapeHtml(decodeHtmlEntities(it.snippet))}</p>` : ''}
