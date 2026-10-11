@@ -1,12 +1,15 @@
 # 九溪 · 定时重建（让静态站内容保持新鲜，无需访客触发抓取）
-# 每 30 分钟重建并双站部署；也可手动 workflow_dispatch 或 repository_dispatch 触发。
+# 每 2 小时重建并双站部署；也可手动 workflow_dispatch 或 repository_dispatch 触发。
+# 注：早先每 30 分钟（cron */30）线上一次都没被调度——GitHub 对高频
+# schedule 不可靠（官方仅说明“可能延迟”）。降到每 2 小时（12 次/天）后
+# 调度可靠性显著提升，且内容新鲜度本就有前端 refreshInBackground 兜底。
 # 任一部署失败不影响另一；缺 Cloudflare 密钥时自动跳过 CF 部署。
 
 name: 定时重建（刷新资讯）
 
 on:
   schedule:
-    - cron: '*/30 * * * *' # 每 30 分钟（UTC）
+    - cron: '0 */2 * * *' # 每 2 小时（UTC），比 30 分钟档更易被调度
   workflow_dispatch:
   repository_dispatch:
     types: [refresh-feeds]
