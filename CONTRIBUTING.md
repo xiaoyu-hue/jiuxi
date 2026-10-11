@@ -62,9 +62,9 @@ npm test
 
 ### 安全
 
-- 所有来自外部 RSS/API 的文本必须经 `escapeHtml()` 转义后再写入 `innerHTML`
-- 所有来自外部的链接必须经 `sanitizeUrl()` 校验后再写入 `href`
-- 禁止使用 `eval()` / `new Function()` / `dangerouslySetInnerHTML`
+- 所有来自外部 RSS/API 的文本**优先用 `textContent` 写入**（天然免疫 XSS，无需 `innerHTML`）；仅当确需富文本时，才经 `sanitizeHtml()` 净化后再写入，绝不直接拼接 `innerHTML`。
+- 所有来自外部的链接必须经 `sanitizeUrl()` 校验后再写入 `href` / `data-link`。
+- 禁止使用 `eval()` / `new Function()` / `dangerouslySetInnerHTML`。
 
 ### 风格
 
@@ -88,7 +88,7 @@ npm test
 
 1. 在 `src/styles/themes.css` 末尾新增 `[data-theme="xxx"]` 规则块，覆盖所有变量令牌
 2. 在 `src/lib/theme.ts` 的 `THEMES` 数组中加入新条目 `{ name: 'xxx', label: 'XXX' }`
-3. 在 `src/components/ThemeSwitcher.astro` 的 `.theme-dot` 样式中为新主题添加渐变色
+3. 在 `src/components/ThemeSwitcher.astro` 的 `.theme-dot` 样式中为新主题添加强调色
 
 ---
 

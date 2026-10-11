@@ -7,7 +7,7 @@
 | 项目     | 说明                                                                                                                                |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | 当前版本 | **v1.2.0**（报刊版式视觉升级：自托管中文衬线字体 + 克制动效 + 报头版式，十板块 + 4 套主题已落地） |
-| 技术栈   | Astro 5 · Tailwind CSS 4 · TypeScript（纯静态输出）                                                                                 |
+| 技术栈   | Astro 7 · Tailwind CSS 4 · TypeScript（纯静态输出）                                                                                 |
 | 托管目标 | [Cloudflare Pages](https://jiuxi-bm1.pages.dev/)（主站）+ [GitHub Pages](https://xiaoyu-hue.github.io/jiuxi/)（备用副站，双站容灾） |
 | 许可证   | 代码 Apache-2.0 / 文档与内容 CC BY-NC 4.0                                                                                           |
 
@@ -40,7 +40,7 @@
 - ✅ 十板块信息架构：首页聚合 / AI / 热点新闻 / 科技 / AI 发展时间线 / AI 工具箱 / 游戏娱乐 / 读书推荐 / 设置与数据 / 关于九溪
 - ✅ 报刊版式 UI（实色面板 + 发丝边 + 纸纹质感，动效克制可降级，不支持的浏览器自动回退）
 - ✅ 4 套主题自由切换，防首屏闪烁，偏好写入 localStorage
-- ✅ 浏览器端实时资讯聚合（Google News RSS + Hacker News），公共 CORS 代理兜底链（cors.proxy.run → api.codetabs.com → api.allorigins.win → corsproxy.io），30 分钟缓存
+- ✅ 浏览器端实时资讯聚合：直连优先 + 第一方同域代理（Cloudflare Pages Functions `/api/feed`，同源免 CORS，含 SSRF 防护与目标白名单），GitHub Pages 备站降级为构建期注入数据；30 分钟缓存
 - ✅ SEO 增强：自动生成 sitemap / RSS / Open Graph 分享图，双站规范地址（canonical）
 - ✅ 策展数据用 Content Collections 管理，schema 校验，改一篇 = 改一个文件
 - ✅ 系统能力：收藏、外观设置、数据导出 / 导入（JSON）、清空缓存
@@ -52,12 +52,12 @@
 
 | 类别   | 选型                                                                                                                                     | 用途                                   |
 | ------ | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| 框架   | **Astro 5**                                                                                                                              | 内容优先的静态站点生成，零 JS 默认输出 |
+| 框架   | **Astro 7**                                                                                                                              | 内容优先的静态站点生成，零 JS 默认输出 |
 | 样式   | **Tailwind CSS 4**（含 `@tailwindcss/vite`）                                                                                             | 原子化样式 + 快速开发                  |
 | 语言   | **TypeScript**                                                                                                                           | 类型安全                               |
 | 运行时 | **Node.js 22+**                                                                                                                          | 本地构建（部署侧由 CI 提供）           |
 | 内容   | Astro Content Collections（Zod schema）                                                                                                  | 时间线 / 工具箱 / 读书的结构化数据     |
-| 数据源 | Google News RSS、Hacker News（Algolia）；运行时 CORS 代理兜底链（cors.proxy.run → api.codetabs.com → api.allorigins.win → corsproxy.io） | 动态资讯实时抓取                       |
+| 数据源 | Google News RSS、Hacker News（Algolia）、ArXiv cs.AI、IT之家、爱范儿、RSSHub、TechCrunch、Ars Technica；直连优先，失败回退第一方同域代理 `/api/feed`（Cloudflare Pages Functions） | 动态资讯实时抓取                       |
 | 部署   | GitHub Actions + Cloudflare Pages / GitHub Pages                                                                                         | 自动构建与双站发布                     |
 
 ---
@@ -91,15 +91,15 @@ jiuxi/
 │  ├─ components/       # 可复用组件
 │  │  ├─ ThemeSwitcher.astro   # 4 主题切换器
 │  │  ├─ SiteNav.astro         # 移动优先导航（10 板块）
-│  │  ├─ GlassCard.astro       # 玻璃卡片
-│  │  ├─ GlassButton.astro     # 玻璃按钮
+│  │  ├─ GlassCard.astro       # 通用卡片组件（已改为报刊实色版式）
+│  │  ├─ GlassButton.astro     # 通用按钮组件（已改为实色版式）
 │  │  └─ FeedSection.astro     # 动态资讯板块组件
 │  ├─ layouts/
-│  │  └─ BaseLayout.astro      # 液态玻璃外壳 + 防闪烁 + 导航
+│  │  └─ BaseLayout.astro      # 报刊版式外壳 + 防闪烁 + 导航
 │  ├─ pages/            # 10 个页面（见下）
 │  ├─ content/          # 策展数据（Markdown，手机可改）
 │  │  ├─ timeline/  tools/  reading/
-│  ├─ styles/           # global / themes(4套) / glass / components
+│  ├─ styles/           # global / themes(4套主题令牌) / glass(兼容别名) / components
 │  └─ lib/              # feeds(抓取) / settings(设置) / favorites(收藏) / db(IndexedDB) / theme(主题)
 ├─ .github/workflows/deploy.yml   # 双站部署 CI
 ├─ wrangler.toml                 # Cloudflare Pages 配置
@@ -156,7 +156,7 @@ jiuxi/
 
 | 阶段    | 内容                                       | 状态      |
 | ------- | ------------------------------------------ | --------- |
-| Phase 0 | 工程初始化 + 玻璃外壳骨架                  | ✅ 已完成 |
+| Phase 0 | 工程初始化 + 报刊版式外壳骨架              | ✅ 已完成 |
 | Phase 1 | 视觉系统与 4 套主题（晨曦/午夜/极光/樱粉） | ✅ 已完成 |
 | Phase 2 | 导航与首页 Bento 聚合                      | ✅ 已完成 |
 | Phase 3 | 动态资讯板块（AI/新闻/科技/游戏）          | ✅ 已完成 |
@@ -177,15 +177,28 @@ jiuxi/
 
 ### 10.1 直接使用的开源依赖
 
-| 项目                                                               | 许可（常见） | 在九溪中的用途                      |
-| ------------------------------------------------------------------ | ------------ | ----------------------------------- |
-| [Astro](https://astro.build)                                       | MIT          | 静态站点框架，内容集合与构建        |
-| [Tailwind CSS](https://tailwindcss.com)                            | MIT          | 原子化样式体系                      |
-| [@tailwindcss/vite](https://tailwindcss.com)                       | MIT          | Tailwind 与 Vite/Astro 的集成插件   |
-| [TypeScript](https://www.typescriptlang.org)                       | Apache-2.0   | 源码类型系统                        |
-| Google News RSS                                                    | 公开数据服务 | AI / 新闻 / 科技 / 游戏的实时资讯源 |
-| [Hacker News (Algolia API)](https://hn.algolia.com/api)            | 公开 API     | 科技 / AI 实时帖                    |
-| [allorigins](https://github.com/iamadamdev/allorigins) / corsproxy | MIT / 公开   | CORS 代理兜底，保证跨域抓取可用     |
+**运行时依赖（`dependencies`）**
+
+| 项目                                                          | 许可       | 在九溪中的用途                                              |
+| ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| [Astro](https://astro.build)                                  | MIT        | 静态站点框架，内容集合与构建（当前 v7）                     |
+| [Tailwind CSS](https://tailwindcss.com)                       | MIT        | 原子化样式体系（v4）                                        |
+| [@tailwindcss/vite](https://tailwindcss.com)                  | MIT        | Tailwind 与 Vite/Astro 的集成插件                           |
+| [@astrojs/rss](https://docs.astro.build)                      | MIT        | 自动生成 RSS（`/rss.xml`）                                  |
+| [@astrojs/sitemap](https://docs.astro.build)                  | MIT        | 自动生成 sitemap                                            |
+| [@extractus/feed-extractor](https://github.com/extractus/feed-extractor) | MIT | 浏览器端解析 RSS/Atom（零正则 hack）                |
+| [@fontsource/noto-serif-sc](https://github.com/fontsource)    | MIT        | 自托管思源宋体（标题/正文衬线，子集化无外链）               |
+| [@fontsource/noto-sans-sc](https://github.com/fontsource)     | MIT        | 自托管思源黑体（UI 无衬线，子集化无外链）                   |
+| [@formkit/auto-animate](https://auto-animate.formkit.com)     | MIT        | 资讯卡片流增删过渡动效                                      |
+| [lenis](https://github.com/darkroomengineering/lenis)         | MIT        | 平滑滚动（Lenis）                                           |
+| [zod](https://zod.dev)                                        | MIT        | Content Collections 的 schema 校验                          |
+| [TypeScript](https://www.typescriptlang.org)                  | Apache-2.0 | 源码类型系统                                                |
+
+**开发依赖与工具链（`devDependencies`）**：ESLint（`@eslint/js` / `typescript-eslint` / `eslint-plugin-astro` / `eslint-config-prettier`）、Prettier、Vitest + `@vitest/coverage-v8` + happy-dom、`@astrojs/check`、globals、typescript。
+
+**数据源（公开服务，非 npm 依赖）**：Google News RSS、Hacker News（Algolia API）、ArXiv cs.AI、IT之家、爱范儿、RSSHub（少数派）、TechCrunch、Ars Technica。
+
+**第一方 CORS 代理**：`functions/api/feed.ts`（Cloudflare Pages Functions，自研，非第三方依赖）——与站点同域、含目标主机白名单与 SSRF 防护，**已取代 allorigins / corsproxy 等公共代理**。
 
 > 具体依赖版本见 `package.json` 与 `package-lock.json`。部署前建议运行 `npm audit` 复核依赖安全告警。
 
@@ -193,15 +206,16 @@ jiuxi/
 
 以下开源项目在**架构思路、视觉语言或交互范式**上为本项目提供了重要参考，特此致敬：
 
-| 项目                       | 链接                                                  | 借鉴点                                                    |
-| -------------------------- | ----------------------------------------------------- | --------------------------------------------------------- |
-| **Glance**                 | https://github.com/glanceapp/glance                   | 「widget 化板块」架构范本，启发九溪首页聚合卡片的设计     |
-| **NHLOCAL/AiTimeline**     | https://github.com/NHLOCAL/AiTimeline                 | 「单文件数据源 + 自动部署」模式，直接复用为九溪时间线方案 |
-| **nikdelvin/liquid-glass** | https://github.com/nikdelvin/liquid-glass             | iOS 液态玻璃的 SVG 位移滤镜思路，作为玻璃材质进阶参考     |
-| **GlassBlog**              | https://github.com/XIYUEKONGLING/GlassBlog            | Astro 5 + Tailwind 4 毛玻璃主题，印证技术选型可行性       |
-| **Daily-Dashboard-HTML**   | https://github.com/aaravriyer193/Daily-Dashboard-HTML | 纯前端玻璃拟态仪表盘，验证「无后端也能做漂亮聚合页」      |
-| **Astro Haze 主题**        | https://astro.build/themes/details/astro-haze/        | 玻璃 UI 系统 + 明/暗主题 + SEO/RSS 的成熟实践             |
-| 部署 Skill 生态            | github-pages / cloudflare / publishing-astro-websites | 让技术伙伴以开源技能完成自动部署，省去手敲命令            |
+| 项目                                    | 链接                                            | 借鉴点                                                          |
+| --------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------- |
+| **Glance**                              | https://github.com/glanceapp/glance             | 「widget 化板块」架构范本，启发九溪首页聚合卡片的设计          |
+| **NHLOCAL/AiTimeline**                  | https://github.com/NHLOCAL/AiTimeline           | 「单文件数据源 + 自动部署」模式，复用为九溪时间线方案          |
+| **思源宋体 / 思源黑体（Noto Serif/Sans SC）** | https://github.com/notofonts/noto-cjk | 中文衬线/无衬线字体，经 `@fontsource` 自托管，构成报刊版式基底 |
+| **@formkit/auto-animate**               | https://auto-animate.formkit.com                | 列表增删的「零配置」过渡范式，用于资讯卡片流                    |
+| **Lenis**                               | https://github.com/darkroomengineering/lenis    | 惯性平滑滚动范式，构成克制动效层                                |
+| **Astro Haze 主题**                     | https://astro.build/themes/details/astro-haze/  | 明/暗主题系统 + SEO/RSS 的成熟实践参考                          |
+| **部署 Skill 生态**                     | github-pages / cloudflare / publishing-astro-websites | 以开源技能完成自动部署，省去手敲命令                     |
+| *早期玻璃方向探索（已弃用）*            | nikdelvin/liquid-glass · GlassBlog · Daily-Dashboard-HTML | v1.0–v1.1 玻璃材质调研参考；v1.2 起改用报刊版式，仅留作思路记录 |
 
 > 九溪的视觉与交互为**自研实现**，未直接复制上述项目代码；参考仅限架构与思路层面。如有遗漏或需调整署名，请联系维护者补充。
 

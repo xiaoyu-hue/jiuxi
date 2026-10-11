@@ -16,7 +16,7 @@ export default defineConfig({
   // 输出为静态站点（默认 'static'），无需任何服务器。
   // —— 进阶（可选，启用前请权衡）——
   // 若要做到「每次访问都新鲜」且由服务端 sanitize，可升级为 hybrid + 第一方函数：
-  //   1) 安装适配器（注意版本需与 Astro 大版本匹配，本项目 Astro 5 对应 ^12）：
+  //   1) 安装适配器（注意版本需与 Astro 大版本匹配，本项目当前为 Astro 7，需选用对应的 @astrojs/cloudflare 大版本）：
   //      npm i -D @astrojs/cloudflare@^12
   //      （当前 SSR 未启用，故未把它加入依赖，避免无用依赖与连带漏洞）
   //   2) 上方 import 改为：import cloudflare from '@astrojs/cloudflare';

@@ -22,10 +22,11 @@
 
 ### Changed（本轮代码质量与安全修复）
 
+- 升级 **Astro 5.18.2 → 7.3.8**（修复 CRITICAL 级依赖漏洞；提交 `bbfae05`，此前未入档，本次补全）。
 - 修复 `fetch-feeds.mjs` 构建期注入 JSON 未转义 `</script>` 的存储型 XSS 风险（标题含 `</script>` 会提前闭合脚本块）。
 - 清理未引用的死代码 `store.ts` / `store.test.ts`，统一数据模块为 `settings.ts` / `favorites.ts` / `db.ts`。
 - 安全关键路径（`escapeHtml` / `renderItems` / `parseRss` / `theme.ts` / `db.ts`）补充单元测试；引入 ESLint + Prettier 并接入 CI。
-- 统一 CORS 代理清单并同步 CSP `connect-src`；缓存时长文档对齐代码（30 分钟）。
+- 资讯抓取改为**直连优先 + 第一方同域代理 `/api/feed`**（Cloudflare Pages Functions，含目标白名单与 SSRF 防护），**取代 allorigins / corsproxy 等公共 CORS 代理**，并同步 CSP `connect-src`；缓存时长文档对齐代码（30 分钟）。
 - `sanitizeUrl` 拒绝协议相对 URL（`//evil.com`）与控制字符；资讯链接不再做多余 HTML 实体解码。
 
 ### Fixed（本轮代码质量与安全修复）

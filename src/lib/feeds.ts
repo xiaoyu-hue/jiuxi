@@ -1,7 +1,7 @@
 // 九溪 · 动态资讯数据源与抓取
 //
 // 纯浏览器端实现，无需后端：
-//   1) Google News RSS（中文）作为主源，经公共 CORS 代理抓取；
+//   1) Google News RSS（中文）作为主源，经第一方同域代理（/api/feed）抓取；
 //   2) Hacker News Algolia API（CORS 友好）作为科技/AI 冗余源；
 //   3) localStorage 缓存 30 分钟，失败回退缓存或空。
 //
