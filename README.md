@@ -6,7 +6,7 @@
 
 | 项目     | 说明                                                                                                                                |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 当前版本 | **v1.2.0**（报刊版式视觉升级：自托管中文衬线字体 + 克制动效 + 报头版式，十板块 + 4 套主题已落地） |
+| 当前版本 | **v1.3.0**（策展内容大扩充：AI 工具箱补 23 个高星 Agent / 框架项目、读书推荐扩至 37 本含历史 / 哲学 / 非技术向 AI 入门；报刊版式 + 4 套主题已落地） |
 | 技术栈   | Astro 7 · Tailwind CSS 4 · TypeScript（纯静态输出）                                                                                 |
 | 托管目标 | [Cloudflare Pages](https://jiuxi-bm1.pages.dev/)（主站）+ [GitHub Pages](https://xiaoyu-hue.github.io/jiuxi/)（备用副站，双站容灾） |
 | 许可证   | 代码 Apache-2.0 / 文档与内容 CC BY-NC 4.0                                                                                           |
@@ -45,6 +45,7 @@
 - ✅ 策展数据用 Content Collections 管理，schema 校验，改一篇 = 改一个文件
 - ✅ 系统能力：收藏、外观设置、数据导出 / 导入（JSON）、清空缓存
 - ✅ 双站部署：Cloudflare Pages 主 + GitHub Pages 备，push 即上线
+- ✅ 策展内容持续扩充：AI 工具箱 40 条（含完整「智能体 / Agent」主线与开源框架 / 图像 / 编程分类）、读书推荐 37 本（覆盖科技 / 历史 / 哲学 / 非技术向 AI 与 AI Agent 入门，每本配客观推荐语与在线可读链接）
 
 ---
 
@@ -128,6 +129,8 @@ jiuxi/
 | 时间线 | `src/content/timeline/*.md` | `year` / `title` / `category` / `month*` / `source*` / `sourceUrl*` |
 | 工具箱 | `src/content/tools/*.md`    | `name` / `url` / `category*` / `tagline*`                           |
 | 读书   | `src/content/reading/*.md`  | `title` / `author*` / `rating*`(0–5) / `tag*` / `cover*` / `link*`  |
+
+- **读书推荐**的 Markdown 正文（frontmatter 之后的内容）即「推荐语」，会在卡片上渲染；`link` 填可在线阅读地址（微信读书搜索 / 官方免费全文），页面显示为「在线阅读 →」。
 
 > 改一处 = 改一个文件，推送后 CI 自动重建上线。
 
