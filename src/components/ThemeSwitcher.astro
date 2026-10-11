@@ -20,19 +20,26 @@ import { THEMES } from '../lib/theme';
 <script>
   import { THEMES, applyTheme, getStoredTheme, type ThemeName } from '../lib/theme';
 
-  // 优先读已存偏好；空白时回退到防闪烁脚本已写入 <html data-theme> 的真实生效主题，保证高亮正确
-  const stored = getStoredTheme() ?? (document.documentElement.getAttribute('data-theme') as ThemeName | null);
-  const dots = document.querySelectorAll<HTMLButtonElement>('.theme-dot');
+  // 站点开了视图过渡（ClientRouter）：换页时页头 DOM 会被重建，组件 <script> 不会重跑，
+  // 若不重新绑定，首次导航后圆点会失去点击监听，主题切换「看起来没了」。
+  // 因此把绑定挂到 astro:page-load（首次加载与每次换页后都会触发）。
+  function bindThemeSwitcher() {
+    // 优先读已存偏好；空白时回退到防闪烁脚本已写入 <html data-theme> 的真实生效主题，保证高亮正确
+    const stored = getStoredTheme() ?? (document.documentElement.getAttribute('data-theme') as ThemeName | null);
+    const dots = document.querySelectorAll<HTMLButtonElement>('.theme-dot');
 
-  dots.forEach((btn) => {
-    const name = btn.dataset.themeName as (typeof THEMES)[number]['name'];
-    if (name === stored) btn.classList.add('active');
-    btn.addEventListener('click', () => {
-      applyTheme(name);
-      dots.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
+    dots.forEach((btn) => {
+      const name = btn.dataset.themeName as (typeof THEMES)[number]['name'];
+      if (name === stored) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        applyTheme(name);
+        dots.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
     });
-  });
+  }
+
+  document.addEventListener('astro:page-load', bindThemeSwitcher);
 </script>
 
 <style>
