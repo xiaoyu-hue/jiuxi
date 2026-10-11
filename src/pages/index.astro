@@ -18,8 +18,21 @@ const blocks = [
 ---
 
 <BaseLayout title="九溪">
-  <h2 class="welcome">欢迎来到九溪</h2>
-  <p class="lead">综合信息聚集地 · AI 为主，热点新闻为辅</p>
+  <header class="masthead">
+    <h1 class="masthead-title">九溪</h1>
+    <hr class="masthead-rule" />
+    <p class="masthead-lead">综合信息聚集地 · AI 为主，热点新闻为辅</p>
+    <p class="masthead-date">
+      {
+        new Date().toLocaleDateString('zh-CN', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          weekday: 'long',
+        })
+      }
+    </p>
+  </header>
   <div class="bento">
     {
       blocks.map((b) => (
@@ -33,14 +46,6 @@ const blocks = [
 </BaseLayout>
 
 <style>
-  .welcome {
-    margin: 24px 0 4px;
-    font-size: 1.8rem;
-  }
-  .lead {
-    margin: 0 0 20px;
-    color: var(--text-muted);
-  }
   .bento {
     display: grid;
     grid-template-columns: repeat(2, 1fr);

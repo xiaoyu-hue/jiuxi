@@ -1,9 +1,10 @@
 ---
-// 九溪 · 基础布局（液态玻璃外壳 + 主题系统 + 导航）
+// 九溪 · 基础布局（报刊版式 + 主题系统 + 导航 + 视图过渡）
 import '../styles/global.css';
 import '../styles/themes.css';
 import '../styles/glass.css';
 import '../styles/components.css';
+import { ClientRouter } from 'astro:transitions';
 import ThemeSwitcher from '../components/ThemeSwitcher.astro';
 import SiteNav from '../components/SiteNav.astro';
 import { withBase } from '../lib/site';
@@ -73,6 +74,8 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
         }
       })();
     </script>
+    <!-- 视图过渡：页面间淡入（尊重 prefers-reduced-motion） -->
+    <ClientRouter />
   </head>
   <body>
     <header class="site-header glass">
@@ -84,6 +87,19 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
       <slot />
     </main>
     <footer class="site-footer">九溪 · 综合信息聚集地</footer>
+
+    <!-- 克制动效初始化（滚动渐显 / 卡片流过渡 / 平滑滚动），详见 src/lib/motion.ts -->
+    <script>
+      import { initMotion } from '../lib/motion';
+      const start = () => initMotion();
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', start);
+      } else {
+        start();
+      }
+      // astro:transitions 换页后重新绑定动效
+      document.addEventListener('astro:after-swap', start);
+    </script>
   </body>
 </html>
 
@@ -97,11 +113,6 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    background: linear-gradient(135deg, var(--bg-from), var(--bg-via) 50%, var(--bg-to));
-    background-attachment: fixed;
-    color: var(--text-strong);
-    font-family: system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    transition: background 0.45s ease, color 0.45s ease;
   }
   .site-header {
     position: sticky;

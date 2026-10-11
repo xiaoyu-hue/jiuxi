@@ -1,106 +1,90 @@
-/* 九溪 · 多套主题令牌
+/* 九溪 · 报刊版式配色令牌（按 data-theme 切换）
  *
- * 通过 <html data-theme="..."> 切换。新增主题 = 复制一段 [data-theme="xxx"]
- * 并改令牌值，再在 src/lib/theme.ts 的 THEMES 里加一项即可，组件无需改动。
+ * 设计基线（见 DESIGN.md）：
+ *   - 纸感底 + 墨色字 + 单一强调色，禁用紫蓝多色渐变与大面积玻璃。
+ *   - 颜色令牌集中在此；共享令牌（字体/圆角/阴影刻度/阅读宽度）在 global.css 的 :root。
  *
- * 令牌集：
- *   --bg-from/via/to   背景渐变三停
- *   --glass-*          玻璃材质（背景/边框/阴影/模糊/饱和）
- *   --text-strong/muted 文字
- *   --accent/soft      强调色
- *   --radius           圆角
- *   --surface/border   实色面板（非玻璃）
+ * 兼容性：保留 --glass-* / --surface / --border 别名，供 .glass / .glass-btn 等旧引用，
+ * 其值已指向新的实色面板，不再使用 backdrop-filter 玻璃。
  */
 
-/* 晨曦（明）默认 */
+/* 晨曦（明）默认 —— 暖白纸 + 报纸朱红 */
 :root,
-[data-theme="chenxi"] {
-  --bg-from: #a5c8ff;
-  --bg-via: #c9b6ff;
-  --bg-to: #ffd6e8;
+[data-theme='chenxi'] {
+  --bg: #faf7f2;
+  --bg-2: #f3ede3;
+  --surface: #fffdf9;
+  --surface-2: #fbf6ec;
+  --text-strong: #211d18;
+  --text-muted: #6b6258;
+  --rule: rgba(33, 29, 24, 0.12);
+  --accent: #b3341f;
+  --accent-soft: rgba(179, 52, 31, 0.1);
+  --shadow-1: 0 1px 2px rgba(33, 29, 24, 0.05), 0 6px 20px rgba(33, 29, 24, 0.06);
+  --shadow-2: 0 2px 4px rgba(33, 29, 24, 0.06), 0 12px 32px rgba(33, 29, 24, 0.1);
 
-  --glass-bg: rgba(255, 255, 255, 0.38);
-  --glass-border: rgba(255, 255, 255, 0.6);
-  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.18);
-  --glass-blur: 16px;
-  --glass-saturate: 160%;
-
-  --text-strong: #1f2540;
-  --text-muted: rgba(31, 37, 64, 0.62);
-
-  --accent: #4f7cff;
-  --accent-soft: rgba(79, 124, 255, 0.16);
-
-  --radius: 24px;
-  --surface: rgba(255, 255, 255, 0.72);
-  --border: rgba(255, 255, 255, 0.55);
+  --glass-bg: var(--surface);
+  --glass-border: var(--rule);
+  --glass-shadow: var(--shadow-1);
+  --border: var(--rule);
 }
 
-/* 午夜（暗） */
-[data-theme="midnight"] {
-  --bg-from: #0b1026;
-  --bg-via: #161a3a;
-  --bg-to: #05060f;
+/* 午夜（暗） —— 深暖墨 + 夜读琥珀 */
+[data-theme='midnight'] {
+  --bg: #16140f;
+  --bg-2: #1d1a13;
+  --surface: #1f1c15;
+  --surface-2: #262218;
+  --text-strong: #ece6da;
+  --text-muted: rgba(236, 230, 218, 0.62);
+  --rule: rgba(236, 230, 218, 0.14);
+  --accent: #d8923c;
+  --accent-soft: rgba(216, 146, 60, 0.14);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.34);
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.34), 0 12px 32px rgba(0, 0, 0, 0.42);
 
-  --glass-bg: rgba(20, 24, 48, 0.45);
-  --glass-border: rgba(255, 255, 255, 0.14);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-  --glass-blur: 18px;
-  --glass-saturate: 140%;
-
-  --text-strong: #eaf0ff;
-  --text-muted: rgba(234, 240, 255, 0.6);
-
-  --accent: #5ad1ff;
-  --accent-soft: rgba(90, 209, 255, 0.18);
-
-  --radius: 24px;
-  --surface: rgba(20, 24, 48, 0.72);
-  --border: rgba(255, 255, 255, 0.12);
+  --glass-bg: var(--surface);
+  --glass-border: var(--rule);
+  --glass-shadow: var(--shadow-1);
+  --border: var(--rule);
 }
 
-/* 极光（暗，青绿紫） */
-[data-theme="aurora"] {
-  --bg-from: #04231f;
-  --bg-via: #072a3a;
-  --bg-to: #1a0b2e;
+/* 极光（暗） —— 青墨 + 静谧玉色 */
+[data-theme='aurora'] {
+  --bg: #0f1717;
+  --bg-2: #14201f;
+  --surface: #15201f;
+  --surface-2: #1b2927;
+  --text-strong: #e3efea;
+  --text-muted: rgba(227, 239, 234, 0.62);
+  --rule: rgba(227, 239, 234, 0.14);
+  --accent: #4fae8e;
+  --accent-soft: rgba(79, 174, 142, 0.14);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.34);
+  --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.34), 0 12px 32px rgba(0, 0, 0, 0.42);
 
-  --glass-bg: rgba(10, 40, 40, 0.42);
-  --glass-border: rgba(120, 255, 210, 0.22);
-  --glass-shadow: 0 8px 32px rgba(0, 40, 40, 0.5);
-  --glass-blur: 18px;
-  --glass-saturate: 150%;
-
-  --text-strong: #e6fff6;
-  --text-muted: rgba(230, 255, 246, 0.62);
-
-  --accent: #38f5b0;
-  --accent-soft: rgba(56, 245, 176, 0.18);
-
-  --radius: 24px;
-  --surface: rgba(10, 40, 40, 0.72);
-  --border: rgba(120, 255, 210, 0.2);
+  --glass-bg: var(--surface);
+  --glass-border: var(--rule);
+  --glass-shadow: var(--shadow-1);
+  --border: var(--rule);
 }
 
-/* 樱粉（明，粉紫） */
-[data-theme="sakura"] {
-  --bg-from: #ffd9e8;
-  --bg-via: #f3d6ff;
-  --bg-to: #ffe9d6;
+/* 樱粉（明） —— 暖粉纸 + 柔和茜红 */
+[data-theme='sakura'] {
+  --bg: #fbf3f1;
+  --bg-2: #f5e7e4;
+  --surface: #fffaf8;
+  --surface-2: #fbf0ed;
+  --text-strong: #3a2329;
+  --text-muted: #8a6b72;
+  --rule: rgba(58, 35, 41, 0.14);
+  --accent: #b14a63;
+  --accent-soft: rgba(177, 74, 99, 0.12);
+  --shadow-1: 0 1px 2px rgba(58, 35, 41, 0.05), 0 6px 20px rgba(58, 35, 41, 0.07);
+  --shadow-2: 0 2px 4px rgba(58, 35, 41, 0.06), 0 12px 32px rgba(58, 35, 41, 0.11);
 
-  --glass-bg: rgba(255, 255, 255, 0.42);
-  --glass-border: rgba(255, 255, 255, 0.65);
-  --glass-shadow: 0 8px 32px rgba(180, 90, 140, 0.2);
-  --glass-blur: 16px;
-  --glass-saturate: 165%;
-
-  --text-strong: #4a2438;
-  --text-muted: rgba(74, 36, 56, 0.6);
-
-  --accent: #ff6fae;
-  --accent-soft: rgba(255, 111, 174, 0.16);
-
-  --radius: 24px;
-  --surface: rgba(255, 255, 255, 0.74);
-  --border: rgba(255, 255, 255, 0.55);
+  --glass-bg: var(--surface);
+  --glass-border: var(--rule);
+  --glass-shadow: var(--shadow-1);
+  --border: var(--rule);
 }

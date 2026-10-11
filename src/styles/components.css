@@ -1,52 +1,91 @@
 /* 九溪 · 共享组件样式（全局）
- * 这些类名会被客户端脚本用 innerHTML 注入，因此必须全局生效，
+ * 这些类名会被客户端脚本用 DOM 注入，因此必须全局生效，
  * 不能用 Astro 作用域样式（作用域样式不会作用于动态注入的节点）。
  */
 
-/* ── 动态资讯卡片 ── */
+/* ── 动态资讯卡片（报刊版式）── */
 .feed-head {
-  margin: 20px 0 16px;
+  margin: 28px 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--text-strong);
 }
 .feed-head h2 {
   margin: 0 0 4px;
-  font-size: 1.6rem;
+  font-size: 1.7rem;
 }
 .feed-status {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
+  font-family: var(--font-sans);
 }
+
 .feed-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  column-gap: 32px;
+  row-gap: 0;
 }
+
+/* 卡片：无气泡面板，以顶部发丝线分隔，呈报刊条目感 */
 .feed-card {
-  padding: 18px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  padding: 18px 0;
+  border-top: 1px solid var(--rule);
+  transition:
+    transform 0.25s ease,
+    opacity 0.25s ease;
+}
+.feed-card:first-child {
+  border-top: none;
 }
 .feed-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
 }
+.feed-card:hover .feed-title {
+  color: var(--accent);
+}
+
 .feed-link {
   display: block;
   text-decoration: none;
   color: inherit;
+  padding-right: 30px; /* 给收藏按钮留位 */
 }
-.feed-card h3 {
+
+/* 栏目编号 / 来源：强调色小标签，带字距（编辑策展意图） */
+.feed-kicker {
+  display: block;
   margin: 0 0 8px;
-  font-size: 1.05rem;
-  line-height: 1.4;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--accent);
 }
+
+.feed-title {
+  margin: 0 0 8px;
+  font-family: var(--font-serif);
+  font-size: 1.18rem;
+  font-weight: 700;
+  line-height: 1.45;
+  transition: color 0.2s ease;
+}
+
 .feed-meta {
   margin: 0 0 6px;
+  font-family: var(--font-sans);
   font-size: 0.78rem;
   color: var(--text-muted);
+  letter-spacing: 0.02em;
 }
+
 .feed-snippet {
   margin: 0;
+  font-family: var(--font-sans);
   font-size: 0.85rem;
   color: var(--text-muted);
-  line-height: 1.5;
+  line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   line-clamp: 3;
@@ -54,39 +93,79 @@
   overflow: hidden;
 }
 
-/* 资讯卡收藏按钮 */
+/* 资讯卡收藏按钮（绝对定位于右上，不挤占排版） */
 .fav-btn {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 30px;
-  height: 30px;
+  top: 16px;
+  right: 0;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  border: none;
-  background: var(--accent-soft);
+  border: 1px solid var(--rule);
+  background: var(--surface);
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   cursor: pointer;
   line-height: 1;
-  transition: transform 0.15s, color 0.2s;
+  transition:
+    transform 0.15s,
+    color 0.2s,
+    border-color 0.2s;
 }
-.feed-card {
-  position: relative;
+.fav-btn:hover {
+  border-color: var(--accent);
 }
 .fav-btn.active {
-  color: #ff5b7f;
-  transform: scale(1.1);
+  color: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.08);
 }
 
 /* ── 通用页面标题 ── */
 .page-head {
-  margin: 20px 0 16px;
+  margin: 28px 0 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--text-strong);
 }
 .page-head h2 {
   margin: 0 0 4px;
-  font-size: 1.6rem;
+  font-size: 1.7rem;
 }
 .page-head p {
   margin: 0;
   color: var(--text-muted);
+  font-family: var(--font-sans);
+}
+
+/* ── 首页报头（masthead，报刊气息）── */
+.masthead {
+  margin: 28px 0 8px;
+  text-align: center;
+}
+.masthead-title {
+  font-family: var(--font-serif);
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  margin: 0;
+}
+.masthead-rule {
+  width: 64px;
+  height: 3px;
+  background: var(--accent);
+  margin: 14px auto;
+  border: none;
+}
+.masthead-lead {
+  margin: 0;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  letter-spacing: 0.08em;
+}
+.masthead-date {
+  margin: 6px 0 0;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
 }

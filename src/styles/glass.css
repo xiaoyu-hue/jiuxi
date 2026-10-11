@@ -1,21 +1,23 @@
-/* 九溪 · 液态玻璃材质层
+/* 九溪 · 面板材质层（报刊版式）
  *
- * 只定义玻璃“材质”，所有颜色令牌来自 themes.css（按 data-theme 切换）。
- * 主题切换时通过 transition 平滑过渡，避免突兀。
+ * 不再使用 backdrop-filter 玻璃模糊（AI 模板味的来源之一）。
+ * 改为：实色表面 + 1px 发丝边 + 分层细阴影，过渡平滑。
+ * 颜色令牌来自 themes.css（按 data-theme 切换）。
  */
 
 .glass {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow-1);
   border-radius: var(--radius);
-  transition: background 0.45s ease, border-color 0.45s ease, box-shadow 0.45s ease;
+  transition:
+    background 0.45s ease,
+    border-color 0.45s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
-/* 更强玻璃（用于主卡片/弹层） */
+/* 更强面板（用于重点卡片/弹层） */
 .glass-strong {
-  --glass-blur: 22px;
-  --glass-saturate: 180%;
+  box-shadow: var(--shadow-2);
 }

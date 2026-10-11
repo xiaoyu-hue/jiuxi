@@ -2,11 +2,25 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
-## [Unreleased]
+## [v1.2.0] — 2026-10-11
 
-- 暂无未发布的功能性变更；以下为本轮代码质量与安全修复的汇总。
+### Added
+
+- 报刊版式（editorial）视觉系统：暖白纸底 + 墨色字 + 单一强调色，去 AI 模板味（渐变 / 玻璃拟态）。
+- 自托管中文衬线字体（思源宋体标题/正文、思源黑体 UI，经 `@fontsource` 子集化，无外链字体）。
+- 克制动效层（`src/lib/motion.ts`）：滚动渐显 + `@formkit/auto-animate` 卡片流 + `Lenis` 平滑滚动，全部带降级守卫与 `prefers-reduced-motion` 支持。
+- 视图过渡：页面间经 `astro:transitions`（`ClientRouter`）淡入。
+- 报头（masthead）版式与首页栏目「编号 / 来源」kicker。
+- 视觉系统唯一上下文文档 `DESIGN.md`（设计令牌 / 配色 / 排版 / 动效分寸的来源）。
 
 ### Changed
+
+- 4 套主题重做为「纸感底 + 墨色字 + 单一强调色」（朱红 / 琥珀 / 玉色 / 茜红），去除紫蓝渐变（保留 `--glass-*` 别名兼容）。
+- 面板去 `backdrop-filter` 玻璃模糊，改实色 + 1px 发丝边 + 分层细阴影。
+- 资讯卡改报刊条目：顶部发丝线 + 编号/来源 + 衬线标题 + 克制悬停。
+- `body::before` 纸纹噪点、共享设计令牌收敛到 `global.css` / `themes.css`，`--accent` 收敛为唯一强调色。
+
+### Changed（本轮代码质量与安全修复）
 
 - 修复 `fetch-feeds.mjs` 构建期注入 JSON 未转义 `</script>` 的存储型 XSS 风险（标题含 `</script>` 会提前闭合脚本块）。
 - 清理未引用的死代码 `store.ts` / `store.test.ts`，统一数据模块为 `settings.ts` / `favorites.ts` / `db.ts`。
@@ -14,7 +28,7 @@
 - 统一 CORS 代理清单并同步 CSP `connect-src`；缓存时长文档对齐代码（30 分钟）。
 - `sanitizeUrl` 拒绝协议相对 URL（`//evil.com`）与控制字符；资讯链接不再做多余 HTML 实体解码。
 
-### Fixed
+### Fixed（本轮代码质量与安全修复）
 
 - 主题切换器在空白 localStorage 时高亮错误（现回退到真实生效的 `data-theme`）。
 - `loadFeed` 过期缓存兜底分支不触发后台刷新（现先展示兜底再静默刷新）。

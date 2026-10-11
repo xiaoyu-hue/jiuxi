@@ -233,9 +233,9 @@ async function refreshInBackground(section: Section): Promise<FeedItem[]> {
  */
 export function renderItems(container: HTMLElement, items: FeedItem[]): void {
   const frag = document.createDocumentFragment();
-  for (const it of items) {
+  items.forEach((it, i) => {
     const card = document.createElement('article');
-    card.className = 'glass feed-card';
+    card.className = 'feed-card';
 
     const a = document.createElement('a');
     a.className = 'feed-link';
@@ -243,13 +243,20 @@ export function renderItems(container: HTMLElement, items: FeedItem[]): void {
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
 
+    // 栏目编号 / 来源：编辑策展意图（编号居前，来源次之）
+    const kicker = document.createElement('span');
+    kicker.className = 'feed-kicker';
+    kicker.textContent = `${String(i + 1).padStart(2, '0')} / ${it.source || '资讯'}`;
+    a.appendChild(kicker);
+
     const h3 = document.createElement('h3');
+    h3.className = 'feed-title';
     h3.textContent = it.title || '';
     a.appendChild(h3);
 
     const meta = document.createElement('p');
     meta.className = 'feed-meta';
-    meta.textContent = `${it.source || '未知来源'} · ${formatDate(it.pubDate)}`;
+    meta.textContent = formatDate(it.pubDate);
     a.appendChild(meta);
 
     if (it.snippet) {
@@ -269,7 +276,7 @@ export function renderItems(container: HTMLElement, items: FeedItem[]): void {
     card.appendChild(fav);
 
     frag.appendChild(card);
-  }
+  });
   container.replaceChildren(frag);
 }
 
