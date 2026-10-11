@@ -2,6 +2,22 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [Unreleased]
+
+### Added（内容策展补充）
+
+- **AI 工具箱**：新增 23 个 GitHub 高星项目，补齐「智能体 / Agent」主线与开源框架类。
+  - 智能体（16）：AutoGPT、Dify、LangChain、LangGraph、CrewAI、MetaGPT、AutoGen、OpenManus、n8n、Flowise、Langflow、LobeHub、Gemini CLI、Browser-use、Mem0、Agno。
+  - 开发框架（3）：vLLM、LlamaIndex、RAGFlow。
+  - 图像（1）：ComfyUI；编程 Agent（3）：Cline、Aider、Continue。
+  - 星数均为公开数据约值（截至 2026 年），已在页头标注会随时间变动。
+- **读书推荐**：13 本原有书目重写「推荐语」并改为可在线阅读链接（微信读书 / 官方免费全文）；新增 9 本（动手学深度学习、神经网络与深度学习、强化学习：导论、深度学习入门、哥德尔/艾舍尔/巴赫、失控、为什么、奇点临近、代码大全），共 22 本。
+  - 读书页新增「推荐语」正文渲染（沿用时间线页 `render()` 渲染 Markdown 的做法），链接标签改为「在线阅读 →」。
+
+### Changed
+
+- 工具箱页头注明星数为约值；读书页链接文案「了解更多 →」改为「在线阅读 →」。
+
 ## [v1.2.0] — 2026-10-11
 
 ### Added

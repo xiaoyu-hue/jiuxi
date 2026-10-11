@@ -1,34 +1,41 @@
 ---
 // 九溪 · 读书推荐（策展卡片网格）
-import { getCollection } from 'astro:content';
+import { getCollection, render } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { sanitizeUrl } from '../lib/security';
 
-const entries = await getCollection('reading');
+// 渲染每本书的正文（客观推荐语）为 HTML
+const books = await Promise.all(
+  (await getCollection('reading')).map(async (e) => {
+    const { Content } = await render(e);
+    return { data: e.data, Content };
+  })
+);
 ---
 
 <BaseLayout title="九溪 · 读书推荐" description="值得一读的书">
   <header class="page-head">
     <h2>读书推荐</h2>
-    <p>好书分享，持续收录</p>
+    <p>好书分享，持续收录。「在线阅读」指向微信读书或官方免费全文，可按需取用。</p>
   </header>
 
   <div class="book-grid">
     {
-      entries.map((e) => (
+      books.map(({ data, Content }) => (
         <article class="glass book-card">
-          <h3>{e.data.title}</h3>
-          {e.data.author && <p class="book-author">{e.data.author}</p>}
-          {e.data.rating != null && (
+          <h3>{data.title}</h3>
+          {data.author && <p class="book-author">{data.author}</p>}
+          {data.rating != null && (
             <p class="book-rating">
-              {'★'.repeat(e.data.rating)}
-              {'☆'.repeat(5 - e.data.rating)}
+              {'★'.repeat(data.rating)}
+              {'☆'.repeat(5 - data.rating)}
             </p>
           )}
-          <span class="book-tag">{e.data.tag}</span>
-          {e.data.link && (
-            <a class="book-link" href={sanitizeUrl(e.data.link)} target="_blank" rel="noopener">
-              了解更多 →
+          <span class="book-tag">{data.tag}</span>
+          <div class="book-desc"><Content /></div>
+          {data.link && (
+            <a class="book-link" href={sanitizeUrl(data.link)} target="_blank" rel="noopener">
+              在线阅读 →
             </a>
           )}
         </article>
@@ -71,6 +78,15 @@ const entries = await getCollection('reading');
     border-radius: 10px;
     background: var(--accent-soft);
     color: var(--text-strong);
+  }
+  .book-desc {
+    margin: 2px 0 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+  .book-desc :global(p) {
+    margin: 0;
   }
   .book-link {
     margin-top: 4px;
