@@ -160,34 +160,39 @@ function writeCache(section: Section, items: FeedItem[]): void {
   }
 }
 
-/** 加载某板块资讯：优先级链
- *  1) IndexedDB 持久化缓存（跨会话，立即展示）
- *  2) localStorage 新鲜缓存（30分钟内）→ 后台刷新
- *  3) localStorage 过期缓存（临时兜底）
- *  4) 在线抓取 → 同时写入 localStorage + IndexedDB
- *  5) 全部失败 → 返回空数组（页面提示）
+/**
+ * 加载某板块资讯：在线刷新优先，失败再退持久缓存。
+ *  1) 在线抓取（直连优先，失败回退第一方同域代理）→ 成功即返回最新并写缓存；
+ *  2) 全部源失败 → IndexedDB 持久缓存（跨会话）；
+ *  3) localStorage 新鲜缓存（30 分钟内）；
+ *  4) localStorage 过期缓存（临时兜底）；
+ *  5) 仍无 → 返回空数组（页面提示）。
+ *
+ * 关键修复（v 修复「刷新了但页面还是旧的」）：
+ *   旧逻辑在「有缓存」时立即把旧快照当返回值、后台刷新结果被丢弃，
+ *   导致手动刷新永远显示首次加载的快照。现改为「在线刷新优先」，
+ *   拿到最新即返回；首屏仍由构建期内嵌 JSON 秒开（FeedSection.astro），
+ *   本函数只负责刷新拿到最新数据。
  */
 export async function loadFeed(section: Section): Promise<FeedItem[]> {
+  // 1) 在线刷新优先：拿到最新即返回（并写缓存），不再把旧快照当返回值
+  const fresh = await refreshInBackground(section);
+  if (fresh.length) return fresh;
+
+  // 2) 刷新全部失败（离线/源不可用）→ 退到持久缓存，保证仍有内容
   const dbItems = await readIndexedDB(section);
-  if (dbItems && dbItems.length) {
-    refreshInBackground(section);
-    return dbItems as FeedItem[];
-  }
+  if (dbItems?.length) return dbItems as FeedItem[];
 
-  const fresh = readCacheFresh(section);
-  if (fresh) {
-    refreshInBackground(section);
-    return fresh;
-  }
+  // 3) localStorage 新鲜缓存（30 分钟内）
+  const lsFresh = readCacheFresh(section);
+  if (lsFresh) return lsFresh;
 
-  const staleLs = readCacheAny(section);
-  if (staleLs && staleLs.length) {
-    // 仍有兜底数据：先展示，同时后台静默刷新（不阻塞首屏）
-    void refreshInBackground(section);
-    return staleLs;
-  }
+  // 4) localStorage 过期缓存（临时兜底）
+  const lsAny = readCacheAny(section);
+  if (lsAny?.length) return lsAny;
 
-  return await refreshInBackground(section);
+  // 5) 真的什么都没有
+  return [];
 }
 
 async function refreshInBackground(section: Section): Promise<FeedItem[]> {

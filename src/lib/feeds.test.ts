@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { parseHn, parseRss, renderItems } from './feeds';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { parseHn, parseRss, renderItems, loadFeed } from './feeds';
 
 describe('parseHn', () => {
   it('解析 Hacker News 命中，缺失 url 时回退 item 链接', () => {
@@ -78,5 +78,53 @@ describe('renderItems', () => {
     const c = document.createElement('div');
     renderItems(c, [{ title: '正常', link: 'https://news.com/a?b=1' }]);
     expect(c.querySelector('a')?.getAttribute('href')).toBe('https://news.com/a?b=1');
+  });
+});
+
+describe('loadFeed（刷新回流）', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  // 复现原 bug：有旧缓存时，loadFeed 必须返回在线刷新拿到的最新数据，
+  // 而不是把首次加载的旧快照当返回值（否则「刷新了但页面还是旧的」）。
+  it('有旧缓存时仍返回在线刷新拿到的最新数据，不返回旧快照', async () => {
+    localStorage.setItem(
+      'jiuxi-feed-ai',
+      JSON.stringify({ t: Date.now(), items: [{ title: '旧快照', link: 'https://old.com' }] })
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (u: any) => {
+        const url = String(u);
+        if (url.includes('hn.algolia')) {
+          return new Response(JSON.stringify({ hits: [] }), { status: 200 });
+        }
+        return new Response(
+          '<?xml version="1.0"?><rss version="2.0"><channel><item><title>最新资讯</title><link>https://new.com</link></item></channel></rss>',
+          { status: 200, headers: { 'Content-Type': 'application/rss+xml' } }
+        );
+      })
+    );
+    const items = await loadFeed('ai');
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('最新资讯');
+  });
+
+  it('在线刷新全部失败时退到旧缓存，不返回空', async () => {
+    localStorage.setItem(
+      'jiuxi-feed-ai',
+      JSON.stringify({ t: Date.now(), items: [{ title: '兜底旧数据', link: 'https://old.com' }] })
+    );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('network down');
+      })
+    );
+    const items = await loadFeed('ai');
+    expect(items).toHaveLength(1);
+    expect(items[0].title).toBe('兜底旧数据');
   });
 });

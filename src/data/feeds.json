@@ -3,8 +3,8 @@
   "sections": {
     "ai": [
       {
-        "label": "Google 新闻 · AI",
-        "url": "https://news.google.com/rss/search?q=人工智能+OR+AI&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+        "label": "量子位 · AI",
+        "url": "https://www.qbitai.com/feed",
         "type": "rss"
       },
       {
@@ -12,7 +12,12 @@
         "url": "https://hn.algolia.com/api/v1/search?tags=story&query=AI&hitsPerPage=20",
         "type": "hn"
       },
-      { "label": "ArXiv · cs.AI", "url": "https://rss.arxiv.org/rss/cs.AI", "type": "rss" }
+      { "label": "ArXiv · cs.AI", "url": "https://rss.arxiv.org/rss/cs.AI", "type": "rss" },
+      {
+        "label": "Google 新闻 · AI（兜底）",
+        "url": "https://news.google.com/rss/search?q=人工智能+OR+AI&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+        "type": "rss"
+      }
     ],
     "news": [
       {

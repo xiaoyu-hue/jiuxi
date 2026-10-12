@@ -17,6 +17,7 @@ const ALLOWED_HOSTS: string[] = [
   'news.google.com',
   'hn.algolia.com',
   'rss.arxiv.org',
+  'www.qbitai.com',
   'www.ifanr.com',
   'www.ithome.com',
   'techcrunch.com',
