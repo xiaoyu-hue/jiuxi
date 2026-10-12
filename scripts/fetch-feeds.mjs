@@ -120,6 +120,47 @@ export function injectData(html, section, items) {
   return html;
 }
 
+
+/**
+ * 按源轮询合并（round-robin）：每个源轮流取一条（组内按发布时间降序），
+ * 直到凑满 limit。保证每个有数据的源都获得曝光位——
+ * 纯按时间排序时，高频源（ArXiv 日更 15 条、IT之家、HN）会占满全部名额，
+ * 低频源（周更的阮一峰、量少的触乐/OpenAI）永远排不进来，
+ * 与「综合信息聚集地」的多元化定位相悖（2026-10-12 实测复现：
+ * 21 源配置下 AI 板块 24 条被 ArXiv×15 + 量子位×9 占满，新源零曝光）。
+ * 无 source 字段的条目归入同一组，保持既有行为。
+ */
+function roundRobinBySource(items, limit) {
+  const groups = new Map();
+  for (const it of items) {
+    const key = it.source || '';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(it);
+  }
+  for (const list of groups.values()) {
+    list.sort((a, b) => {
+      const da = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+      const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+      return db - da;
+    });
+  }
+  const out = [];
+  let round = 0;
+  while (out.length < limit) {
+    let added = false;
+    for (const list of groups.values()) {
+      if (round < list.length) {
+        out.push(list[round]);
+        added = true;
+        if (out.length >= limit) break;
+      }
+    }
+    if (!added) break; // 所有源都已取尽
+    round++;
+  }
+  return out;
+}
+
 // ── 主流程 ─────────────────────────────────────────────────────────
 async function main() {
   const t0 = Date.now();
@@ -137,12 +178,7 @@ async function main() {
         seen.add(it.link);
         return true;
       });
-      unique.sort((a, b) => {
-        const da = a.pubDate ? new Date(a.pubDate).getTime() : 0;
-        const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;
-        return db - da;
-      });
-      return { section, items: unique.slice(0, 24) };
+      return { section, items: roundRobinBySource(unique, 24) };
     }),
   );
 

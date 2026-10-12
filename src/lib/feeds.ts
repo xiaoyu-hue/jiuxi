@@ -161,21 +161,53 @@ function writeCache(section: Section, items: FeedItem[]): void {
 }
 
 /**
- * 合并去重：以 link 为键去重，在线结果优先（同链接取 incoming），
- * 按发布时间降序，最多 24 条。用于「构建期内嵌 ∪ 在线最新」的并集，
- * 保证后台刷新永远不会把已展示内容「回退/冲掉」。
+ * 合并去重：以 link 为键去重，在线结果优先（同链接取 incoming），最多 24 条。
+ * 选取方式为**按源轮询（round-robin）**：每个源轮流取一条（组内按发布时间降序），
+ * 直到凑满上限。纯按时间排序时，高频源（ArXiv 日更 15 条、IT之家、HN）会占满
+ * 全部名额，低频源（周更的阮一峰、量少的触乐/OpenAI）永远排不进来，与「综合
+ * 信息聚集地」的多元化定位相悖（2026-10-12 实测复现：21 源配置下 AI 板块
+ * 24 条被 ArXiv×15 + 量子位×9 占满，新源零曝光）。无 source 字段的条目归入
+ * 同一组（单组时等价于按时间降序，保持既有行为）。
+ *
+ * 用于「构建期内嵌 ∪ 在线最新」的并集，保证后台刷新永远不会把已展示内容
+ * 「回退/冲掉」。
  */
 export function mergeFeedItems(base: FeedItem[], incoming: FeedItem[]): FeedItem[] {
   const map = new Map<string, FeedItem>();
   for (const it of base) if (it.link) map.set(it.link, it);
   for (const it of incoming) if (it.link) map.set(it.link, it); // incoming 覆盖同链接
-  const out = [...map.values()];
-  out.sort((a, b) => {
-    const da = a.pubDate ? new Date(a.pubDate).getTime() : 0;
-    const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;
-    return db - da;
-  });
-  return out.slice(0, 24);
+
+  // 按 source 分组，组内按发布时间降序
+  const groups = new Map<string, FeedItem[]>();
+  for (const it of map.values()) {
+    const key = it.source || '';
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(it);
+  }
+  for (const list of groups.values()) {
+    list.sort((a, b) => {
+      const da = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+      const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+      return db - da;
+    });
+  }
+
+  // 轮询：每轮每个源取一条，直到凑满 24 条或所有源取尽
+  const out: FeedItem[] = [];
+  let round = 0;
+  while (out.length < 24) {
+    let added = false;
+    for (const list of groups.values()) {
+      if (round < list.length) {
+        out.push(list[round]);
+        added = true;
+        if (out.length >= 24) break;
+      }
+    }
+    if (!added) break;
+    round++;
+  }
+  return out;
 }
 
 /**

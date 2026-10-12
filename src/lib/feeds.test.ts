@@ -147,6 +147,54 @@ describe('mergeFeedItems', () => {
   });
 });
 
+describe('mergeFeedItems（按源轮询，多元化成份）', () => {
+  // 2026-10-12 实测复现：AI 板块 6 源 24 条被 ArXiv×15 + 量子位×9 占满，
+  // OpenAI / Google AI / HN / Google News 零曝光。轮询保证每源都有曝光位。
+  it('均衡场景：名额在源间均分（6 源各 15 条取 24 → 每源 4 条）', () => {
+    const sources = ['ArXiv · cs.AI', '量子位 · AI', 'OpenAI 新闻', 'Google AI 博客', 'Hacker News', 'Google 新闻'];
+    const base: any[] = [];
+    for (const s of sources) {
+      for (let i = 0; i < 15; i++) {
+        base.push({ title: `${s}-${i}`, link: `https://x/${encodeURIComponent(s)}/${i}`, source: s, pubDate: '2024-05-02' });
+      }
+    }
+    const merged = mergeFeedItems(base, []);
+    expect(merged).toHaveLength(24);
+    for (const s of sources) {
+      expect(merged.filter((i) => i.source === s)).toHaveLength(4); // 24 / 6 = 4，无源被埋没
+    }
+  });
+
+  it('倾斜场景：低频源不被埋没，高频源被稀释', () => {
+    // 模拟 ArXiv 日更 15 条 + 量子位 9 条 + 周更源 1 条（纯时间排序下阮一峰零曝光）
+    const base: any[] = [];
+    for (let i = 0; i < 15; i++) {
+      base.push({ title: `ArXiv-${i}`, link: `https://arxiv/${i}`, source: 'ArXiv · cs.AI', pubDate: '2024-05-02' });
+    }
+    for (let i = 0; i < 9; i++) {
+      base.push({ title: `量子位-${i}`, link: `https://qbitai/${i}`, source: '量子位 · AI', pubDate: '2024-05-01' });
+    }
+    base.push({ title: '阮一峰周刊', link: 'https://ruanyifeng/1', source: '阮一峰的网络日志', pubDate: '2024-04-01' });
+    const merged = mergeFeedItems(base, []);
+    expect(merged).toHaveLength(24);
+    const from = (s: string) => merged.filter((i) => i.source === s).length;
+    expect(from('阮一峰的网络日志')).toBe(1); // 低频源必须露面（纯时间排序下为 0）
+    expect(from('ArXiv · cs.AI')).toBeLessThan(15); // 高频源被稀释，让出至少 1 个名额
+    expect(from('量子位 · AI')).toBe(9); // 量子位总量不足 24，全数保留
+  });
+
+  it('无 source 字段时退化为按时间降序（既有行为不变）', () => {
+    const merged = mergeFeedItems(
+      [
+        { title: '旧', link: 'https://a.com', pubDate: '2024-01-01' },
+        { title: '新', link: 'https://b.com', pubDate: '2024-03-01' },
+      ],
+      []
+    );
+    expect(merged.map((i) => i.title)).toEqual(['新', '旧']);
+  });
+});
+
 describe('refreshFeedOnline（后台刷新不回退缓存）', () => {
   beforeEach(() => {
     localStorage.clear();
