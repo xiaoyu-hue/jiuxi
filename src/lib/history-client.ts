@@ -1,24 +1,21 @@
 // 九溪 · 历史回顾页面客户端脚本
-//
 // 功能：从 IndexedDB 和静态文件加载历史数据并渲染
-// 使用方式：在 history.astro 中通过 <script src="/history.js"> 引用
 
 import {
   getHistoryList,
   cleanupExpiredData,
-  isIndexedDBAvailable
-} from '../lib/archive-history';
+  isIndexedDBAvailable,
+  type ArchiveSnapshot
+} from './archive-history';
 
-// DOM 元素
-const historyList = document.getElementById('history-list');
-const emptyState = document.getElementById('empty-state');
-const dateFromInput = document.getElementById('date-from');
-const dateToInput = document.getElementById('date-to');
-const sectionFilter = document.getElementById('section-filter');
-const refreshBtn = document.getElementById('refresh-btn');
-const clearBtn = document.getElementById('clear-btn');
+const historyList = document.getElementById('history-list') as HTMLElement | null;
+const emptyState = document.getElementById('empty-state') as HTMLElement | null;
+const dateFromInput = document.getElementById('date-from') as HTMLInputElement | null;
+const dateToInput = document.getElementById('date-to') as HTMLInputElement | null;
+const sectionFilter = document.getElementById('section-filter') as HTMLSelectElement | null;
+const refreshBtn = document.getElementById('refresh-btn') as HTMLButtonElement | null;
+const clearBtn = document.getElementById('clear-btn') as HTMLButtonElement | null;
 
-// 初始化日期范围
 const today = new Date();
 const thirtyDaysAgo = new Date(today);
 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -30,35 +27,32 @@ if (!isIndexedDBAvailable()) {
   console.warn('[九溪] IndexedDB 不可用，将使用静态历史数据');
 }
 
-// 从静态文件加载历史数据
-async function loadStaticHistory() {
+async function loadStaticHistory(): Promise<ArchiveSnapshot[]> {
   try {
     const response = await fetch('/history-index.json');
     if (!response.ok) return [];
-    return await response.json();
-  } catch (error) {
-    console.warn('[九溪] 加载静态历史数据失败:', error);
+    const data = await response.json();
+    return Array.isArray(data) ? data as ArchiveSnapshot[] : [data as ArchiveSnapshot];
+  } catch {
     return [];
   }
 }
 
-// 合并 IndexedDB 数据和静态数据
-async function mergeHistoryData() {
+async function mergeHistoryData(): Promise<ArchiveSnapshot[]> {
   const dbSnapshots = await getHistoryList(undefined, 50);
   const staticSnapshots = await loadStaticHistory();
-  const mergedMap = new Map();
-  dbSnapshots.forEach(s => mergedMap.set(s.id, s));
-  staticSnapshots.forEach(s => mergedMap.set(s.id, s));
+  const mergedMap = new Map<string, ArchiveSnapshot>();
+  dbSnapshots.forEach((s) => mergedMap.set(s.id, s));
+  staticSnapshots.forEach((s) => mergedMap.set(s.id, s));
   return Array.from(mergedMap.values()).sort((a, b) => b.timestamp - a.timestamp);
 }
 
-// 加载统计数据
-async function loadStats() {
+async function loadStats(): Promise<void> {
   try {
     const allSnapshots = await mergeHistoryData();
-    const dates = new Set(allSnapshots.map(s => s.date));
-    const sections = {};
-    allSnapshots.forEach(s => {
+    const dates = new Set(allSnapshots.map((s) => s.date));
+    const sections: Record<string, number> = {};
+    allSnapshots.forEach((s) => {
       sections[s.section] = (sections[s.section] || 0) + s.itemCount;
     });
     const statDays = document.getElementById('stat-days');
@@ -74,17 +68,15 @@ async function loadStats() {
   }
 }
 
-// 格式化日期
-function formatDate(dateStr) {
+function formatDate(dateStr: string): string {
   if (!dateStr) return '';
   const date = new Date(dateStr);
   if (isNaN(date.getTime())) return '';
   return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
 }
 
-// 渲染单个板块组
-function renderSectionGroup(snapshot) {
-  const sectionLabels = { ai: 'AI 前沿', news: '热点新闻', tech: '科技动态', gaming: '游戏资讯' };
+function renderSectionGroup(snapshot: ArchiveSnapshot): string {
+  const sectionLabels: Record<string, string> = { ai: 'AI 前沿', news: '热点新闻', tech: '科技动态', gaming: '游戏资讯' };
   const label = sectionLabels[snapshot.section] || snapshot.section;
   return `
     <div class="section-group">
@@ -107,8 +99,7 @@ function renderSectionGroup(snapshot) {
   `;
 }
 
-// 渲染历史列表
-async function renderHistoryList(filterSection = 'all', dateFrom = '', dateTo = '') {
+async function renderHistoryList(filterSection = 'all', dateFrom = '', dateTo = ''): Promise<void> {
   try {
     const allSnapshots = await mergeHistoryData();
     if (!historyList || !emptyState) return;
@@ -119,28 +110,33 @@ async function renderHistoryList(filterSection = 'all', dateFrom = '', dateTo = 
     }
     historyList.style.display = 'flex';
     emptyState.style.display = 'none';
+
     let filtered = filterSection !== 'all'
-      ? allSnapshots.filter(s => s.section === filterSection)
+      ? allSnapshots.filter((s) => s.section === filterSection)
       : allSnapshots;
+
     if (dateFrom || dateTo) {
-      filtered = filtered.filter(s => {
+      filtered = filtered.filter((s) => {
         if (dateFrom && s.date < dateFrom) return false;
         if (dateTo && s.date > dateTo) return false;
         return true;
       });
     }
+
     if (filtered.length === 0) {
       historyList.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><h3>该时间段内无记录</h3><p>请尝试调整日期范围或清除筛选条件</p></div>';
       return;
     }
-    const grouped = {};
-    filtered.forEach(snapshot => {
+
+    const grouped: Record<string, ArchiveSnapshot[]> = {};
+    filtered.forEach((snapshot) => {
       if (!grouped[snapshot.date]) grouped[snapshot.date] = [];
       grouped[snapshot.date].push(snapshot);
     });
+
     const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
     historyList.innerHTML = '';
-    sortedDates.forEach(date => {
+    sortedDates.forEach((date) => {
       const dateGroup = document.createElement('div');
       dateGroup.className = 'history-date-group';
       const totalItems = grouped[date].reduce((sum, s) => sum + s.itemCount, 0);
@@ -152,7 +148,7 @@ async function renderHistoryList(filterSection = 'all', dateFrom = '', dateTo = 
           <span class="date-meta">${totalItems} 条资讯</span>
           <span class="toggle-icon">▼</span>
         </div>
-        <div class="history-items">${grouped[date].map(snapshot => renderSectionGroup(snapshot)).join('')}</div>
+        <div class="history-items">${grouped[date].map((snapshot) => renderSectionGroup(snapshot)).join('')}</div>
       `;
       const header = dateGroup.querySelector('.date-header');
       if (header) {
@@ -168,13 +164,10 @@ async function renderHistoryList(filterSection = 'all', dateFrom = '', dateTo = 
   }
 }
 
-// 事件监听
 if (refreshBtn) {
   refreshBtn.addEventListener('click', async () => {
-    if (refreshBtn) {
-      refreshBtn.disabled = true;
-      refreshBtn.textContent = '刷新中...';
-    }
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = '刷新中...';
     if (historyList) {
       historyList.innerHTML = '<div class="loading-state"><span class="spinner"></span><p>正在刷新...</p></div>';
     }
@@ -182,10 +175,8 @@ if (refreshBtn) {
       loadStats(),
       renderHistoryList(sectionFilter?.value || 'all', dateFromInput?.value || '', dateToInput?.value || '')
     ]);
-    if (refreshBtn) {
-      refreshBtn.disabled = false;
-      refreshBtn.textContent = '刷新历史';
-    }
+    refreshBtn.disabled = false;
+    refreshBtn.textContent = '刷新历史';
   });
 }
 
@@ -217,6 +208,5 @@ if (clearBtn) {
   });
 }
 
-// 初始加载
 loadStats();
 renderHistoryList();
