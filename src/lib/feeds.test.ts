@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { parseHn, parseRss, renderItems, loadFeed } from './feeds';
+import { parseHn, parseRss, renderItems, loadFeed, refreshFeedOnline, mergeFeedItems } from './feeds';
 
 describe('parseHn', () => {
   it('解析 Hacker News 命中，缺失 url 时回退 item 链接', () => {
@@ -126,5 +126,74 @@ describe('loadFeed（刷新回流）', () => {
     const items = await loadFeed('ai');
     expect(items).toHaveLength(1);
     expect(items[0].title).toBe('兜底旧数据');
+  });
+});
+
+describe('mergeFeedItems', () => {
+  it('以 link 去重并按发布时间降序，在线结果覆盖同链接', () => {
+    const base = [
+      { title: '旧', link: 'https://a.com', pubDate: '2024-01-01' },
+      { title: '保留', link: 'https://b.com', pubDate: '2024-02-01' },
+    ];
+    const incoming = [
+      { title: '新', link: 'https://a.com', pubDate: '2024-03-01' },
+      { title: '新C', link: 'https://c.com', pubDate: '2024-03-02' },
+    ];
+    const merged = mergeFeedItems(base, incoming);
+    expect(merged).toHaveLength(3);
+    expect(merged.find((i) => i.link === 'https://a.com')?.title).toBe('新'); // 同链接被覆盖
+    expect(merged.find((i) => i.link === 'https://b.com')?.title).toBe('保留'); // 保留
+    expect(merged[0].link).toBe('https://c.com'); // 降序
+  });
+});
+
+describe('refreshFeedOnline（后台刷新不回退缓存）', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  it('全部源失败时返回空数组，不回退旧缓存（避免覆盖内嵌内容）', async () => {
+    localStorage.setItem(
+      'jiuxi-feed-ai',
+      JSON.stringify({ t: Date.now(), items: [{ title: '内嵌兜底', link: 'https://old.com' }] })
+    );
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new Error('network down');
+    }));
+    const items = await refreshFeedOnline('ai');
+    expect(items).toHaveLength(0);
+  });
+
+  it('合并多个成功源，而非只取第一个', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (u: any) => {
+        const url = String(u);
+        if (url.includes('hn.algolia')) {
+          return new Response(
+            JSON.stringify({ hits: [{ title: 'HN-A', url: 'https://hn.com/1', objectID: '1', created_at: '2024-05-01' }] }),
+            { status: 200 }
+          );
+        }
+        // 各 RSS 源返回不同 link，避免被并集去重合并成一条
+        const tag = url.includes('qbitai')
+          ? 'qbitai'
+          : url.includes('arxiv')
+            ? 'arxiv'
+            : 'google';
+        return new Response(
+          `<?xml version="1.0"?><rss version="2.0"><channel><item><title>RSS-${tag}</title><link>https://rss.com/${tag}</link></item></channel></rss>`,
+          { status: 200, headers: { 'Content-Type': 'application/rss+xml' } }
+        );
+      })
+    );
+    // AI 板块 4 个源（量子位/HN/ArXiv/Google News）全部成功 → 合并去重后 4 条
+    const items = await refreshFeedOnline('ai');
+    expect(items).toHaveLength(4);
+    expect(items.some((i) => i.title === 'HN-A')).toBe(true);
+    expect(items.some((i) => i.title === 'RSS-qbitai')).toBe(true);
+    expect(items.some((i) => i.title === 'RSS-arxiv')).toBe(true);
+    expect(items.some((i) => i.title === 'RSS-google')).toBe(true);
   });
 });

@@ -117,6 +117,11 @@ jobs:
     needs: build-cloudflare
     runs-on: ubuntu-latest
     steps:
+      # 必须拉取仓库以携带 functions/ 目录：否则 wrangler pages deploy dist 只上传静态产物，
+      # 第一方 /api/feed 代理（Cloudflare Pages Function）不会部署，
+      # 导致浏览器端所有需代理的 RSS 源（量子位/ArXiv/Google News）刷新失败、内容被冲掉。
+      - name: 拉取仓库（含 functions/ 代理）
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - id: check
         name: 检查 Cloudflare 密钥是否已配置
         # secrets 上下文不能用于 if 条件（会导致 workflow 解析失败/红叉），

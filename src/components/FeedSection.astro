@@ -30,35 +30,38 @@ const { section, title, description = '' } = Astro.props;
 </BaseLayout>
 
 <script>
-  import { loadFeed, renderItems, wireFavorites } from '../lib/feeds';
+  import { loadFeed, refreshFeedOnline, mergeFeedItems, renderItems, wireFavorites } from '../lib/feeds';
 
   document.querySelectorAll<HTMLElement>('.feed-grid').forEach(async (el) => {
     const section = el.dataset.section as any;
     const status = document.getElementById(`status-${section}`);
 
-    // 第1步：检查构建时内嵌的 JSON 数据（零等待，立即展示）
+    // 第1步：构建时内嵌 JSON（零等待，立即展示）
     const embeddedScript = document.getElementById(`jiuxi-feed-${section}`);
     if (embeddedScript) {
       try {
-        const items = JSON.parse(embeddedScript.textContent ?? '[]') as any[];
-        if (items.length) {
-          renderItems(el, items);
+        const base = JSON.parse(embeddedScript.textContent ?? '[]') as any[];
+        if (base.length) {
+          renderItems(el, base);
           wireFavorites(el);
           if (status) status.textContent = `已加载 · ${new Date().toLocaleString('zh-CN')}`;
-          // 后台异步刷新，有新数据则更新
-          loadFeed(section).then((fresh) => {
-            if (fresh.length > 0) {
-              renderItems(el, fresh);
+          // 后台刷新：在线最新与当前内嵌取「并集」，绝不回退/冲掉已展示内容。
+          // 即便部分源（如代理未部署时的 RSS）失败，内嵌内容也保留，只补进成功源。
+          refreshFeedOnline(section)
+            .then((online) => {
+              if (!online.length) return; // 全部源失败则保留内嵌
+              const merged = mergeFeedItems(base, online);
+              renderItems(el, merged);
               wireFavorites(el);
               if (status) status.textContent = `已更新 · ${new Date().toLocaleString('zh-CN')}`;
-            }
-          });
+            })
+            .catch(() => {});
           return;
         }
       } catch { /* 解析失败，降级到普通加载 */ }
     }
 
-    // 第2步：无内嵌数据 → 走原来的加载逻辑（IndexedDB → localStorage → 在线）
+    // 第2步：无内嵌数据 → 在线优先，失败回退缓存
     try {
       const items = await loadFeed(section);
       if (!items.length) {

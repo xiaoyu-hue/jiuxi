@@ -161,42 +161,31 @@ function writeCache(section: Section, items: FeedItem[]): void {
 }
 
 /**
- * 加载某板块资讯：在线刷新优先，失败再退持久缓存。
- *  1) 在线抓取（直连优先，失败回退第一方同域代理）→ 成功即返回最新并写缓存；
- *  2) 全部源失败 → IndexedDB 持久缓存（跨会话）；
- *  3) localStorage 新鲜缓存（30 分钟内）；
- *  4) localStorage 过期缓存（临时兜底）；
- *  5) 仍无 → 返回空数组（页面提示）。
- *
- * 关键修复（v 修复「刷新了但页面还是旧的」）：
- *   旧逻辑在「有缓存」时立即把旧快照当返回值、后台刷新结果被丢弃，
- *   导致手动刷新永远显示首次加载的快照。现改为「在线刷新优先」，
- *   拿到最新即返回；首屏仍由构建期内嵌 JSON 秒开（FeedSection.astro），
- *   本函数只负责刷新拿到最新数据。
+ * 合并去重：以 link 为键去重，在线结果优先（同链接取 incoming），
+ * 按发布时间降序，最多 24 条。用于「构建期内嵌 ∪ 在线最新」的并集，
+ * 保证后台刷新永远不会把已展示内容「回退/冲掉」。
  */
-export async function loadFeed(section: Section): Promise<FeedItem[]> {
-  // 1) 在线刷新优先：拿到最新即返回（并写缓存），不再把旧快照当返回值
-  const fresh = await refreshInBackground(section);
-  if (fresh.length) return fresh;
-
-  // 2) 刷新全部失败（离线/源不可用）→ 退到持久缓存，保证仍有内容
-  const dbItems = await readIndexedDB(section);
-  if (dbItems?.length) return dbItems as FeedItem[];
-
-  // 3) localStorage 新鲜缓存（30 分钟内）
-  const lsFresh = readCacheFresh(section);
-  if (lsFresh) return lsFresh;
-
-  // 4) localStorage 过期缓存（临时兜底）
-  const lsAny = readCacheAny(section);
-  if (lsAny?.length) return lsAny;
-
-  // 5) 真的什么都没有
-  return [];
+export function mergeFeedItems(base: FeedItem[], incoming: FeedItem[]): FeedItem[] {
+  const map = new Map<string, FeedItem>();
+  for (const it of base) if (it.link) map.set(it.link, it);
+  for (const it of incoming) if (it.link) map.set(it.link, it); // incoming 覆盖同链接
+  const out = [...map.values()];
+  out.sort((a, b) => {
+    const da = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+    const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+    return db - da;
+  });
+  return out.slice(0, 24);
 }
 
-async function refreshInBackground(section: Section): Promise<FeedItem[]> {
+/**
+ * 在线刷新某板块：依次尝试所有源，**合并**全部成功源（而非只取第一个成功的源），
+ * 任一源成功即视为该板块可刷新。全部失败返回空数组（不回退缓存，
+ * 由调用方决定是否保留已展示内容）。
+ */
+async function refreshOnline(section: Section): Promise<FeedItem[]> {
   const sources = SOURCES[section];
+  const lists: FeedItem[][] = [];
   let lastError: string | null = null;
 
   for (const s of sources) {
@@ -207,27 +196,67 @@ async function refreshInBackground(section: Section): Promise<FeedItem[]> {
         const timer = setTimeout(() => ctrl.abort(), 5000);
         const res = await fetch(s.url, { signal: ctrl.signal });
         clearTimeout(timer);
-        if (!res.ok) continue;
+        if (!res.ok) {
+          lastError = `HN ${res.status}`;
+          continue;
+        }
         items = parseHn(await res.json());
       } else {
         const xml = await fetchText(s.url);
         items = parseRss(xml).map((it) => ({ ...it, source: it.source || s.label }));
       }
-      if (items.length) {
-        writeCache(section, items);
-        await writeIndexedDB(section, items);
-        return items;
-      }
+      if (items.length) lists.push(items);
     } catch (e) {
       lastError = e instanceof Error ? e.message : String(e);
-      console.debug(`[九溪] ${section} 板块获取失败 (${s.label}):`, lastError);
+      console.debug(`[九溪] ${section} 源失败 (${s.label}):`, lastError);
     }
   }
 
-  const dbItems = await readIndexedDB(section);
-  if (dbItems && dbItems.length) return dbItems as FeedItem[];
+  if (!lists.length) {
+    console.warn(`[九溪] ${section} 所有在线源失败:`, lastError);
+    return [];
+  }
+  const merged = mergeFeedItems([], lists.flat());
+  writeCache(section, merged);
+  await writeIndexedDB(section, merged);
+  return merged;
+}
 
-  console.warn(`[九溪] ${section} 板块所有源均失败:`, lastError);
+/**
+ * 后台刷新专用：只返回在线最新数据，失败返回空（不回退缓存），
+ * 避免用过期缓存覆盖页面已展示的构建期内嵌内容（防止「被刷新走」）。
+ */
+export async function refreshFeedOnline(section: Section): Promise<FeedItem[]> {
+  return refreshOnline(section);
+}
+
+/**
+ * 加载某板块资讯（用于无构建期内嵌数据的场景）：在线优先，失败再退持久缓存。
+ *  1) 在线刷新（合并各成功源）→ 成功即返回最新；
+ *  2) IndexedDB 持久缓存（跨会话）；
+ *  3) localStorage 新鲜缓存（30 分钟内）；
+ *  4) localStorage 过期缓存（临时兜底）；
+ *  5) 仍无 → 返回空数组（页面提示）。
+ *
+ * 历史修复：
+ *  - 「刷新了但页面还是旧的」：旧逻辑有缓存时立即把旧快照当返回值、丢弃后台结果；
+ *    现改为在线刷新优先。
+ *  - 「被刷新走」：后台刷新改走 refreshFeedOnline + mergeFeedItems，与已展示内嵌内容
+ *    取并集（见 FeedSection.astro），绝不回退/冲掉已展示内容。
+ */
+export async function loadFeed(section: Section): Promise<FeedItem[]> {
+  const online = await refreshOnline(section);
+  if (online.length) return online;
+
+  const dbItems = await readIndexedDB(section);
+  if (dbItems?.length) return dbItems as FeedItem[];
+
+  const lsFresh = readCacheFresh(section);
+  if (lsFresh) return lsFresh;
+
+  const lsAny = readCacheAny(section);
+  if (lsAny?.length) return lsAny;
+
   return [];
 }
 
