@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **资讯刷新被冲掉**：后台刷新从「只返回第一个成功的源」改为 `mergeFeedItems` 合并多源（link 去重并集、按时间降序、最多 24 条）；`FeedSection.astro` 改为与内嵌内容做**并集刷新**——只补进成功源、绝不回退覆盖；`refreshFeedOnline` 全失败返回空，由 `loadFeed` 退 IndexedDB / localStorage 兜底。
+- **第一方代理 `/api/feed` 发布失败（`No such module "node:stream"`）**：根因为 `wrangler.toml` 的 `compatibility_flags = ["nodejs_compat"]` 让打包器用 Node 的 undici 去 polyfill `fetch`/`Response`/`Headers` 等 Web API，向产物注入 `import ... from "node:stream"`，而 Pages Functions 默认运行时不提供该模块。已移除 `nodejs_compat`（feed.ts 纯 Web 标准 API，无需它），代理正常发布。
+- **第一方代理未上线**：`deploy.yml` 的 `deploy-cloudflare` job 此前只 `download-artifact` 了 `dist`、未 `checkout`，致 `functions/` 不被上传、`/api/feed` 落到站点自身 `index.html`（静态 `cache-control: max-age=0`），浏览器端所有经代理的 RSS 源（量子位 / ArXiv / Google News）刷新失败。已补 `actions/checkout@v4`，代理随部署上线。
+
+### Changed
+
+- 资讯刷新策略：运行时在线多源合并优先，全部失败再退 IndexedDB / localStorage（不再用内嵌缓存做回退覆盖）。
+- `functions/api/feed.ts`：移除 Cache API（`caches.default`）改直连上游返回文本，规避 `node:stream` 打包陷阱、降低体积。
+
 ## [v1.3.0] — 2026-10-11
 
 ### Added（内容策展补充）
