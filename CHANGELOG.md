@@ -17,6 +17,13 @@
 - **README 全面更新**：反映 D1 轻后端里程碑（新增「第一次有了轻后端」说明段：静态站 + Serverless 路线验证、为后续真正后端铺路）、历史回顾板块与十一板块架构、21 个资讯源与按源轮询、Phase 7/8 路线图、策展内容新计数（时间线 213 / 工具箱 74 / 读书 58）、`functions/` 与 `scripts/` 目录结构、D1 绑定必须写入 wrangler.toml 的部署注意事项。
 - **历史回顾 · 云端读取（阶段 2）**：新增 Pages Function `/api/history`（读 D1，30 分钟缓存头，未配 D1 绑定时返回 503 由页面降级）；历史页数据源改为三源合并——云端接口 → IndexedDB 本地缓存 → 静态索引，同 id 以云端为准，云端数据首次加载即写入本地缓存，离线或无 Functions 的环境（GitHub Pages 备用站）自动降级。顺带修复两处既有问题：按日期分组逻辑失效（`grouped` 临时数组未赋值回写）、清除按钮文案与新数据模型不符。
 - **资讯源扩容 14 → 21（信息多元化）**：全部源经抓取实测后上线。AI 板块 +OpenAI 新闻、+Google AI 博客（两个官方一手源）；科技板块 +The Verge、+阮一峰的网络日志、+Solidot 奇客；游戏板块 +机核 GCORES、+触乐（该板块此前仅 2 源，为最弱板块）；新闻板块的少数派由公共 RSSHub 路线（实例不稳定）切换为官方源。每板块 24 条上限不变。
+- **资讯选取改为按源轮询（round-robin-by-source）**：构建端 `scripts/fetch-feeds.mjs` 与运行端 `src/lib/feeds.ts`（`mergeFeedItems`，一处改动覆盖后台刷新、内嵌∪在线并集、本地加载三个调用点）同步改为「每个源轮流取一条（组内按发布时间降序），凑满 24 条为止」，取代纯按时间排序。动机：纯时间排序下高频源会占满名额——2026-10-12 实测 21 源配置的 AI 板块 24 条被 ArXiv×15 + 量子位×9 占满，OpenAI / Google AI / HN / Google News 零曝光，与「综合信息聚集地」的多元化定位相悖。轮询后实测四板块分布均衡（沙箱内可用源：ai 4 源各 6 条、news 3 源各 8 条、tech 6 源各 3~5 条、gaming 3 源各 8 条；CI 全源可用时约为 6/4/7/4 源均分）。无 source 字段的条目归入同一组，退化为原时间降序行为；每板块 24 条上限不变。
+- **构建期抓取并行化**：`scripts/fetch-feeds.mjs` 的 HTTP 层从 `spawnSync`（阻塞事件循环，板块内多源实际串行）改为 `execFile` 异步版——仍是同一个 curl 二进制、同一组参数，零传输层行为变化，但板块内多源可真正并行；源扩容后总耗时约等于最慢单源（实测 21 源全量约 5 秒）而非全部源之和（旧版最坏约 50 秒）。
+- **构建期抓取增加单源日志**：`fetch-feeds.mjs` 原先单源失败静默跳过，板块总数不变时无法定位是哪个源缺席（2026-10-12 排查 tech/gaming 缺源时被迫逐源直连测试）。现每个源抓取后打印 `✓ 源名: N 条` / `✗ 源名: 抓取失败`，构建日志可直接定位问题源。
+- `wrangler.toml`：清理 nodejs_compat 的过时注释（旧注释声称"启用 nodejs_compat 做双保险"，与早已移除该标志的实际配置矛盾，会误导后续维护者重新加上它再踩一次 `node:stream` 发布失败）。
+- 资讯刷新策略：运行时在线多源合并优先，全部失败再退 IndexedDB / localStorage（不再用内嵌缓存做回退覆盖）。
+- `functions/api/feed.ts`：移除 Cache API（`caches.default`）改直连上游返回文本，规避 `node:stream` 打包陷阱、降低体积。
+- README 工具箱分类计数修正：扩充后实测分类为 14 类（智能体 18 / 编程 10 / 对话 10 / 视频 7 / 图像 7 / 开发框架 6 / 音乐 3 / 研究 3 / 本地 3 / 效率 2 / 搜索 2 / 推理 1 / 开发 1 / 3D 1，合计 74），原文「等 20 类」为按引号格式重复计数所致的笔误，改为 14 类；顺带将 chatgpt / claude / copilot 三个早期条目缺失引号的 `category` 字段补全为带引号格式（纯格式统一，YAML 解析结果不变）。
 
 ### Fixed
 
@@ -24,15 +31,6 @@
 - **资讯刷新被冲掉**：后台刷新从「只返回第一个成功的源」改为 `mergeFeedItems` 合并多源（link 去重并集、按时间降序、最多 24 条）；`FeedSection.astro` 改为与内嵌内容做**并集刷新**——只补进成功源、绝不回退覆盖；`refreshFeedOnline` 全失败返回空，由 `loadFeed` 退 IndexedDB / localStorage 兜底。
 - **第一方代理 `/api/feed` 发布失败（`No such module "node:stream"`）**：根因为 `wrangler.toml` 的 `compatibility_flags = ["nodejs_compat"]` 让打包器用 Node 的 undici 去 polyfill `fetch`/`Response`/`Headers` 等 Web API，向产物注入 `import ... from "node:stream"`，而 Pages Functions 默认运行时不提供该模块。已移除 `nodejs_compat`（feed.ts 纯 Web 标准 API，无需它），代理正常发布。
 - **第一方代理未上线**：`deploy.yml` 的 `deploy-cloudflare` job 此前只 `download-artifact` 了 `dist`、未 `checkout`，致 `functions/` 不被上传、`/api/feed` 落到站点自身 `index.html`（静态 `cache-control: max-age=0`），浏览器端所有经代理的 RSS 源（量子位 / ArXiv / Google News）刷新失败。已补 `actions/checkout@v4`，代理随部署上线。
-
-### Changed
-
-- **资讯选取改为按源轮询（round-robin-by-source）**：构建端 `scripts/fetch-feeds.mjs` 与运行端 `src/lib/feeds.ts`（`mergeFeedItems`，一处改动覆盖后台刷新、内嵌∪在线并集、本地加载三个调用点）同步改为「每个源轮流取一条（组内按发布时间降序），凑满 24 条为止」，取代纯按时间排序。动机：纯时间排序下高频源会占满名额——2026-10-12 实测 21 源配置的 AI 板块 24 条被 ArXiv×15 + 量子位×9 占满，OpenAI / Google AI / HN / Google News 零曝光，与「综合信息聚集地」的多元化定位相悖。轮询后实测四板块分布均衡（沙箱内可用源：ai 4 源各 6 条、news 3 源各 8 条、tech 6 源各 3~5 条、gaming 3 源各 8 条；CI 全源可用时约为 6/4/7/4 源均分）。无 source 字段的条目归入同一组，退化为原时间降序行为；每板块 24 条上限不变。
-- **构建期抓取并行化**：`scripts/fetch-feeds.mjs` 的 HTTP 层从 `spawnSync`（阻塞事件循环，板块内多源实际串行）改为 `execFile` 异步版——仍是同一个 curl 二进制、同一组参数，零传输层行为变化，但板块内多源可真正并行；源扩容后总耗时约等于最慢单源（实测 21 源全量约 5 秒）而非全部源之和（旧版最坏约 50 秒）。
-- **构建期抓取增加单源日志**：`fetch-feeds.mjs` 原先单源失败静默跳过，板块总数不变时无法定位是哪个源缺席（2026-10-12 排查 tech/gaming 缺源时被迫逐源直连测试）。现每个源抓取后打印 `✓ 源名: N 条` / `✗ 源名: 抓取失败`，构建日志可直接定位问题源。
-- `wrangler.toml`：清理 nodejs_compat 的过时注释（旧注释声称"启用 nodejs_compat 做双保险"，与早已移除该标志的实际配置矛盾，会误导后续维护者重新加上它再踩一次 `node:stream` 发布失败）。
-- 资讯刷新策略：运行时在线多源合并优先，全部失败再退 IndexedDB / localStorage（不再用内嵌缓存做回退覆盖）。
-- `functions/api/feed.ts`：移除 Cache API（`caches.default`）改直连上游返回文本，规避 `node:stream` 打包陷阱、降低体积。
 
 ## [v1.3.0] — 2026-10-11
 
