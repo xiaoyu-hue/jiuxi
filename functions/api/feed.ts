@@ -59,33 +59,25 @@ export const onRequest = async (context: any) => {
     return new Response('origin not allowed', { status: 403 });
   }
 
-  // caches.default 是 Cloudflare 专有 API，TS 自带 DOM 类型无此字段，故用 any 断言
-  const cache: any = (context as any).caches?.default ?? (caches as any).default;
-  const cacheKey = new Request(parsed.toString());
-  const cached = await cache.match(cacheKey);
-  if (cached) return cached;
-
-  let upstream: Response;
-  let text: string;
+  // 直连上游并返回。注意：不要使用 caches.default（Cache API）——wrangler 打包
+  // Pages Function 时会为 Cache API 引入 node:stream 垫片，而默认运行时没有它，
+  // 会导致「发布失败: No such module node:stream」。RSS 体积小，直连即可，
+  // 边缘缓存交由 Cloudflare 默认行为/Cache-Control 头处理。
   try {
-    upstream = await fetch(parsed.toString(), {
+    const upstream = await fetch(parsed.toString(), {
       headers: { 'User-Agent': 'Jiuxi/1.0 (+https://jiuxi-bm1.pages.dev)' },
       redirect: 'follow',
     });
-    if (!upstream.ok) return new Response('upstream error', { status: 502 });
-    // 缓冲为完整文本后再返回：不要直接透传上游 ReadableStream，
-    // 否则 Cloudflare Pages Functions 打包会引入 node:stream 导致发布失败。
-    text = await upstream.text();
+    const text = await upstream.text();
+    return new Response(text, {
+      status: upstream.status,
+      headers: {
+        'Content-Type': upstream.headers.get('content-type') || 'application/xml; charset=utf-8',
+        'Cache-Control': `public, max-age=${CACHE_TTL}, s-maxage=${CACHE_TTL}`,
+        'Access-Control-Allow-Origin': here.origin,
+      },
+    });
   } catch {
     return new Response('upstream error', { status: 502 });
   }
-
-  const out = new Response(text, { status: upstream.status, headers: upstream.headers });
-  out.headers.set('Cache-Control', `public, max-age=${CACHE_TTL}, s-maxage=${CACHE_TTL}`);
-  out.headers.set('Access-Control-Allow-Origin', here.origin);
-  out.headers.delete('X-Frame-Options');
-  context.waitUntil(
-    cache.put(cacheKey, new Response(text, { status: upstream.status, headers: upstream.headers }))
-  );
-  return out;
 };
