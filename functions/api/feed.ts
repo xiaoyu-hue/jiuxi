@@ -62,29 +62,30 @@ export const onRequest = async (context: any) => {
   // caches.default 是 Cloudflare 专有 API，TS 自带 DOM 类型无此字段，故用 any 断言
   const cache: any = (context as any).caches?.default ?? (caches as any).default;
   const cacheKey = new Request(parsed.toString());
-  let resp = await cache.match(cacheKey);
-  if (resp) return resp;
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached;
 
+  let upstream: Response;
+  let text: string;
   try {
-    const upstream = await fetch(parsed.toString(), {
+    upstream = await fetch(parsed.toString(), {
       headers: { 'User-Agent': 'Jiuxi/1.0 (+https://jiuxi-bm1.pages.dev)' },
       redirect: 'follow',
     });
     if (!upstream.ok) return new Response('upstream error', { status: 502 });
     // 缓冲为完整文本后再返回：不要直接透传上游 ReadableStream，
     // 否则 Cloudflare Pages Functions 打包会引入 node:stream 导致发布失败。
-    const text = await upstream.text();
-    resp = upstream;
+    text = await upstream.text();
   } catch {
     return new Response('upstream error', { status: 502 });
   }
 
-  const out = new Response(text, { status: resp.status, headers: resp.headers });
+  const out = new Response(text, { status: upstream.status, headers: upstream.headers });
   out.headers.set('Cache-Control', `public, max-age=${CACHE_TTL}, s-maxage=${CACHE_TTL}`);
   out.headers.set('Access-Control-Allow-Origin', here.origin);
   out.headers.delete('X-Frame-Options');
   context.waitUntil(
-    cache.put(cacheKey, new Response(text, { status: resp.status, headers: resp.headers }))
+    cache.put(cacheKey, new Response(text, { status: upstream.status, headers: upstream.headers }))
   );
   return out;
 };
