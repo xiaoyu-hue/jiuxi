@@ -33,6 +33,18 @@ function saveHistorySnapshot(snapshot) {
   }));
 }
 
+/* 批量写入（一个事务多条 put）：云端数据一次性缓存到本地时使用 */
+function saveHistorySnapshots(snapshots) {
+  if (!snapshots || snapshots.length === 0) return Promise.resolve();
+  return openDatabase().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    for (const s of snapshots) store.put(s);
+    tx.oncomplete = () => { db.close(); resolve(); };
+    tx.onerror = () => { db.close(); reject(tx.error); };
+  }));
+}
+
 function getHistoryList(section, limit) {
   return openDatabase().then(db => new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
@@ -76,6 +88,22 @@ function isIndexedDBAvailable() {
   try { return !!window.indexedDB; } catch { return false; }
 }
 
+/* ── 云端数据源（阶段 2 新增）─────────────────────────────────────
+ * /api/history 是 Cloudflare Pages Function，读 D1 snapshots 表，
+ * 返回 { snapshots: [...] }，结构与 IndexedDB 中的快照完全同构。
+ * 失败（404/网络错/503 未配绑定）时静默返回 []，由后续降级链兜底。
+ */
+async function loadCloudHistory(days = 30) {
+  try {
+    const r = await fetch(`/api/history?days=${days}`, { cache: 'reload' });
+    if (!r.ok) return [];
+    const data = await r.json();
+    return Array.isArray(data && data.snapshots) ? data.snapshots : [];
+  } catch {
+    return [];
+  }
+}
+
 /* ── 渲染逻辑 ─────────────────────────────────────────────────── */
 const historyList = document.getElementById('history-list');
 const emptyState = document.getElementById('empty-state');
@@ -106,12 +134,30 @@ async function loadStaticHistory() {
   } catch { return []; }
 }
 
+/* 三源合并（阶段 2 起云端为权威源）：
+ *   ① /api/history（D1 云端，服务端持久，换设备/清缓存不丢）
+ *   ② IndexedDB（本地缓存：今日尚未定时写入的快照、离线时的数据）
+ *   ③ /history-index.json（构建期静态索引，历史遗留源）
+ * 同 id 时云端覆盖本地（云端是最新一次定时重建的结果）。
+ * 云端数据顺手写入 IndexedDB，离线/无 Functions 的环境（GitHub Pages）也能用。
+ */
 async function mergeHistoryData() {
-  const db = await getHistoryList(undefined, 50);
-  const staticData = await loadStaticHistory();
   const map = new Map();
-  db.forEach(s => map.set(s.id, s));
+
+  const staticData = await loadStaticHistory();
   staticData.forEach(s => map.set(s.id, s));
+
+  const db = await getHistoryList(undefined, 50);
+  db.forEach(s => map.set(s.id, s));
+
+  const cloud = await loadCloudHistory();
+  cloud.forEach(s => map.set(s.id, s));
+
+  if (cloud.length > 0) {
+    // 缓存失败仅影响离线兜底，不阻断渲染
+    saveHistorySnapshots(cloud).catch(() => {});
+  }
+
   return Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp);
 }
 
@@ -175,6 +221,7 @@ async function renderHistoryList(filterSection = 'all', dateFrom = '', dateTo = 
       historyList.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><h3>该时间段内无记录</h3><p>请尝试调整日期范围或清除筛选条件</p></div>';
       return;
     }
+    // 修复：原版写成 (grouped[s.date] || []).push(s)，临时数组从未赋值回 grouped，分组全部丢失
     const grouped = {};
     filtered.forEach(s => { (grouped[s.date] = grouped[s.date] || []).push(s); });
     const sorted = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
@@ -227,7 +274,7 @@ if (dateToInput) dateToInput.addEventListener('change', renderHistoryData);
 
 if (clearBtn) {
   clearBtn.addEventListener('click', async () => {
-    if (confirm('确定要清除所有历史数据吗？此操作不可恢复。')) {
+    if (confirm('确定要清除本地缓存吗？云端历史数据不受影响，重新加载即可恢复。')) {
       await cleanupExpiredData();
       await loadStats();
       await renderHistoryData();
