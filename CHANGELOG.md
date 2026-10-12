@@ -24,6 +24,7 @@
 - 资讯刷新策略：运行时在线多源合并优先，全部失败再退 IndexedDB / localStorage（不再用内嵌缓存做回退覆盖）。
 - `functions/api/feed.ts`：移除 Cache API（`caches.default`）改直连上游返回文本，规避 `node:stream` 打包陷阱、降低体积。
 - README 工具箱分类计数修正：扩充后实测分类为 14 类（智能体 18 / 编程 10 / 对话 10 / 视频 7 / 图像 7 / 开发框架 6 / 音乐 3 / 研究 3 / 本地 3 / 效率 2 / 搜索 2 / 推理 1 / 开发 1 / 3D 1，合计 74），原文「等 20 类」为按引号格式重复计数所致的笔误，改为 14 类；顺带将 chatgpt / claude / copilot 三个早期条目缺失引号的 `category` 字段补全为带引号格式（纯格式统一，YAML 解析结果不变）。
+- README 补 CI 徽章：标题区新增 flat 风格 shields.io 徽章行（Deploy 双站部署 / Security 安全门禁 / Release / Last Commit / Astro / License Apache-2.0），与 sonder520、时念两个项目的排版对齐——此前九溪仓库主页无任何状态徽章。
 
 ### Fixed
 

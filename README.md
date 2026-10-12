@@ -13,6 +13,17 @@
 
 ---
 
+<div align="center">
+
+![Deploy](https://img.shields.io/github/actions/workflow/status/xiaoyu-hue/jiuxi/deploy.yml?style=flat&label=Deploy)
+![Security](https://img.shields.io/github/actions/workflow/status/xiaoyu-hue/jiuxi/security.yml?style=flat&label=Security)
+![Release](https://img.shields.io/github/v/release/xiaoyu-hue/jiuxi?style=flat)
+![Last Commit](https://img.shields.io/github/last-commit/xiaoyu-hue/jiuxi?style=flat)
+![Astro](https://img.shields.io/badge/Astro-BC52EE?style=flat&logo=astro&logoColor=white)
+![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)
+
+</div>
+
 ## 文档说明（本文档面向谁）
 
 本 README 同时服务两类读者，请按需取用：
