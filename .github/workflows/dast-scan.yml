@@ -1,0 +1,50 @@
+# 九溪 · DAST 动态扫描（可复用工作流）
+#
+# 为什么单独一个文件：ZAP 有两个触发时机——security.yml 的每周定时巡检 +
+# deploy.yml 的部署成功后即时扫描。用 `workflow_call` 可复用工作流承载，
+# 扫描目标与参数只维护一处，避免两份 job 配置漂移。
+#
+# 为什么是 baseline 模式：zap-baseline 只做被动扫描 + 蜘蛛爬取，不发动攻击，
+# 对生产站安全（行业常规做法）；含主动攻击的 full scan 从不安排在生产上。
+#
+# 扫描目标：Cloudflare 主站（https://jiuxi-bm1.pages.dev/）——只有主站挂着
+# /api/feed 与 /api/history 两个 Pages Functions 端点，是真正的服务端攻击面；
+# GitHub Pages 备用站无 Functions，扫它价值有限。
+#
+# advisory 约定：job 级 continue-on-error。ZAP action 的 fail_action 默认 false，
+# 发现只进日志与 artifact、不把 job 搞红；真执行错误才会红，但也不阻断调用方。
+
+name: DAST · ZAP Baseline
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  zap-baseline:
+    name: ZAP Baseline（动态扫描生产主站）
+    runs-on: ubuntu-latest
+    continue-on-error: true # advisory：本 job 红叉不阻断调用方流水线
+    steps:
+      # harden-runner 必须是每个 job 的第一步（pre 步骤，先于 checkout 运行）。
+      # audit = 只记录出口流量不阻断；block 模式会断掉 ZAP 扫站点的必要出站连接。
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: https://jiuxi-bm1.pages.dev/
+          # 关掉自动开 issue：个人仓库不需要每次扫描都刷一个 issue，
+          # 且开 issue 需要 issues:write 权限（本工作流未授予，开启反而会报错）。
+          allow_issue_writing: false
+          # fail_action 默认 false：有发现也不让本步失败（advisory 语义），
+          # 报告进 job 摘要与 zap_scan artifact。
+          fail_action: false
+          artifact_name: zap_scan

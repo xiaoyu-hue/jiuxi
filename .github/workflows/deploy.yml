@@ -3,6 +3,8 @@
 # 备用：GitHub Pages（已在仓库 Settings 开启，Source=GitHub Actions）
 # 两个站点 base 路径不同：GitHub Pages 用 /jiuxi/，Cloudflare 用 /，故各自独立构建。
 # 任一失败不影响另一。
+# 安全增强：每个 job 第一步均装 harden-runner（出口审计模式，只记录不阻断）；
+# 部署完成后调用 dast-scan.yml 可复用工作流对生产主站做 ZAP 基线扫描（advisory）。
 
 name: Deploy 九溪（双站）
 
@@ -31,6 +33,10 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -58,6 +64,10 @@ jobs:
     needs: quality
     runs-on: ubuntu-latest
     steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -82,6 +92,10 @@ jobs:
     needs: quality
     runs-on: ubuntu-latest
     steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -108,6 +122,10 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
       - id: deployment
         name: Deploy to GitHub Pages
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
@@ -117,6 +135,10 @@ jobs:
     needs: build-cloudflare
     runs-on: ubuntu-latest
     steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
       # 必须拉取仓库以携带 functions/ 目录：否则 wrangler pages deploy dist 只上传静态产物，
       # 第一方 /api/feed 代理（Cloudflare Pages Function）不会部署，
       # 导致浏览器端所有需代理的 RSS 源（量子位/ArXiv/Google News）刷新失败、内容被冲掉。
@@ -141,3 +163,13 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=jiuxi --commit-dirty=true
+
+  # ── DAST：部署完成后立即扫描生产主站（调用可复用工作流）──
+  zap-baseline:
+    # 双站部署都成功后才扫；任一站点没部署（如未配 CF 密钥）则本 job 自动跳过。
+    # ⚠️ 调用方可复用工作流的 job 不允许写 runs-on / continue-on-error（会解析失败），
+    # advisory 语义由 dast-scan.yml 内部 job 的 continue-on-error 承载。
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    needs: [deploy-github-pages, deploy-cloudflare]
+    uses: ./.github/workflows/dast-scan.yml
+    secrets: inherit

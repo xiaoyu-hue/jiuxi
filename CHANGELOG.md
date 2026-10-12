@@ -6,6 +6,12 @@
 
 ### Added
 
+- **安全门禁第一批上线（4 项新增，全部 advisory 不阻断）**：
+  - **DAST 动态扫描（ZAP Baseline）**：新增可复用工作流 `.github/workflows/dast-scan.yml`，对生产主站 `https://jiuxi-bm1.pages.dev/` 做基线扫描——此前 `/api/feed`、`/api/history` 两个 Pages Functions 端点只有 SAST/依赖扫描覆盖，无任何运行时验证，形成盲区。双触发：`security.yml` 每周一定时 + `deploy.yml` 双站部署成功后立即调用，单文件承载避免配置漂移。
+  - **CI 工作流自身审计（zizmor）**：新增 `zizmor` job（`zizmorcore/zizmor-action@v0.6.4`，SHA pin）。注意该仓库已从 `woodruffw/zizmor` 迁移至 `zizmorcore/zizmor`（旧路径 404）；官方建议对此 action 用完整 SHA pin，已照办。checkout 时 `persist-credentials: false`，避免凭据留在工作区被扫。
+  - **供应链健康分（OpenSSF Scorecard）**：新增 `scorecard` job（`ossf/scorecard-action@v2.5.0`），公开库免费；`publish_results: true` 发布到 scorecard.dev，徽章可引用 `https://api.scorecard.dev/projects/github.com/xiaoyu-hue/jiuxi/badges/score`。
+  - **出口流量审计（harden-runner）**：`security.yml` 与 `deploy.yml` 共 10 个 job 的第一步均装 `step-security/harden-runner@v2.22.1`，`egress-policy: audit`（只记录不阻断；block 模式会断掉扫描类 job 的必要出站连接）。注意 audit 模式下其自带 telemetry 强制开启且无法单独关闭，唯一移除方式是删掉各 job 的 harden-runner 步骤。
+  - 三个新 job 均延续本项目 advisory 约定：`continue-on-error` 写在 **job 级别**（step 级覆盖不了 action 引用解析失败，失败发生在 "Set up job" 阶段）。待连续转绿后可逐个转强制。
 - **首页补「历史回顾」入口**：此前仅导航栏有「历史回顾」、首页 Bento 卡片遗漏，新板块对首页访客不可见。现首页 Bento 卡片由 9 张补齐为 10 张（与导航顺序一致，插在「读书推荐」与「设置与数据」之间）。
 - **AI 发展时间线 +21 条（192 → 213）**：补齐此前的三类缺口——① 算法史（1952 Arthur Samuel 跳棋程序、1959「机器学习」命名、1972 PROLOG、1973 莱特希尔报告、1989 LeCun CNN、1992 TD-Gammon、1995 SVM、2017 AlphaZero）；② 国内主线（1981 中国人工智能学会成立、2017 国务院《新一代人工智能发展规划》、2018 智源研究院成立、2019 八项治理原则、2021 悟道 1.0）；③ 早期里程碑（1979 斯坦福 Cart、1982 日本第五代机、2004 DARPA 沙漠挑战赛、2010 ILSVRC、2011 Siri、2016 OpenAI Gym、2018 AlphaFold 1 夺 CASP13、2019 魔方机器人手）。新条目均配来源链接。
 - **AI 工具箱 +34 个（40 → 74）**：补齐全品类——视频（Sora / 可灵 / Veo / 海螺 / Vidu / Pika，此前仅 Runway）、图像（FLUX / Ideogram / 即梦 / 通义万相）、音乐（Udio / Stable Audio，此前仅 Suno）、编程（Claude Code / Windsurf / OpenAI Codex / 通义灵码 / Trae）、对话（Grok / 豆包 / Qwen Chat / 腾讯元宝）、搜索（秘塔）、研究（Elicit / Consensus）、本地（LM Studio / llama.cpp）、开发框架（LLaMA-Factory / Unsloth / OpenWebUI）、智能体（Coze / Manus）、效率（Gamma / 沉浸式翻译）、3D（Tripo3D）。所有产品 URL 经实测可达（少数 openai.com / gamma.app 等对数据中心 IP 返回 403/超时，属反爬策略，真实浏览器可达）。

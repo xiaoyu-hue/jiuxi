@@ -1,6 +1,9 @@
 # 九溪 · 安全门禁（独立于 deploy.yml，便于分层查看）
 #
-# 涵盖：密钥扫描(gitleaks) / SAST(CodeQL) / 依赖漏洞(osv-scanner) / 死链(lychee) / PR 依赖审查。
+# 涵盖：密钥扫描(gitleaks) / SAST(CodeQL) / 依赖漏洞(osv-scanner) / 死链(lychee) /
+# PR 依赖审查(dependency-review) / CI 工作流审计(zizmor) / 供应链健康分(Scorecard) /
+# DAST 动态扫描(ZAP，见 dast-scan.yml 可复用工作流，每周+部署后由本文件与 deploy.yml 调用)。
+# 每个 job 第一步均装 harden-runner（出口审计模式）。
 #
 # 当前均为 advisory：continue-on-error 写在 **job 级别**（不是 step 级别）。
 # 原因：step 级别的 continue-on-error 无法覆盖 action 引用解析失败
@@ -17,7 +20,11 @@
 #      引用即失败，故本项目改用其官方 CLI 二进制（见 osv-scanner job）。
 #   3. 仅在 PR 触发的 job 本地永远验证不到（一直是 skipped），
 #      例如 dependency-review，引用前更需逐一核实。
-#   已核实可用：checkout@v4、github-script@v7、gitleaks@v2、lychee@v2、codeql@v3。
+#   4. 仓库迁移会改路径：zizmor 的 action 旧路径 woodruffw/zizmor-action 已 404，
+#      现为 zizmorcore/zizmor-action（官方文档推荐 SHA pin，故本文件用 SHA）。
+#   已核实可用：checkout@v4、github-script@v7、gitleaks@v2、lychee@v2、codeql@v3、
+#      zaproxy/action-baseline@v0.15.0、zizmorcore/zizmor-action@v0.6.4（SHA cc914d7f…）、
+#      ossf/scorecard-action@v2.5.0、step-security/harden-runner@v2.22.1。
 
 name: 安全门禁
 
@@ -40,6 +47,12 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true # advisory：失败只标红本 job，不阻断整条流水线
     steps:
+      # harden-runner 必须是每个 job 的第一步（pre 步骤，先于 checkout 运行）。
+      # audit = 只记录出口流量不阻断；block 模式会断掉本 job 的必要出站连接。
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
@@ -53,6 +66,10 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true # advisory
     steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: 初始化 CodeQL
         uses: github/codeql-action/init@v3
@@ -66,6 +83,10 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true # advisory
     steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       # ⚠️ 为什么不用 google/osv-scanner-action：
       #    该仓库根 action.yml 自 v1.9.2 起就缺少顶层 `runs:` 段（实测每个 tag 都是
@@ -109,6 +130,10 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true # advisory
     steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Lychee 死链检查
         uses: lycheeverse/lychee-action@v2
@@ -122,8 +147,78 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true # advisory
     steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Dependency Review
         # ⚠️ 该 action 的 v4 移动标签不存在（实测 404），只能 pin 具体版本。
         # 该 job 仅在 PR 触发，本地无法验证，故更需谨慎核对标签。
         uses: actions/dependency-review-action@v4.9.0
+
+  # ── CI 工作流自身安全审计（zizmor）──
+  zizmor:
+    runs-on: ubuntu-latest
+    continue-on-error: true # advisory
+    # zizmor 需要 actions:read（读取工作流定义）与 security-events:write（上传 SARIF）。
+    # 仓库若未开启 GitHub Advanced Security 公开扫描，上传会失败，
+    # 但 zizmor 主扫描步骤在日志中仍可见结果，不影响排查。
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # zizmor 官方建议：审计 CI 配置时不应把凭据留在工作区，防止误扫/误用
+          persist-credentials: false
+      - name: Zizmor（GitHub Actions 工作流安全审计）
+        # ⚠️ 仓库已从 woodruffw/zizmor 迁移至 zizmorcore/zizmor（旧路径 404）。
+        #    官方文档建议对 zizmor-action 使用完整 SHA pin（该 action 会执行
+        #    下载自上游仓库的二进制，移动标签风险高于普通 action），此处照办。
+        #    当前 SHA 对应 v0.6.4（实施时与官方文档交叉核对一致）。
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+
+  # ── 供应链健康分（OpenSSF Scorecard，公开库免费）──
+  scorecard:
+    runs-on: ubuntu-latest
+    continue-on-error: true # advisory
+    permissions:
+      contents: read
+      security-events: write # 上传 Scorecard SARIF 需要；读仓库元数据用内置 GITHUB_TOKEN
+    steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Scorecard 分析
+        uses: ossf/scorecard-action@v2.5.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # 公开库：把分数发布到 scorecard.dev，徽章可直接引用
+          # https://api.scorecard.dev/projects/github.com/xiaoyu-hue/jiuxi/badges/score
+          publish_results: true
+      - name: 上传 Scorecard SARIF 到代码扫描告警
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+          category: scorecard
+
+  # ── DAST：每周定时扫描生产主站（调用可复用工作流，避免与部署后扫描配置漂移）──
+  zap-baseline:
+    # ⚠️ 调用可复用工作流的 job 只允许 name/uses/with/secrets/needs/if/permissions/strategy
+  # 这几个键——runs-on 与 continue-on-error 写在这里会导致工作流解析失败（红叉）。
+  # advisory 语义由被调用工作流 dast-scan.yml 内部的 job 级 continue-on-error 承载。
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/dast-scan.yml
+    # 复用工作流的 secrets 需显式传递（inherit 亦可，本项目无敏感 secrets，用 inherit 最简）
+    secrets: inherit
