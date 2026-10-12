@@ -6,8 +6,8 @@
 
 | 项目     | 说明                                                                                                                                |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 当前版本 | **v1.3.0**（策展内容大扩充：AI 工具箱补 23 个高星 Agent / 框架项目、读书推荐扩至 37 本含历史 / 哲学 / 非技术向 AI 入门；报刊版式 + 4 套主题已落地） |
-| 技术栈   | Astro 7 · Tailwind CSS 4 · TypeScript（纯静态输出）                                                                                 |
+| 当前版本 | **v1.3.0**（另有一批未发版改进已上线：Cloudflare D1 云端历史存储、资讯源扩至 21 个、按源轮询多元化选取、策展内容大扩充——时间线 213 条 / 工具箱 74 个 / 读书 58 本） |
+| 技术栈   | Astro 7 · Tailwind CSS 4 · TypeScript（纯静态输出 + Cloudflare Pages Functions 轻后端）                                             |
 | 托管目标 | [Cloudflare Pages](https://jiuxi-bm1.pages.dev/)（主站）+ [GitHub Pages](https://xiaoyu-hue.github.io/jiuxi/)（备用副站，双站容灾） |
 | 许可证   | 代码 Apache-2.0 / 文档与内容 CC BY-NC 4.0                                                                                           |
 
@@ -30,22 +30,26 @@
 
 - **零服务器运维**：站点由 Astro 构建为纯静态文件，托管在 Cloudflare Pages / GitHub Pages。
 - **手机可维护**：时间线、工具箱、读书推荐等策展内容以仓库内 Markdown 文件存储，手机登录 GitHub 即可编辑、提交后自动上线。
-- **实时资讯**：AI / 新闻 / 科技 / 游戏板块在浏览器端实时抓取公开数据源并本地缓存，无需后端。
+- **实时资讯**：AI / 新闻 / 科技 / 游戏板块在浏览器端实时抓取公开数据源并本地缓存；每板块 24 条名额**按源轮询**分配，高频源不会淹没低频源。
 - **报刊版式视觉**：暖白纸底 + 墨色字 + 单一强调色 + 自托管中文衬线字体，4 套可切换主题（晨曦 / 午夜 / 极光 / 樱粉），偏好持久化记忆。
+
+> **里程碑 · 第一次有了「轻后端」（2026-10）**：九溪此前是彻底的纯静态站。本次上线**历史回顾**板块——定时构建时把各板块每日资讯快照写入 **Cloudflare D1**（云端 SQLite 数据库），页面经 Pages Functions 接口 `/api/history` 读取，形成「云端 → IndexedDB 本地缓存 → 静态索引」三级降级链路。虽然数据库目前只用于存储历史快照、功能很轻，但这是项目**第一次拥有数据库与在线接口**，验证了「静态站 + Serverless 轻后端」的路线，为后续做真正的后端（用户系统、评论、同步等）铺平了道路。
 
 ---
 
 ## 二、特性
 
-- ✅ 十板块信息架构：首页聚合 / AI / 热点新闻 / 科技 / AI 发展时间线 / AI 工具箱 / 游戏娱乐 / 读书推荐 / 设置与数据 / 关于九溪
+- ✅ 十一板块信息架构：首页聚合 / AI / 热点新闻 / 科技 / 游戏娱乐 / AI 发展时间线 / AI 工具箱 / 读书推荐 / 历史回顾 / 设置与数据 / 关于九溪
 - ✅ 报刊版式 UI（实色面板 + 发丝边 + 纸纹质感，动效克制可降级，不支持的浏览器自动回退）
 - ✅ 4 套主题自由切换，防首屏闪烁，偏好写入 localStorage
 - ✅ 浏览器端实时资讯聚合：直连优先 + 第一方同域代理（Cloudflare Pages Functions `/api/feed`，同源免 CORS，含 SSRF 防护与目标白名单），GitHub Pages 备站降级为构建期注入数据；30 分钟缓存
+- ✅ **21 个资讯源**（AI 6 / 热点 4 / 科技 7 / 游戏 4），每板块 24 条名额**按源轮询**分配——每个有数据的源都有曝光位，高频源（如 ArXiv 日更 15 条）不再淹没低频源
+- ✅ **历史回顾 · 云端存储**：定时构建将每日资讯快照写入 Cloudflare D1（SQLite），`/api/history` 接口读取，页面三级降级（云端 → IndexedDB → 静态索引），离线可用
 - ✅ SEO 增强：自动生成 sitemap / RSS / Open Graph 分享图，双站规范地址（canonical）
 - ✅ 策展数据用 Content Collections 管理，schema 校验，改一篇 = 改一个文件
 - ✅ 系统能力：收藏、外观设置、数据导出 / 导入（JSON）、清空缓存
 - ✅ 双站部署：Cloudflare Pages 主 + GitHub Pages 备，push 即上线
-- ✅ 策展内容持续扩充：AI 工具箱 40 条（含完整「智能体 / Agent」主线与开源框架 / 图像 / 编程分类）、读书推荐 37 本（覆盖科技 / 历史 / 哲学 / 非技术向 AI 与 AI Agent 入门，每本配客观推荐语与在线可读链接）
+- ✅ 策展内容持续扩充：AI 发展时间线 213 条（1950–2026，国内外算法史与产业主线）、AI 工具箱 74 个（对话 / 编程 / 图像 / 视频 / 音乐 / 智能体 / 开发框架等 20 类）、读书推荐 58 本（AI / 技术 / 历史 / 哲学 / 文学等，每本配客观推荐语与在线可读链接）
 
 ---
 
@@ -58,7 +62,8 @@
 | 语言   | **TypeScript**                                                                                                                           | 类型安全                               |
 | 运行时 | **Node.js 22+**                                                                                                                          | 本地构建（部署侧由 CI 提供）           |
 | 内容   | Astro Content Collections（Zod schema）                                                                                                  | 时间线 / 工具箱 / 读书的结构化数据     |
-| 数据源 | Google News RSS、Hacker News（Algolia）、ArXiv cs.AI、IT之家、爱范儿、RSSHub、TechCrunch、Ars Technica；直连优先，失败回退第一方同域代理 `/api/feed`（Cloudflare Pages Functions） | 动态资讯实时抓取                       |
+| 轻后端 | **Cloudflare Pages Functions**（`/api/feed` 代理 + `/api/history` 读取）+ **Cloudflare D1**（SQLite，存每日资讯快照）                     | 第一方 CORS 代理与云端历史存储         |
+| 数据源 | 量子位 / OpenAI 新闻 / Google AI 博客 / Hacker News / ArXiv / Google 新闻；IT之家 / 爱范儿 / 少数派；TechCrunch / Ars Technica / The Verge / 阮一峰 / Solidot；机核 / 触乐——共 21 源，直连优先，失败回退第一方同域代理 `/api/feed` | 动态资讯实时抓取                       |
 | 部署   | GitHub Actions + Cloudflare Pages / GitHub Pages                                                                                         | 自动构建与双站发布                     |
 
 ---
@@ -91,26 +96,29 @@ jiuxi/
 ├─ src/
 │  ├─ components/       # 可复用组件
 │  │  ├─ ThemeSwitcher.astro   # 4 主题切换器
-│  │  ├─ SiteNav.astro         # 移动优先导航（10 板块）
+│  │  ├─ SiteNav.astro         # 移动优先导航（11 板块）
 │  │  ├─ GlassCard.astro       # 通用卡片组件（已改为报刊实色版式）
 │  │  ├─ GlassButton.astro     # 通用按钮组件（已改为实色版式）
 │  │  └─ FeedSection.astro     # 动态资讯板块组件
 │  ├─ layouts/
 │  │  └─ BaseLayout.astro      # 报刊版式外壳 + 防闪烁 + 导航
-│  ├─ pages/            # 10 个页面（见下）
+│  ├─ pages/            # 11 个页面（见下）
 │  ├─ content/          # 策展数据（Markdown，手机可改）
 │  │  ├─ timeline/  tools/  reading/
 │  ├─ styles/           # global / themes(4套主题令牌) / glass(兼容别名) / components
-│  └─ lib/              # feeds(抓取) / settings(设置) / favorites(收藏) / db(IndexedDB) / theme(主题)
-├─ .github/workflows/deploy.yml   # 双站部署 CI
-├─ wrangler.toml                 # Cloudflare Pages 配置
-├─ astro.config.mjs              # Astro 配置
-├─ package.json                  # 依赖与脚本
-├─ README.md                     # 本文件
-└─ docs/                         # 规划与架构文档（调研报告 / PRD / 架构文档 / 实施计划）
+│  └─ lib/              # feeds(抓取) / settings(设置) / favorites(收藏) / db(IndexedDB) / theme(主题) / history-client(云端历史)
+├─ functions/                   # Cloudflare Pages Functions（轻后端）
+│  └─ api/  feed.ts(第一方代理)  history.ts(读 D1)
+├─ scripts/                     # 构建期脚本（fetch-feeds 预抓取注入 / save-history 写 D1）
+├─ .github/workflows/deploy.yml # 双站部署 CI
+├─ wrangler.toml                # Cloudflare Pages 配置（含 D1 绑定声明）
+├─ astro.config.mjs             # Astro 配置
+├─ package.json                 # 依赖与脚本
+├─ README.md                    # 本文件
+└─ docs/                        # 规划与架构文档（调研报告 / PRD / 架构文档 / 实施计划）
 ```
 
-页面清单：`index`(首页) · `ai` · `news` · `tech` · `gaming` · `timeline` · `tools` · `reading` · `settings` · `about`
+页面清单：`index`(首页) · `ai` · `news` · `tech` · `gaming` · `timeline` · `tools` · `reading` · `history`(历史回顾) · `settings` · `about`
 
 ---
 
@@ -151,6 +159,8 @@ jiuxi/
 - **备用副站 · GitHub Pages**：仓库 `Settings → Pages → Source` 选择 **GitHub Actions** 即可，无需密钥。
 - 缺 Cloudflare 密钥时，主站步骤自动跳过，不阻塞副站。你只需 `git push` 到 `main`。
 
+> ⚠️ **D1 绑定必须写在 `wrangler.toml`**：该文件一旦包含 `pages_build_output_dir`，就成为 Pages 项目配置的唯一来源（source of truth），每次 `wrangler pages deploy` 都会用它覆盖云端设置——只在仪表盘里绑定的 D1，一次部署后就会被抹掉（2026-10 实测复现）。当前绑定（库 `jiuxi-history`）已声明在 `wrangler.toml` 的 `[[d1_databases]]`，随每次部署自动同步，无需手动操作。
+
 > ⚠️ **GitHub Pages 路径提示**：若用「项目站点」（`https://<用户>.github.io/<仓库>/`，无自定义域名），静态资源根路径会偏移。最省心做法是两个站点都绑**自定义域名**（Cloudflare 主站绑域名后，把 `astro.config.mjs` 的 `site` 改为该域名）。若只用 GitHub 项目站点、不绑域名，需把 `astro.config.mjs` 的 `base` 设为 `/<仓库名>/` 再构建。
 
 ---
@@ -166,10 +176,12 @@ jiuxi/
 | Phase 4 | 策展板块（时间线/工具箱/读书）             | ✅ 已完成 |
 | Phase 5 | 系统板块（设置与数据/关于）                | ✅ 已完成 |
 | Phase 6 | 双站部署配置                               | ✅ 已完成 |
+| Phase 7 | 轻后端试水：历史回顾 + Cloudflare D1 云端快照 + `/api/history` 接口 | ✅ 已完成 |
+| Phase 8 | 内容大扩充：时间线 / 工具箱 / 读书全面补全  | ✅ 已完成 |
 
 已完成（v1.1.0）：定时提案周报（每周自动开 PR 提醒补充时间线里程碑，人工审核后合并）、SEO 增强（sitemap / RSS / OG 分享图）。
 
-后续可规划：第一方 Cloudflare Pages Functions CORS 代理、更多彩色主题、更多策展板块（影视 / 财经 / 学习等）、无障碍与多语言。
+后续可规划：真正的后端（用户系统 / 收藏云同步 / 评论）、更多策展板块（影视 / 财经 / 学习等）、无障碍与多语言。
 详见仓库 `docs/` 内《九溪-PRD.md》《九溪-实施计划.md》《九溪-调研报告.md》《九溪-架构文档.md》。
 
 ---
@@ -199,9 +211,9 @@ jiuxi/
 
 **开发依赖与工具链（`devDependencies`）**：ESLint（`@eslint/js` / `typescript-eslint` / `eslint-plugin-astro` / `eslint-config-prettier`）、Prettier、Vitest + `@vitest/coverage-v8` + happy-dom、`@astrojs/check`、globals、typescript。
 
-**数据源（公开服务，非 npm 依赖）**：Google News RSS、Hacker News（Algolia API）、ArXiv cs.AI、IT之家、爱范儿、RSSHub（少数派）、TechCrunch、Ars Technica。
+**数据源（公开服务，非 npm 依赖，共 21 个）**：AI——量子位、OpenAI 新闻、Google AI 博客、Hacker News（Algolia API）、ArXiv cs.AI、Google 新闻；热点——Google 新闻、IT之家、爱范儿、少数派；科技——Hacker News、TechCrunch、Ars Technica、The Verge、阮一峰的网络日志、Solidot 奇客、Google 新闻；游戏——机核 GCores、触乐、IT之家、Google 新闻。
 
-**第一方 CORS 代理**：`functions/api/feed.ts`（Cloudflare Pages Functions，自研，非第三方依赖）——与站点同域、含目标主机白名单与 SSRF 防护，**已取代 allorigins / corsproxy 等公共代理**。
+**第一方轻后端（Cloudflare Pages Functions，自研，非第三方依赖）**：`functions/api/feed.ts`（第一方 CORS 代理，与站点同域、含目标主机白名单与 SSRF 防护，**已取代 allorigins / corsproxy 等公共代理**）+ `functions/api/history.ts`（读取 Cloudflare D1 中的每日资讯快照）。
 
 > 具体依赖版本见 `package.json` 与 `package-lock.json`。部署前建议运行 `npm audit` 复核依赖安全告警。
 
