@@ -4,6 +4,10 @@
 # schedule 不可靠（官方仅说明“可能延迟”）。降到每 2 小时（12 次/天）后
 # 调度可靠性显著提升，且内容新鲜度本就有前端 refreshInBackground 兜底。
 # 任一部署失败不影响另一；缺 Cloudflare 密钥时自动跳过 CF 部署。
+#
+# D1 历史同步（阶段 1）：仅 build-cloudflare 一个 job 传入 D1 环境变量——
+# 每次定时重建只写一次云端（save-history.mjs 用 INSERT OR REPLACE，天然幂等）。
+# 缺任一变量的情况下 save-history.mjs 自动跳过 D1，仅保存本地 JSON，行为与改造前一致。
 
 name: 定时重建（刷新资讯）
 
@@ -59,6 +63,11 @@ jobs:
           SITE_URL: https://jiuxi-bm1.pages.dev
       - name: 预抓取并注入动态资讯
         run: node scripts/fetch-feeds.mjs
+        # D1 历史快照同步（save-history.mjs 读取这三个变量；缺失则自动跳过，不报错）
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: cf-dist
