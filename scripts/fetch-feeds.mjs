@@ -153,6 +153,47 @@ async function main() {
   writeFileSync(OUT, JSON.stringify(result, null, 2), 'utf8');
   console.log(`✅ 已写入 ${OUT}`);
 
+  // 保存历史快照（通过子进程调用 save-history.mjs）
+  try {
+    const { spawn } = await import('node:child_process');
+    const date = new Date().toISOString().split('T')[0];
+    console.log(`\n[九溪] 正在保存 ${date} 的历史快照...`);
+
+    // 构建历史数据
+    const historyData = {
+      generatedAt: new Date().toISOString(),
+      sections: result.sections,
+    };
+
+    // 使用 spawn 调用 save-history.mjs
+    await new Promise((resolve) => {
+      const child = spawn('node', ['scripts/save-history.mjs'], {
+        cwd: ROOT,
+        stdio: ['pipe', 'inherit', 'inherit']
+      });
+
+      child.stdin.write(JSON.stringify(historyData));
+      child.stdin.end();
+
+      child.on('close', (code) => {
+        if (code === 0) {
+          console.log('✅ 历史快照保存完成');
+          resolve();
+        } else {
+          console.warn('⚠️ 历史快照保存失败');
+          resolve();
+        }
+      });
+
+      child.on('error', () => {
+        console.warn('⚠️ 历史快照保存失败');
+        resolve();
+      });
+    });
+  } catch (error) {
+    console.warn('⚠️ 历史快照保存异常:', error.message);
+  }
+
   // 注入数据到各页面 HTML
   const PAGES = [
     { section: 'ai', path: 'dist/ai/index.html' },
