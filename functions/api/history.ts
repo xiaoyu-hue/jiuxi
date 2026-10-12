@@ -18,7 +18,7 @@
 const CACHE_SECONDS = 1800;
 
 /** 单行 payload 解析失败不应拖垮整个响应 */
-function safeParse(raw) {
+function safeParse(raw: any) {
   try {
     const snap = JSON.parse(raw);
     if (snap && typeof snap === 'object' && snap.id && snap.date) return snap;
