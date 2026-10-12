@@ -12,3 +12,14 @@ pages_build_output_dir = "dist"
 # 去 polyfill 上述全局，从而向产物注入 `import ... from "node:stream"`；
 # 而 Pages Functions 默认运行时不提供该模块，会导致「发布失败: No such module node:stream」。
 compatibility_date = "2024-09-23"
+
+# 历史回顾数据接口（functions/api/history.ts）读取的 D1 数据库绑定。
+# 注意：本文件一旦包含 pages_build_output_dir，即成为 Pages 项目配置的唯一来源
+# （source of truth）—— CI 每次 wrangler pages deploy 都会用本文件覆盖云端设置，
+# 因此 D1 绑定必须写在这里：只在仪表盘/API 里绑定，会在下次部署时被抹掉
+# （2026-10-12 实测：API 绑定 production 后，一次 CI 部署即将其覆盖为未绑定）。
+# 顶层绑定对 production 与 preview 两个环境同时生效。
+[[d1_databases]]
+binding = "DB"
+database_name = "jiuxi-history"
+database_id = "1df7e200-be8c-4e61-bce0-c9bd72705fc7"

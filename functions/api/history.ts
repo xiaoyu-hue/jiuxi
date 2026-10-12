@@ -5,13 +5,13 @@
 // 页面侧（public/history-client.js）优先读本接口，失败自动降级 IndexedDB，
 // 因此在 GitHub Pages 备用站（无 Functions）上本接口 404，功能不受影响。
 //
-// 前置条件（需在 Cloudflare 仪表盘完成一次）：
-//   Pages 项目 jiuxi → Settings → Functions → D1 database bindings
-//   → Add binding：Variable name = DB，Database = jiuxi-history
-//   → Production 与 Preview 两个环境各配一次。
+// 前置条件：D1 绑定声明在仓库根目录 wrangler.toml 的 [[d1_databases]]（binding = DB）。
+// 该文件是 Pages 项目配置的唯一来源（source of truth），每次部署自动同步到
+// production 与 preview 两个环境，无需再在仪表盘手动绑定。
 // 未配置绑定时的行为：返回 503，页面走本地降级链。
 //
-// 注：本目录（functions/）不被 Astro 的 TS 程序纳入 astro check，故用宽松类型。
+// 注：functions/ 目录实际会被 astro check 检查（2026-10-12 踩坑：
+// safeParse 参数漏类型标注导致 quality 门禁红），故此处仍需显式类型标注。
 
 // 快照是历史事实，缓存 30 分钟无害，且能显著节省 D1 读取额度
 // （免费额度 500 万行/天，本接口一次全量约 120 行）。
