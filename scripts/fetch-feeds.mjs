@@ -86,14 +86,24 @@ async function fetchSource(source) {
   try {
     if (source.type === 'hn') {
       const r = await curlGet(source.url);
-      if (r.ok) return parseHn(r.body);
+      if (r.ok) {
+        const items = parseHn(r.body);
+        console.log(`  ✓ ${source.label}: ${items.length} 条`);
+        return items;
+      }
     } else {
       const xml = await fetchWithProxy(source.url);
-      if (xml) return parseRss(xml).map((it) => ({ ...it, source: source.label }));
+      if (xml) {
+        const items = parseRss(xml).map((it) => ({ ...it, source: source.label }));
+        console.log(`  ✓ ${source.label}: ${items.length} 条`);
+        return items;
+      }
     }
   } catch {
     /* 跳过失败源 */
   }
+  // 单源失败不静默：打出来便于排查（板块总数不变，缺源时日志可定位是哪个源）
+  console.warn(`  ✗ ${source.label}: 抓取失败（${source.url}）`);
   return [];
 }
 

@@ -21,6 +21,8 @@
 
 - **资讯选取改为按源轮询（round-robin-by-source）**：构建端 `scripts/fetch-feeds.mjs` 与运行端 `src/lib/feeds.ts`（`mergeFeedItems`，一处改动覆盖后台刷新、内嵌∪在线并集、本地加载三个调用点）同步改为「每个源轮流取一条（组内按发布时间降序），凑满 24 条为止」，取代纯按时间排序。动机：纯时间排序下高频源会占满名额——2026-10-12 实测 21 源配置的 AI 板块 24 条被 ArXiv×15 + 量子位×9 占满，OpenAI / Google AI / HN / Google News 零曝光，与「综合信息聚集地」的多元化定位相悖。轮询后实测四板块分布均衡（沙箱内可用源：ai 4 源各 6 条、news 3 源各 8 条、tech 6 源各 3~5 条、gaming 3 源各 8 条；CI 全源可用时约为 6/4/7/4 源均分）。无 source 字段的条目归入同一组，退化为原时间降序行为；每板块 24 条上限不变。
 - **构建期抓取并行化**：`scripts/fetch-feeds.mjs` 的 HTTP 层从 `spawnSync`（阻塞事件循环，板块内多源实际串行）改为 `execFile` 异步版——仍是同一个 curl 二进制、同一组参数，零传输层行为变化，但板块内多源可真正并行；源扩容后总耗时约等于最慢单源（实测 21 源全量约 5 秒）而非全部源之和（旧版最坏约 50 秒）。
+- **构建期抓取增加单源日志**：`fetch-feeds.mjs` 原先单源失败静默跳过，板块总数不变时无法定位是哪个源缺席（2026-10-12 排查 tech/gaming 缺源时被迫逐源直连测试）。现每个源抓取后打印 `✓ 源名: N 条` / `✗ 源名: 抓取失败`，构建日志可直接定位问题源。
+- `wrangler.toml`：清理 nodejs_compat 的过时注释（旧注释声称"启用 nodejs_compat 做双保险"，与早已移除该标志的实际配置矛盾，会误导后续维护者重新加上它再踩一次 `node:stream` 发布失败）。
 - 资讯刷新策略：运行时在线多源合并优先，全部失败再退 IndexedDB / localStorage（不再用内嵌缓存做回退覆盖）。
 - `functions/api/feed.ts`：移除 Cache API（`caches.default`）改直连上游返回文本，规避 `node:stream` 打包陷阱、降低体积。
 
