@@ -5,3 +5,10 @@
 
 name = "jiuxi"
 pages_build_output_dir = "dist"
+# Pages Functions 兼容配置：启用 nodejs_compat，避免代理函数因 node:stream 等
+# Node 内置模块在发布阶段被拒绝（feed.ts 仅用 Web 标准 API，此处为双保险）。
+# feed.ts 仅使用 Web 标准 API（fetch / Response / Request / Headers / URL），
+# 不需要、也不应启用 nodejs_compat —— 该标志会让 wrangler 用 Node 的 undici
+# 去 polyfill 上述全局，从而向产物注入 `import ... from "node:stream"`；
+# 而 Pages Functions 默认运行时不提供该模块，会导致「发布失败: No such module node:stream」。
+compatibility_date = "2024-09-23"
