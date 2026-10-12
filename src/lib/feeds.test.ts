@@ -181,19 +181,25 @@ describe('refreshFeedOnline（后台刷新不回退缓存）', () => {
           ? 'qbitai'
           : url.includes('arxiv')
             ? 'arxiv'
-            : 'google';
+            : url.includes('openai.com')
+              ? 'openai'
+              : url.includes('blog.google')
+                ? 'googleai'
+                : 'googlenews';
         return new Response(
           `<?xml version="1.0"?><rss version="2.0"><channel><item><title>RSS-${tag}</title><link>https://rss.com/${tag}</link></item></channel></rss>`,
           { status: 200, headers: { 'Content-Type': 'application/rss+xml' } }
         );
       })
     );
-    // AI 板块 4 个源（量子位/HN/ArXiv/Google News）全部成功 → 合并去重后 4 条
+    // AI 板块 6 个源（量子位/OpenAI/Google AI/HN/ArXiv/Google News）全部成功 → 合并去重后 6 条
     const items = await refreshFeedOnline('ai');
-    expect(items).toHaveLength(4);
+    expect(items).toHaveLength(6);
     expect(items.some((i) => i.title === 'HN-A')).toBe(true);
     expect(items.some((i) => i.title === 'RSS-qbitai')).toBe(true);
+    expect(items.some((i) => i.title === 'RSS-openai')).toBe(true);
+    expect(items.some((i) => i.title === 'RSS-googleai')).toBe(true);
     expect(items.some((i) => i.title === 'RSS-arxiv')).toBe(true);
-    expect(items.some((i) => i.title === 'RSS-google')).toBe(true);
+    expect(items.some((i) => i.title === 'RSS-googlenews')).toBe(true);
   });
 });

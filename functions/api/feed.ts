@@ -10,7 +10,7 @@
 //   3) 仅放行本站 Origin（防被当作开放中继打其它站点）；
 //   4) 边缘缓存（caches.default）降低源站压力、抗抖动。
 //
-// 注：本目录（functions/）不被 Astro 的 TS 程序纳入 astro check，故用宽松类型。
+// 注：functions/ 目录实际会被 astro check 检查（2026-10-12 踩坑证实），改动需过类型门禁。
 
 // 允许代理的目标主机白名单（与 src/data/feeds.json 的 RSS 源保持一致）
 const ALLOWED_HOSTS: string[] = [
@@ -18,11 +18,18 @@ const ALLOWED_HOSTS: string[] = [
   'hn.algolia.com',
   'rss.arxiv.org',
   'www.qbitai.com',
+  'openai.com',
+  'blog.google',
   'www.ifanr.com',
   'www.ithome.com',
+  'sspai.com',
   'techcrunch.com',
   'arstechnica.com',
-  'rsshub.app',
+  'www.theverge.com',
+  'www.ruanyifeng.com',
+  'www.solidot.org',
+  'www.gcores.com',
+  'www.chuapp.com',
 ];
 
 const CACHE_TTL = 600; // 秒
