@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- **历史回顾 · 云端存储（阶段 1）**：定时重建时将各板块资讯快照同步写入 Cloudflare D1（表 `snapshots`，按 `板块+日期` 主键 upsert，重复构建自动覆盖）；凭证经 GitHub Secrets 注入，未配置时自动跳过、不影响原有本地 JSON 保存。
+- **历史回顾 · 云端读取（阶段 2）**：新增 Pages Function `/api/history`（读 D1，30 分钟缓存头，未配 D1 绑定时返回 503 由页面降级）；历史页数据源改为三源合并——云端接口 → IndexedDB 本地缓存 → 静态索引，同 id 以云端为准，云端数据首次加载即写入本地缓存，离线或无 Functions 的环境（GitHub Pages 备用站）自动降级。顺带修复两处既有问题：按日期分组逻辑失效（`grouped` 临时数组未赋值回写）、清除按钮文案与新数据模型不符。
+
 ### Fixed
 
 - **资讯刷新被冲掉**：后台刷新从「只返回第一个成功的源」改为 `mergeFeedItems` 合并多源（link 去重并集、按时间降序、最多 24 条）；`FeedSection.astro` 改为与内嵌内容做**并集刷新**——只补进成功源、绝不回退覆盖；`refreshFeedOnline` 全失败返回空，由 `loadFeed` 退 IndexedDB / localStorage 兜底。
