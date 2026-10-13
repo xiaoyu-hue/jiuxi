@@ -39,13 +39,22 @@ on:
 
 permissions:
   contents: read
-  security-events: write # CodeQL 上传结果需要
+  # ⚠️ 不要把 security-events: write 写在这里（工作流级）！
+  # scorecard-action v2 的 publish_results: true 要求：所在工作流不得有工作流级
+  # 写权限，且只有 scorecard 这个 job 能用 id-token: write（用于 GitHub OIDC
+  # 签名发布结果）。缺 id-token 时发布会退化为交互式设备流，CI 无人点浏览器，
+  # 300 秒后 expired_token → job 失败（2026-10-13 首跑实测踩坑）。
+  # 因此需要 security-events: write 的 job（gitleaks/codeql/zizmor/scorecard）
+  # 各自在 job 级单独声明。
 
 jobs:
   # ── 密钥扫描 ──
   gitleaks:
     runs-on: ubuntu-latest
     continue-on-error: true # advisory：失败只标红本 job，不阻断整条流水线
+    permissions:
+      contents: read
+      security-events: write # gitleaks-action 自动上传 SARIF 到代码扫描需要
     steps:
       # harden-runner 必须是每个 job 的第一步（pre 步骤，先于 checkout 运行）。
       # audit = 只记录出口流量不阻断；block 模式会断掉本 job 的必要出站连接。
@@ -65,6 +74,9 @@ jobs:
   codeql:
     runs-on: ubuntu-latest
     continue-on-error: true # advisory
+    permissions:
+      contents: read
+      security-events: write # CodeQL 上传分析结果需要
     steps:
       - name: Harden-Runner（出口审计）
         uses: step-security/harden-runner@v2.22.1
@@ -191,6 +203,10 @@ jobs:
     permissions:
       contents: read
       security-events: write # 上传 Scorecard SARIF 需要；读仓库元数据用内置 GITHUB_TOKEN
+      # publish_results: true 必需：scorecard 用 GitHub OIDC 令牌对结果做
+      # 密钥less 签名后发布到 scorecard.dev（徽章/REST API 的前提）。
+      # 官方约束：本工作流内仅此 job 可用 id-token: write，且工作流级不得有写权限。
+      id-token: write
     steps:
       - name: Harden-Runner（出口审计）
         uses: step-security/harden-runner@v2.22.1

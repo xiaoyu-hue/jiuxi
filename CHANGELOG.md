@@ -34,6 +34,7 @@
 
 ### Fixed
 
+- **Scorecard 发布结果失败（job 红，advisory 兜住）**：首跑实测 `publish_results: true` 报 `expired_token`。根因：scorecard-action v2 发布结果需用 GitHub OIDC 令牌做密钥less 签名，要求 job 级 `id-token: write`；缺失时退化为交互式设备流（日志出现 "Enter the verification code ... in your browser"），CI 无人完成验证，300 秒后令牌过期即失败。同时官方约束「所在工作流不得有工作流级写权限、仅 scorecard job 可用 id-token: write」与原顶层 `security-events: write` 冲突。修复：顶层权限收紧为 `contents: read`，`security-events: write` 下沉到 gitleaks/codeql/zizmor/scorecard 四个 job 各自声明，scorecard job 补 `id-token: write`（顺带消除 zizmor 报的 security.yml 工作流级宽权限告警）。
 - **D1 绑定被部署覆盖（历史回顾接口 503）**：`wrangler.toml` 含 `pages_build_output_dir` 时即成为 Pages 项目配置的唯一来源（source of truth），CI 每次 `wrangler pages deploy` 都会用它覆盖云端设置——此前仅在仪表盘/API 里绑定的 D1，在一次部署后即被抹掉（production 实测复现，preview 因未部署而幸存）。已将 D1 绑定（`binding = "DB"`，库 `jiuxi-history`）声明进 `wrangler.toml` 的 `[[d1_databases]]`，随每次部署自动同步到 production 与 preview，不再依赖仪表盘手动操作。顺带修正 `functions/api/history.ts` 两处过时注释（functions/ 实际会被 astro check 检查；前置条件改为 wrangler.toml 声明）。
 - **资讯刷新被冲掉**：后台刷新从「只返回第一个成功的源」改为 `mergeFeedItems` 合并多源（link 去重并集、按时间降序、最多 24 条）；`FeedSection.astro` 改为与内嵌内容做**并集刷新**——只补进成功源、绝不回退覆盖；`refreshFeedOnline` 全失败返回空，由 `loadFeed` 退 IndexedDB / localStorage 兜底。
 - **第一方代理 `/api/feed` 发布失败（`No such module "node:stream"`）**：根因为 `wrangler.toml` 的 `compatibility_flags = ["nodejs_compat"]` 让打包器用 Node 的 undici 去 polyfill `fetch`/`Response`/`Headers` 等 Web API，向产物注入 `import ... from "node:stream"`，而 Pages Functions 默认运行时不提供该模块。已移除 `nodejs_compat`（feed.ts 纯 Web 标准 API，无需它），代理正常发布。
