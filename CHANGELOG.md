@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [v1.4.0] — 2026-10-13
+
 ### Added
 
 - **安全门禁第一批上线（4 项新增，全部 advisory 不阻断）**：
@@ -17,10 +19,15 @@
 - **AI 工具箱 +34 个（40 → 74）**：补齐全品类——视频（Sora / 可灵 / Veo / 海螺 / Vidu / Pika，此前仅 Runway）、图像（FLUX / Ideogram / 即梦 / 通义万相）、音乐（Udio / Stable Audio，此前仅 Suno）、编程（Claude Code / Windsurf / OpenAI Codex / 通义灵码 / Trae）、对话（Grok / 豆包 / Qwen Chat / 腾讯元宝）、搜索（秘塔）、研究（Elicit / Consensus）、本地（LM Studio / llama.cpp）、开发框架（LLaMA-Factory / Unsloth / OpenWebUI）、智能体（Coze / Manus）、效率（Gamma / 沉浸式翻译）、3D（Tripo3D）。所有产品 URL 经实测可达（少数 openai.com / gamma.app 等对数据中心 IP 返回 403/超时，属反爬策略，真实浏览器可达）。
 - **读书推荐 +21 本（37 → 58）**：**首次补齐文学类**（此前为 0）——《红楼梦 / 三国演义 / 西游记 / 水浒传》（古诗文网免费全文，实测可读）、《活着 / 百年孤独 / 围城 / 三体 / 局外人 / 小王子》（微信读书）；历史 +3（全球通史 / 中国大历史 / 天朝的崩溃）；哲学原著 +5（论语 / 道德经 / 孟子 免费全文，理想国 / 西方哲学史）；官方免费教材 +1（Jurafsky & Martin《语音与语言处理》第 3 版）；其他 +2（时间简史 / 穷查理宝典）。每本配客观推荐语与在线链接。
 - **历史回顾 · 云端存储（阶段 1）**：定时重建时将各板块资讯快照同步写入 Cloudflare D1（表 `snapshots`，按 `板块+日期` 主键 upsert，重复构建自动覆盖）；凭证经 GitHub Secrets 注入，未配置时自动跳过、不影响原有本地 JSON 保存。
+- **TruffleHog 第二密钥扫描引擎（advisory）**：`security.yml` 新增 `trufflehog` job，与 gitleaks 形成双引擎互补——① gitleaks 扫当前文件与近期提交，TruffleHog 的 `git file://` 模式遍历**全部提交历史**，可发现「早已删除但仍在历史里」的密钥（checkout 配 `fetch-depth: 0`）；② `--only-verified` 拿密钥去各云厂商 API 实测有效性，报出的必为「真的能用」的密钥，弥补 gitleaks 模式匹配的误报。形态与 osv-scanner job 同构：官方 CLI 二进制 + pin 版本（v3.99.2）+ SHA256 校验（`trufflehog_3.99.2_checksums.txt`，实测文件名并非惯常的 SHA256SUMS，勿凭印象写），不用第三方 action。job 级 `continue-on-error` advisory 约定一致：发现项经 `--fail` 非零退出转 `::warning::` 呈现在运行摘要，不阻断流水线。**许可证处理**：TruffleHog 为 AGPL-3.0、本项目代码为 Apache-2.0，CI 中以独立进程运行官方二进制、不链接不分发其源码，AGPL 网络交互条款不触发，两许可证互不影响；README「致谢与开源声明」已注明（保留其原许可证）。扫描路径用 `$GITHUB_WORKSPACE` 环境变量而非 `${{ }}` 插值，避免 zizmor 模板注入检查误报。
 
 ### Changed
 
-- **安全门禁第一批 · zizmor 告警清理（51 → 0）**：zizmor 首跑报 51 个告警，本轮按类清理，实测清零（仅剩 1 条「ubuntu-latest 将于 2026-10-19 迁移 Ubuntu 26」的提示性 notice，非告警）——
+- **Dependabot PR 批量合并（6/7，每个合并后均等 main CI 双工作流全绿再合下一个）**：
+  - **actions/checkout v5.1.0 → v7.0.1**（#11）、**actions/setup-node v5.0.0 → v7.0.0**（#9）、**actions/github-script v7.1.0 → v9.0.0**（#10）、**actions/upload-artifact v4.6.2 → v7.0.1**（#13）、**gitleaks/gitleaks-action v2.3.9 → v3.0.0**（#12）：均为 CI action 滚动升级，SHA pin 由 Dependabot 按尾部版本注释同步更新。gitleaks-action v3 的 PR 兼容性已在合并前由其 PR CI（基于安全改造后的 main）实证通过，合并后 main 复跑仍全绿。
+  - **zod 3.25.76 → 4.6.5**（#15）：大版本升级，PR CI 的质量门禁（lint / typecheck / test）全绿后合并。
+  - **typescript 5.9.3 → 7.0.2（#14）未合并，留言后关闭**：CI 实测 `npm ci` 阶段即 ERESOLVE 失败——`@astrojs/check@0.9.10` 的 peer 依赖只声明支持 `typescript@^5 || ^6`，Astro 官方类型检查工具尚未支持 TS 7。属上游生态问题而非本项目代码问题；强行合并（或 `--legacy-peer-deps`）会令 main 质量门禁变红。待 @astrojs/check 发布支持 TS 7 的版本后，Dependabot 重开的升级 PR 可自然转绿再合。**教训：Dependabot 不预检 peer 依赖，「大版本 PR 全绿才合、不绿就查生态」应作为固定纪律。**
+- - **安全门禁第一批 · zizmor 告警清理（51 → 0）**：zizmor 首跑报 51 个告警，本轮按类清理，实测清零（仅剩 1 条「ubuntu-latest 将于 2026-10-19 迁移 Ubuntu 26」的提示性 notice，非告警）——
   - **action 全部 SHA 固定（23 处 unpinned-uses）**：security.yml / deploy.yml / dast-scan.yml / refresh-feeds.yml / weekly-timeline-proposal.yml 中所有标签引用（harden-runner、gitleaks-action、codeql-action×3、lychee-action、dependency-review-action、scorecard-action、action-baseline、github-script、checkout、setup-node）改为 commit SHA + 版本注释，与项目既定策略对齐；Dependabot 依据尾部版本注释把 SHA 滚动到各 action 最新发布（dependabot.yml 并无 `pin-actions` 选项——官方选项列表无此键、GitHub schema 校验直接拒绝，已删除；SHA 固定由工作流引用本身承载，Dependabot 只负责滚动）。
   - **checkout 补 persist-credentials: false（14 处 artipacked）**：本项目所有 job 均只读仓库、无 git 推送，关闭凭据持久化零风险。
   - **权限下沉（5 处 excessive-permissions）**：deploy.yml / refresh-feeds.yml 的 `pages: write`、`id-token: write` 从工作流级移到 deploy-github-pages job；security.yml 上一轮已收紧。

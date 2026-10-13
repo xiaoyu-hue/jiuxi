@@ -6,7 +6,7 @@
 
 | 项目     | 说明                                                                                                                                |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 当前版本 | **v1.3.0**（另有一批未发版改进已上线：Cloudflare D1 云端历史存储、资讯源扩至 21 个、按源轮询多元化选取、策展内容大扩充——时间线 213 条 / 工具箱 74 个 / 读书 58 本） |
+| 当前版本 | **v1.4.0**（Cloudflare D1 云端历史存储、资讯源扩至 21 个、按源轮询多元化选取、策展内容大扩充——时间线 213 条 / 工具箱 74 个 / 读书 58 本；安全门禁两批工具链上线：ZAP / zizmor / Scorecard / harden-runner / TruffleHog） |
 | 技术栈   | Astro 7 · Tailwind CSS 4 · TypeScript（纯静态输出 + Cloudflare Pages Functions 轻后端）                                             |
 | 托管目标 | [Cloudflare Pages](https://jiuxi-bm1.pages.dev/)（主站）+ [GitHub Pages](https://xiaoyu-hue.github.io/jiuxi/)（备用副站，双站容灾） |
 | 许可证   | 代码 Apache-2.0 / 文档与内容 CC BY-NC 4.0                                                                                           |
@@ -222,6 +222,8 @@ jiuxi/
 | [TypeScript](https://www.typescriptlang.org)                  | Apache-2.0 | 源码类型系统                                                |
 
 **开发依赖与工具链（`devDependencies`）**：ESLint（`@eslint/js` / `typescript-eslint` / `eslint-plugin-astro` / `eslint-config-prettier`）、Prettier、Vitest + `@vitest/coverage-v8` + happy-dom、`@astrojs/check`、globals、typescript。
+
+**CI 安全工具链（仅运行于 GitHub Actions，不进入站点产物；均以独立进程/action 形式使用，与站点代码的许可证互不影响）**：Gitleaks（MIT）、[TruffleHog](https://github.com/trufflesecurity/trufflehog)（AGPL-3.0，保留其原许可证，官方 CLI 独立运行）、OWASP ZAP（Apache-2.0）、zizmor（MIT）、OpenSSF Scorecard（Apache-2.0）、harden-runner（Apache-2.0）、osv-scanner（Apache-2.0）、Lychee（Apache-2.0）、CodeQL（GitHub 托管，action 为 MIT）。
 
 **数据源（公开服务，非 npm 依赖，共 21 个）**：AI——量子位、OpenAI 新闻、Google AI 博客、Hacker News（Algolia API）、ArXiv cs.AI、Google 新闻；热点——Google 新闻、IT之家、爱范儿、少数派；科技——Hacker News、TechCrunch、Ars Technica、The Verge、阮一峰的网络日志、Solidot 奇客、Google 新闻；游戏——机核 GCores、触乐、IT之家、Google 新闻。
 

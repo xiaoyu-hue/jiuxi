@@ -1,6 +1,6 @@
 # 九溪 · 安全门禁（独立于 deploy.yml，便于分层查看）
 #
-# 涵盖：密钥扫描(gitleaks) / SAST(CodeQL) / 依赖漏洞(osv-scanner) / 死链(lychee) /
+# 涵盖：密钥扫描(gitleaks + trufflehog) / SAST(CodeQL) / 依赖漏洞(osv-scanner) / 死链(lychee) /
 # PR 依赖审查(dependency-review) / CI 工作流审计(zizmor) / 供应链健康分(Scorecard) /
 # DAST 动态扫描(ZAP，见 dast-scan.yml 可复用工作流，每周+部署后由本文件与 deploy.yml 调用)。
 # 每个 job 第一步均装 harden-runner（出口审计模式）。
@@ -22,6 +22,9 @@
 #      例如 dependency-review，引用前更需逐一核实。
 #   4. 仓库迁移会改路径：zizmor 的 action 旧路径 woodruffw/zizmor-action 已 404，
 #      现为 zizmorcore/zizmor-action（官方文档推荐 SHA pin，故本文件用 SHA）。
+#   5. 第三方 action 不是唯一形态：官方 CLI 二进制 + pin 版本 + SHA256 校验同样
+#      满足供应链安全，且不受 action.yml 损坏影响（osv-scanner 即因此改用 CLI）。
+#      trufflehog 沿用同一模式。
 #   已核实可用（2026-10-13 起全部 SHA pin，标签仅作注释；Dependabot 依据尾部
 #     版本注释把 SHA 滚动到各 action 最新发布，兼顾供应链安全与可更新性）：
 #     checkout@v5、github-script@v7、gitleaks@v2、lychee@v2、codeql@v3、
@@ -81,6 +84,64 @@ jobs:
           # gitleaks-action v2.3 起破坏性变更：PR 事件扫描强制要求 GITHUB_TOKEN
           # （经 GitHub API 列 PR 提交、在 PR 上评论发现项），缺失即 job 失败
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── 密钥扫描 · 第二引擎（TruffleHog，全量历史 + 已验证）──
+  # 为什么在 gitleaks 之外再上一道：
+  #   1. gitleaks 扫的是当前文件与近期提交；TruffleHog 的 git 模式遍历**全部**
+  #      提交历史，能发现「早已删除但仍在历史里」的密钥；
+  #   2. --only-verified 会拿密钥去各云厂商 API 实测有效性，报出的必然是
+  #      「真的能用」的密钥（gitleaks 报的是模式匹配，误报率相对高）。
+  # 许可证：TruffleHog 为 AGPL-3.0，本项目代码为 Apache-2.0。CI 中以独立进程
+  #   运行其官方二进制，不链接、不分发其源码，AGPL 的网络交互条款不触发，
+  #   两许可证互不影响（README「致谢与开源声明」已注明）。
+  # 形态与 osv-scanner job 同构：官方 CLI + pin 版本 + SHA256 校验，
+  #   不用第三方 action（供应链面更小，且不受 action.yml 损坏影响）。
+  trufflehog:
+    runs-on: ubuntu-24.04
+    continue-on-error: true # advisory：与其它门禁一致，发现只告警不阻断
+    steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # 必须：TruffleHog git 模式要扫完整提交历史
+          persist-credentials: false
+      - name: 安装 TruffleHog CLI（pin 版本 + SHA256 校验）
+        run: |
+          set -euo pipefail
+          VERSION="${TRUFFLEHOG_VERSION}"
+          PKG="trufflehog_${VERSION#v}_linux_amd64.tar.gz"
+          SUMS="trufflehog_${VERSION#v}_checksums.txt"
+          BASE="https://github.com/trufflesecurity/trufflehog/releases/download/${VERSION}"
+          curl -sSfL -o /tmp/trufflehog.tar.gz "${BASE}/${PKG}"
+          curl -sSfL -o /tmp/trufflehog_checksums.txt "${BASE}/${SUMS}"
+          # checksums.txt 可能是 "<hash>  name" 或 "<hash> *name" 两种格式，兼容处理
+          expected="$(awk -v pkg="$PKG" '{gsub(/^[*]/,"",$2); if($2==pkg) print $1}' /tmp/trufflehog_checksums.txt)"
+          actual="$(sha256sum /tmp/trufflehog.tar.gz | awk '{print $1}')"
+          if [ -z "$expected" ] || [ "$expected" != "$actual" ]; then
+            echo "::error::TruffleHog 压缩包 SHA256 校验失败（期望 ${expected:-<空>} 实际 $actual）"
+            exit 1
+          fi
+          mkdir -p /tmp/trufflehog-bin
+          tar -xzf /tmp/trufflehog.tar.gz -C /tmp/trufflehog-bin
+          sudo install -m 0755 "$(find /tmp/trufflehog-bin -type f -name trufflehog | head -n 1)" /usr/local/bin/trufflehog
+          trufflehog --version || true # 仅用于留痕，不参与判定
+        env:
+          TRUFFLEHOG_VERSION: v3.99.2 # 升级时同步核对 releases 资产名与 checksums 文件名
+      - name: TruffleHog（历史密钥扫描，仅已验证）
+        # git file:// 模式遍历全部提交历史（checkout 已 fetch-depth: 0）；
+        # --fail 让发现项以非零退出码暴露，由下方 if 捕获转 ::warning:
+        # （advisory：不阻断流水线，但在运行摘要可见）。
+        # 路径用 shell 环境变量 $GITHUB_WORKSPACE 而非 ${{ }} 插值：避免 zizmor
+        # 模板注入检查误报（run 脚本内直接插值上下文表达式是其重点审查对象）。
+        run: |
+          if trufflehog git "file://$GITHUB_WORKSPACE" --only-verified --fail; then
+            echo "✅ TruffleHog 未发现已验证密钥"
+          else
+            echo "::warning::TruffleHog 发现已验证密钥或运行异常（advisory 阶段不阻断），详见上方日志"
+          fi
 
   # ── SAST：CodeQL（公开库免费，无需 token）──
   codeql:
