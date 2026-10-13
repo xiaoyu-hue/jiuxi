@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+### Added
+
+- **安全门禁第二批上线（3 项新增，均为 advisory 不阻断；依赖漏洞门禁 osv-scanner 转强制）**：
+  - **漏洞模板扫描（Nuclei）**：`security.yml` 新增 `nuclei` job（`projectdiscovery/nuclei` v3.11.1，官方 CLI + pin 版本 + SHA256 校验）。每次推送/PR 临时 `npm ci && npm run build` 起本地静态服务，扫 `http://127.0.0.1:8080` 的 critical/high 级模板，与 ZAP（每周扫生产主站）互补、不依赖外网攻击流量。
+  - **依赖/配置/密钥扫描（Trivy fs）**：`security.yml` 新增 `trivy` job（`aquasecurity/trivy` v0.75.0，官方 CLI + pin 版本 + SHA256 校验）。一套 `fs` 扫描同时覆盖依赖漏洞 + 文件系统配置错误(misconfig) + 密钥(secret)，与 osv-scanner（OSV 数据库）交叉验证；先 advisory，误报率可接受后转强制。
+  - **SBOM 供应链清单（anchore/sbom-action）**：`security.yml` 新增 `sbom` job（`anchore/sbom-action@v0.24.3`，SHA pin），生成 CycloneDX JSON 格式的软件物料清单并作为 workflow artifact 留存 90 天；某依赖爆 0day 时可按 SBOM 秒级定位受影响版本。
+  - **osv-scanner 依赖漏洞门禁转强制**：去掉 job 级 `continue-on-error`，发现依赖漏洞即红灯、需先升级依赖再合并（此前为 advisory）。前置条件：eslint 工具链 5 个 high 已修复（见下 Changed）。
+- **SECURITY.md（漏洞披露策略）**：新增 `SECURITY.md`，声明负责任的漏洞报告渠道与处理流程；修复 OpenSSF Scorecard `Security-Policy` 检查 0 分项（该检查要求仓库根存在 SECURITY.md）。
+- **首次全仓 AI 安全审计（cloudflare/security-audit-skill）**：安装并运行该 MIT 许可审计 skill（源码优先、不连外网、不探活、不改目标源码），产出 `findings.json`（经 `validate-findings.cjs` 校验）与报告。发现 **1 个 high 确凿漏洞**——历史回顾页 `public/history-client.js` 的 `renderSectionGroup` 未转义拼接 `innerHTML` 导致的存储型 DOM-XSS（外部 RSS 标题经 `/api/history` 回流浏览器执行），修复建议见审计报告。**该 XSS 已随本次推送一并修复**（见下 Fixed）。
+
+### Changed
+
+- **修复 eslint 工具链 5 个 high 依赖漏洞**：`braces` 漏洞链全版本无修复，必须升级链主。方案：升级 `eslint-plugin-astro` ^1.3.1 → 3.2.1 + `eslint` ^9.17.0 → 10.12.0 + `typescript-eslint` ^8.18.0 → 8.71.1，新增 `eslint-plugin-jsx-a11y-x@0.2.0`（其 peer 兼容 eslint 10）；不安装 `eslint-plugin-jsx-a11y`（v3 将其声明为 peerOptional，避免死锁）。本地验证：lint 0 错误、astro check 0 错误、35/35 测试通过、11 页构建成功、`npm audit` 0 漏洞。此为 osv-scanner 转强制的前置条件。
+
+### Fixed
+
+- **修复历史回顾页存储型 DOM-XSS（high，审计 confirmed 发现 `jiuxi/dom-xss/history-client-renderSectionGroup`）**：`public/history-client.js` 顶部补充 `escapeHtml` / `sanitizeUrl`（行为对齐 `src/lib/security.ts`），`renderSectionGroup` 渲染时对 `item.title`、`item.source` 做 HTML 转义、对 `item.link` 做 URL 协议白名单（仅放行 http/https/mailto 与站内相对路径，其余降级为 `#`），阻断外部 RSS 标题注入 `innerHTML` 与 `javascript:` 协议链接。修复前该注入在全站 `unsafe-inline` 的 CSP 下可被执行为 XSS。
+
 ## [v1.4.0] — 2026-10-13
 
 ### Added

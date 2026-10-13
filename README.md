@@ -223,7 +223,7 @@ jiuxi/
 
 **开发依赖与工具链（`devDependencies`）**：ESLint（`@eslint/js` / `typescript-eslint` / `eslint-plugin-astro` / `eslint-config-prettier`）、Prettier、Vitest + `@vitest/coverage-v8` + happy-dom、`@astrojs/check`、globals、typescript。
 
-**CI 安全工具链（仅运行于 GitHub Actions，不进入站点产物；均以独立进程/action 形式使用，与站点代码的许可证互不影响）**：Gitleaks（MIT）、[TruffleHog](https://github.com/trufflesecurity/trufflehog)（AGPL-3.0，保留其原许可证，官方 CLI 独立运行）、OWASP ZAP（Apache-2.0）、zizmor（MIT）、OpenSSF Scorecard（Apache-2.0）、harden-runner（Apache-2.0）、osv-scanner（Apache-2.0）、Lychee（Apache-2.0）、CodeQL（GitHub 托管，action 为 MIT）。
+**CI 安全工具链（仅运行于 GitHub Actions，不进入站点产物；均以独立进程/action 形式使用，与站点代码的许可证互不影响）**：Gitleaks（MIT）、[TruffleHog](https://github.com/trufflesecurity/trufflehog)（AGPL-3.0，保留其原许可证，官方 CLI 独立运行）、OWASP ZAP（Apache-2.0）、zizmor（MIT）、OpenSSF Scorecard（Apache-2.0）、harden-runner（Apache-2.0）、osv-scanner（Apache-2.0，**依赖漏洞门禁已转强制**）、Lychee（Apache-2.0）、Nuclei（MIT，本地构建产物模板扫描）、Trivy（Apache-2.0，fs 模式依赖/配置/密钥扫描）、anchore/sbom-action（Apache-2.0，生成 CycloneDX SBOM）、CodeQL（GitHub 托管，action 为 MIT）。
 
 **数据源（公开服务，非 npm 依赖，共 21 个）**：AI——量子位、OpenAI 新闻、Google AI 博客、Hacker News（Algolia API）、ArXiv cs.AI、Google 新闻；热点——Google 新闻、IT之家、爱范儿、少数派；科技——Hacker News、TechCrunch、Ars Technica、The Verge、阮一峰的网络日志、Solidot 奇客、Google 新闻；游戏——机核 GCores、触乐、IT之家、Google 新闻。
 

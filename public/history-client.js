@@ -1,5 +1,33 @@
 // 九溪 · 历史回顾 — 客户端脚本（自包含，无外部依赖）
 
+/* ── 安全工具（与 src/lib/security.ts 行为对齐：转义 + URL 协议白名单）──
+ * 外部来源（RSS / 云端快照）的标题、来源、链接不可信：直接拼进 innerHTML/href
+ * 会触发存储型 DOM-XSS（全站 CSP 含 unsafe-inline 时注入即可执行）。
+ * 这里仅放行 http/https/mailto 与站内相对路径，其余一律降级为 "#"。
+ */
+function escapeHtml(s) {
+  return (s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sanitizeUrl(url) {
+  const u = String(url == null ? '' : url).trim();
+  if (u === '') return '#';
+  if (/[\u0000-\u001f\u007f]/.test(u)) return '#'; // 含控制字符视为构造型输入，拦截
+  if (u.startsWith('//')) return '#'; // 协议相对 URL 按危险处理（开放重定向/钓鱼）
+  if (u.startsWith('#')) return u;
+  if (/^(\/|\.\/|\.\.\/)/.test(u)) return u; // 站内相对路径放行
+  try {
+    const parsed = new URL(u);
+    if (/^(https?:|mailto:)$/i.test(parsed.protocol)) return u;
+  } catch { /* 非合法绝对 URL */ }
+  return '#';
+}
+
 /* ── IndexedDB 历史归档 ────────────────────────────────────────── */
 const DB_NAME = 'jiuxi-history';
 const DB_VERSION = 1;
@@ -183,14 +211,14 @@ function fmtDate(d) {
 
 function renderSectionGroup(snap) {
   const labels = { ai: 'AI 前沿', news: '热点新闻', tech: '科技动态', gaming: '游戏资讯' };
-  const label = labels[snap.section] || snap.section;
+  const label = labels[snap.section] || escapeHtml(snap.section);
   const itemsHtml = snap.items.map((item, i) => `
     <div class="history-item">
       <span class="item-number">${String(i + 1).padStart(2, '0')}</span>
       <div class="item-content">
-        <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="item-title">${item.title}</a>
+        <a href="${sanitizeUrl(item.link)}" target="_blank" rel="noopener noreferrer" class="item-title">${escapeHtml(item.title)}</a>
         <div class="item-meta">
-          <span class="item-source">${item.source || '资讯'}</span>
+          <span class="item-source">${escapeHtml(item.source) || '资讯'}</span>
           ${item.pubDate ? `<span>${fmtDate(item.pubDate)}</span>` : ''}
         </div>
       </div>

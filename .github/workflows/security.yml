@@ -1,16 +1,19 @@
 # 九溪 · 安全门禁（独立于 deploy.yml，便于分层查看）
 #
-# 涵盖：密钥扫描(gitleaks + trufflehog) / SAST(CodeQL) / 依赖漏洞(osv-scanner) / 死链(lychee) /
+# 涵盖：密钥扫描(gitleaks + trufflehog) / SAST(CodeQL) / 依赖漏洞(osv-scanner 强制 + trivy fs) /
+# 漏洞模板扫描(nuclei 扫本地构建产物) / 死链(lychee) / SBOM 供应链清单(anchore/sbom-action) /
 # PR 依赖审查(dependency-review) / CI 工作流审计(zizmor) / 供应链健康分(Scorecard) /
 # DAST 动态扫描(ZAP，见 dast-scan.yml 可复用工作流，每周+部署后由本文件与 deploy.yml 调用)。
 # 每个 job 第一步均装 harden-runner（出口审计模式）。
 #
-# 当前均为 advisory：continue-on-error 写在 **job 级别**（不是 step 级别）。
+# 门禁强度：osv-scanner 自 2026-10-13 起为**强制**（已去掉 continue-on-error，
+# 发现依赖漏洞即红灯，需先升级依赖再合并）；其余门禁仍为 advisory：
+# continue-on-error 写在 **job 级别**（不是 step 级别）。
 # 原因：step 级别的 continue-on-error 无法覆盖 action 引用解析失败
 # （失败发生在 “Set up job” 阶段，不属于任何 step），一旦某个门禁挂掉整条
 # 工作流就会变红，advisory 语义形同虚设。写在 job 级别才能真正做到
 # “单个门禁失败不影响流水线结论”，同时在 job 行仍保留红叉便于排查。
-# 待各门禁连续转绿后，可逐个去掉 continue-on-error 转为强制门禁。
+# 待新门禁连续转绿后，可逐个去掉 continue-on-error 转为强制门禁。
 #
 # ⚠️ Action 引用约定（本文件已逐个实测，勿凭印象写版本号）：
 #   1. 不是所有 Action 都提供大版本移动标签。
@@ -27,11 +30,13 @@
 #      trufflehog 沿用同一模式。
 #   已核实可用（2026-10-13 起全部 SHA pin，标签仅作注释；Dependabot 依据尾部
 #     版本注释把 SHA 滚动到各 action 最新发布，兼顾供应链安全与可更新性）：
-#     checkout@v5、github-script@v7、gitleaks@v2、lychee@v2、codeql@v3、
+#     checkout@v7.0.1、gitleaks@v3.0.0、codeql@v3、lychee@v2、
 #     zaproxy/action-baseline@v0.15.0、zizmorcore/zizmor-action@v0.6.4（SHA cc914d7f…）、
-#     ossf/scorecard-action@v2.5.0、step-security/harden-runner@v2.22.1。
-#     checkout/setup-node 用 v5 而非 v4：v4 基于 Node 20，GitHub 已强制迁移到
-#     Node 24 并弃用告警，v5 原生 Node 24（2026-10-13 顺手处理）。
+#     ossf/scorecard-action@v2.5.0、actions/dependency-review-action@v5.0.0、
+#     step-security/harden-runner@v2.22.1、actions/setup-node@v7.0.0（node-version 22）、
+#     anchore/sbom-action@v0.24.3（SHA 66cbf4bc…，本批新增）。
+#     trivy / nuclei 为官方 CLI 二进制（pin 版本 + SHA256 校验），非 Action，不在本列表。
+#     所有 SHA 已随 v1.4.0 的 CI 实测可用（绿）；升级时同步更新尾部版本注释。
 
 name: 安全门禁
 
@@ -168,7 +173,9 @@ jobs:
   # ── 依赖漏洞扫描 ──
   osv-scanner:
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
-    continue-on-error: true # advisory
+    # 2026-10-13 起转强制：eslint 工具链 5 个 high 已修复（升级 eslint-plugin-astro
+    # 3.2.1 + eslint 10，绕开 braces 全版本无修复的漏洞链），本地 npm audit 0 漏洞。
+    # 不再写 continue-on-error——发现依赖漏洞直接红灯，必须先升级依赖再合并。
     steps:
       - name: Harden-Runner（出口审计）
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
@@ -202,17 +209,127 @@ jobs:
           osv-scanner --version || true # 仅用于留痕，不同版本子命令差异不影响门禁
         env:
           OSV_VERSION: v2.6.0 # 升级时同步核对 releases 资产与 SHA256SUMS
-      - name: OSV Scanner（依赖漏洞扫描）
-        # 用法按 v2.6.0 README 的官方示例：osv-scanner scan source -r <dir>
-        # （v1 的 `osv-scanner --recursive --skip-git ./` 在 v2 子命令体系下不再适用）
-        # advisory 阶段：结果写入日志并打 warning，不置红 job；
-        # 待现有 5 个 high（eslint 工具链）修复后，可去掉 warning 分支转强制门禁。
+      - name: OSV Scanner（依赖漏洞扫描，强制门禁）
+        # 用法按 v2.6.0 README 的官方示例：osv-scanner scan source -r <dir>。
+        # 强制语义：发现漏洞即以非零退出码使 job 置红，阻断合并（不包 warning 分支）。
+        # 若 CI 报错“发现漏洞”，先在本地方 `npm update` 对应依赖修复后再推送。
         run: |
-          if osv-scanner scan source -r ./; then
-            echo "::notice::osv-scanner 未发现漏洞"
-          else
-            echo "::warning::osv-scanner 发现漏洞或执行异常，详见上方日志"
+          osv-scanner scan source -r ./
+
+  # ── 依赖漏洞 / 配置错误 / 密钥扫描（Trivy fs 模式）──
+  # 为什么在 osv-scanner 之外再上一道：
+  #   osv-scanner 只查依赖漏洞（OSV 数据库）；Trivy fs 一套扫描同时覆盖
+  #     依赖漏洞 + 文件系统配置错误(misconfig) + 密钥泄露(secret)，且内部库与 OSV 互补。
+  #   双引擎交叉验证，降低单一数据库漏报/误报风险。osv-scanner 已转强制，
+  #   Trivy 先以 advisory 运行观察误报率，后续再决定是否转强制。
+  # 形态同 trufflehog：官方 CLI + pin 版本 + SHA256 校验（不用第三方 action）。
+  trivy:
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
+    continue-on-error: true # advisory
+    steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 安装 Trivy CLI（pin 版本 + SHA256 校验）
+        run: |
+          set -euo pipefail
+          VERSION="${TRIVY_VERSION}"
+          PKG="trivy_${VERSION#v}_Linux-64bit.tar.gz"
+          SUMS="trivy_${VERSION#v}_checksums.txt"
+          BASE="https://github.com/aquasecurity/trivy/releases/download/${VERSION}"
+          curl -sSfL -o /tmp/trivy.tar.gz "${BASE}/${PKG}"
+          curl -sSfL -o /tmp/trivy_checksums.txt "${BASE}/${SUMS}"
+          expected="$(awk -v pkg="$PKG" '{gsub(/^[*]/,"",$2); if($2==pkg) print $1}' /tmp/trivy_checksums.txt)"
+          actual="$(sha256sum /tmp/trivy.tar.gz | awk '{print $1}')"
+          if [ -z "$expected" ] || [ "$expected" != "$actual" ]; then
+            echo "::error::Trivy 压缩包 SHA256 校验失败（期望 ${expected:-<空>} 实际 $actual）"
+            exit 1
           fi
+          tar -xzf /tmp/trivy.tar.gz -C /tmp trivy
+          sudo install -m 0755 /tmp/trivy /usr/local/bin/trivy
+          trivy --version
+        env:
+          TRIVY_VERSION: v0.75.0 # 升级时同步核对 releases 资产名与 checksums 文件名
+      - name: Trivy fs（依赖漏洞 + 配置错误 + 密钥）
+        # --scanners vuln,misconfig,secret：一套扫描三类问题；
+        # --exit-code 0：advisory 阶段发现不置红（与 trufflehog 同策略）；
+        # 待误报率可接受后改 --exit-code 1 转强制。
+        # --skip-dirs 排除构建产物与依赖目录，只扫源码与锁文件。
+        run: |
+          trivy fs --scanners vuln,misconfig,secret --exit-code 0 \
+            --skip-dirs dist --skip-dirs node_modules ./ \
+            || echo "::warning::Trivy 执行异常（advisory 阶段不阻断），详见上方日志"
+
+  # ── 漏洞模板扫描（Nuclei，本地构建产物）──
+  # 定位：与 ZAP 互补——ZAP 每周扫生产主站（见 dast-scan.yml），Nuclei 在每次
+  # 推送/PR 时扫**本地构建并临时起服务的产物**，不依赖生产站点、不产生外网攻击流量，
+  # 适合作为 PR/推送阶段的快速模板扫描（advisory）。
+  # 注意：本地起服务扫的是构建产物，与生产的 CDN/Headers/Functions 运行时有差异，
+  # 不能替代 ZAP 对生产站的扫描，两者互补而非替代。
+  nuclei:
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
+    continue-on-error: true # advisory
+    steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 准备 Node 环境（与 deploy.yml 一致）
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: 安装 Nuclei CLI（pin 版本 + SHA256 校验）
+        run: |
+          set -euo pipefail
+          VERSION="${NUCLEI_VERSION}"
+          PKG="nuclei_${VERSION#v}_linux_amd64.zip"
+          SUMS="nuclei_${VERSION#v}_checksums.txt"
+          BASE="https://github.com/projectdiscovery/nuclei/releases/download/${VERSION}"
+          curl -sSfL -o /tmp/nuclei.zip "${BASE}/${PKG}"
+          curl -sSfL -o /tmp/nuclei_checksums.txt "${BASE}/${SUMS}"
+          expected="$(awk -v pkg="$PKG" '{gsub(/^[*]/,"",$2); if($2==pkg) print $1}' /tmp/nuclei_checksums.txt)"
+          actual="$(sha256sum /tmp/nuclei.zip | awk '{print $1}')"
+          if [ -z "$expected" ] || [ "$expected" != "$actual" ]; then
+            echo "::error::Nuclei 压缩包 SHA256 校验失败（期望 ${expected:-<空>} 实际 $actual）"
+            exit 1
+          fi
+          unzip -o -q /tmp/nuclei.zip -d /tmp/nuclei-bin
+          sudo install -m 0755 /tmp/nuclei-bin/nuclei /usr/local/bin/nuclei
+          nuclei -version 2>&1 | head -n 3 || true
+        env:
+          NUCLEI_VERSION: v3.11.1 # 升级时同步核对 releases 资产名与 checksums 文件名
+      - name: 构建站点并本地起静态服务
+        # dist/ 已被 .gitignore 忽略，故需临时构建；复用 deploy.yml 的 CF 主站构建参数
+        # （node 22 + npm ci + SITE_URL）。后台起 python3 http.server，扫描结束统一 kill。
+        env:
+          SITE_URL: https://jiuxi-bm1.pages.dev
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run build
+          nohup python3 -m http.server 8080 --directory dist >/tmp/http.log 2>&1 &
+          echo $! > /tmp/http.pid
+          for i in $(seq 1 15); do
+            if curl -s -o /dev/null http://127.0.0.1:8080/; then break; fi
+            sleep 1
+          done
+      - name: Nuclei 模板扫描（本地产物）
+        # advisory：仅 critical/high 级，发现不置红；扫完由下一步收尾杀服务。
+        run: |
+          nuclei -target http://127.0.0.1:8080 -severity critical,high -no-color \
+            || echo "::warning::Nuclei 发现问题或运行异常（advisory 阶段不阻断），详见上方日志"
+      - name: 收尾（杀掉本地静态服务）
+        if: always()
+        run: |
+          if [ -f /tmp/http.pid ]; then kill "$(cat /tmp/http.pid)" 2>/dev/null || true; fi
 
   # ── 死链校验（文档/页面外链）──
   lychee:
@@ -312,6 +429,36 @@ jobs:
         with:
           sarif_file: results.sarif
           category: scorecard
+
+  # ── SBOM 供应链清单生成（每次推送留档 90 天，漏洞应急时反查）──
+  # 用途：生成 CycloneDX JSON 格式的软件物料清单，作为 workflow artifact 留存 90 天。
+  # 出事时（某依赖爆 0day）可按 SBOM 秒级定位「我们具体哪些版本受影响」。
+  # 用 anchore/sbom-action（官方 action，Syft 引擎，SHA pin + 版本注释供 Dependabot 滚动）。
+  sbom:
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
+    continue-on-error: true # advisory：生成失败不影响流水线结论
+    permissions:
+      contents: read
+    steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 生成 SBOM（CycloneDX JSON）
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          path: ./
+          format: cyclonedx-json
+          artifact-name: jiuxi-sbom.cdx.json
+          output-file: jiuxi-sbom.cdx.json
+          upload-artifact: true
+          upload-artifact-retention: 90
+          upload-release-assets: false # 本工作流不触发 release，关闭避免非预期上传
+          # dependency-snapshot 默认 false：不上传依赖快照到 GitHub（无需额外权限）；
+          # 仅生成并留存 SBOM artifact。
 
   # ── DAST：每周定时扫描生产主站（调用可复用工作流，避免与部署后扫描配置漂移）──
   zap-baseline:
