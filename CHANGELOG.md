@@ -9,7 +9,7 @@
 - **安全门禁第一批上线（4 项新增，全部 advisory 不阻断）**：
   - **DAST 动态扫描（ZAP Baseline）**：新增可复用工作流 `.github/workflows/dast-scan.yml`，对生产主站 `https://jiuxi-bm1.pages.dev/` 做基线扫描——此前 `/api/feed`、`/api/history` 两个 Pages Functions 端点只有 SAST/依赖扫描覆盖，无任何运行时验证，形成盲区。双触发：`security.yml` 每周一定时 + `deploy.yml` 双站部署成功后立即调用，单文件承载避免配置漂移。
   - **CI 工作流自身审计（zizmor）**：新增 `zizmor` job（`zizmorcore/zizmor-action@v0.6.4`，SHA pin）。注意该仓库已从 `woodruffw/zizmor` 迁移至 `zizmorcore/zizmor`（旧路径 404）；官方建议对此 action 用完整 SHA pin，已照办。checkout 时 `persist-credentials: false`，避免凭据留在工作区被扫。
-  - **供应链健康分（OpenSSF Scorecard）**：新增 `scorecard` job（`ossf/scorecard-action@v2.5.0`），公开库免费；`publish_results: true` 发布到 scorecard.dev，徽章可引用 `https://api.scorecard.dev/projects/github.com/xiaoyu-hue/jiuxi/badges/score`。
+  - **供应链健康分（OpenSSF Scorecard）**：新增 `scorecard` job（`ossf/scorecard-action@v2.5.0`），公开库免费；`publish_results: true` 发布到 scorecard.dev，徽章已入库 README 徽章行（`https://api.scorecard.dev/projects/github.com/xiaoyu-hue/jiuxi/badge`）。首跑总分 **5.4/10**：SAST / Token-Permissions / Dangerous-Workflow / Dependency-Update-Tool / Binary-Artifacts / License 六项满分，Pinned-Dependencies 4 分（对应 zizmor 报的 23 处未 SHA 固定 action，待清理批次处理），Code-Review / Branch-Protection / Contributors / Security-Policy 等 0 分属单人项目结构性问题，见安全报告。
   - **出口流量审计（harden-runner）**：`security.yml` 与 `deploy.yml` 共 10 个 job 的第一步均装 `step-security/harden-runner@v2.22.1`，`egress-policy: audit`（只记录不阻断；block 模式会断掉扫描类 job 的必要出站连接）。注意 audit 模式下其自带 telemetry 强制开启且无法单独关闭，唯一移除方式是删掉各 job 的 harden-runner 步骤。
   - 三个新 job 均延续本项目 advisory 约定：`continue-on-error` 写在 **job 级别**（step 级覆盖不了 action 引用解析失败，失败发生在 "Set up job" 阶段）。待连续转绿后可逐个转强制。
 - **首页补「历史回顾」入口**：此前仅导航栏有「历史回顾」、首页 Bento 卡片遗漏，新板块对首页访客不可见。现首页 Bento 卡片由 9 张补齐为 10 张（与导航顺序一致，插在「读书推荐」与「设置与数据」之间）。

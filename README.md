@@ -17,6 +17,7 @@
 
 ![Deploy](https://img.shields.io/github/actions/workflow/status/xiaoyu-hue/jiuxi/deploy.yml?style=flat&label=Deploy)
 ![Security](https://img.shields.io/github/actions/workflow/status/xiaoyu-hue/jiuxi/security.yml?style=flat&label=Security)
+![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/xiaoyu-hue/jiuxi/badge)
 ![Release](https://img.shields.io/github/v/release/xiaoyu-hue/jiuxi?style=flat)
 ![Last Commit](https://img.shields.io/github/last-commit/xiaoyu-hue/jiuxi?style=flat)
 ![Astro](https://img.shields.io/badge/Astro-BC52EE?style=flat&logo=astro&logoColor=white)
