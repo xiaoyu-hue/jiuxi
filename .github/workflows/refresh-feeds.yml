@@ -20,8 +20,8 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
+  # pages: write 与 id-token: write 已下沉到 deploy-github-pages job
+  # （zizmor excessive-permissions：构建 job 只需要 contents: read）
 
 concurrency:
   group: refresh-feeds
@@ -31,8 +31,11 @@ jobs:
   build-pages:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
           cache: npm
@@ -51,8 +54,11 @@ jobs:
   build-cloudflare:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
           cache: npm
@@ -76,6 +82,10 @@ jobs:
   deploy-github-pages:
     needs: build-pages
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

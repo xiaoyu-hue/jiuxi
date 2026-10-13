@@ -22,7 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
+          persist-credentials: false
 
       - name: Find latest timeline entry
         id: latest
@@ -50,11 +53,17 @@ jobs:
 
       - name: Create issue if outdated
         if: steps.latest.outputs.latest_year != '' && steps.latest.outputs.latest_year != '0' && steps.latest.outputs.latest_year < steps.latest.outputs.current_year
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          # 模板注入修复（zizmor template-injection）：step 输出经 env 传入脚本，
+          # 不做 ${{ }} 内联展开。本仓库的 year 虽来自本地文件、当前低危，
+          # 但该模式一旦接触外部内容即构成代码执行，按安全惯例一律走 env。
+          LATEST_YEAR: ${{ steps.latest.outputs.latest_year }}
+          CURRENT_YEAR: ${{ steps.latest.outputs.current_year }}
         with:
           script: |
-            const latestYear = parseInt('${{ steps.latest.outputs.latest_year }}');
-            const currentYear = parseInt('${{ steps.latest.outputs.current_year }}');
+            const latestYear = parseInt(process.env.LATEST_YEAR);
+            const currentYear = parseInt(process.env.CURRENT_YEAR);
             const gap = currentYear - latestYear;
 
             const title = `📅 九溪时间线提醒：建议补充 ${currentYear} 年的 AI 里程碑`;

@@ -20,6 +20,16 @@
 
 ### Changed
 
+- **安全门禁第一批 · zizmor 告警清理（51 → 预期个位数）**：zizmor 首跑报 51 个告警，本轮按类清理——
+  - **action 全部 SHA 固定（23 处 unpinned-uses）**：security.yml / deploy.yml / dast-scan.yml / refresh-feeds.yml / weekly-timeline-proposal.yml 中所有标签引用（harden-runner、gitleaks-action、codeql-action×3、lychee-action、dependency-review-action、scorecard-action、action-baseline、github-script、checkout、setup-node）改为 commit SHA + 版本注释，与项目既定策略（deploy.yml 长期实践 + dependabot.yml 注释）对齐；Dependabot `pin-actions: true` 负责滚动 SHA。
+  - **checkout 补 persist-credentials: false（14 处 artipacked）**：本项目所有 job 均只读仓库、无 git 推送，关闭凭据持久化零风险。
+  - **权限下沉（5 处 excessive-permissions）**：deploy.yml / refresh-feeds.yml 的 `pages: write`、`id-token: write` 从工作流级移到 deploy-github-pages job；security.yml 上一轮已收紧。
+  - **自引用语法（2 处 self-repository）**：两处 zap-baseline 调用方 `./` → `$/`（GitHub 2026-07 起官方支持，解析到当前运行提交，需 runner ≥ 2.336.0，GitHub 托管 runner 满足，下次部署实证）。
+  - **删 secrets: inherit（2 处）**：dast-scan.yml 不使用任何 secrets。
+  - **Dependabot 冷却期（2 处 dependabot-cooldown）**：两个 ecosystem 均加 `cooldown: default-days: 7`。
+  - **模板注入修复（2 处 template-injection）**：weekly-timeline-proposal.yml 的 github-script 不再内联 `${{ steps.*.outputs.* }}`，改 env 传参（脚本内 `process.env` 读取）。
+  - **CodeQL 误报驳回（1 处）**：`js/incomplete-url-substring-sanitization` 位于 feeds.test.ts 的 fetch mock 匹配，非安全边界；生产代理 functions/api/feed.ts 已核实为精确主机名白名单（`ALLOWED_HOSTS.includes(hostname)`）+ 协议检查 + 私有地址拦截 + Origin 检查，无子串匹配。按「测试代码」理由在代码扫描后台驳回。
+  - **Node 20 弃置处理（小事一桩）**：checkout / setup-node 从 v4 升到 v5（v4 基于 Node 20，GitHub 已强制迁移 Node 24 并告警；v5 原生 Node 24）。其余第三方 action 的 Node 20→24 由 GitHub 强制迁移兜底、功能不受影响，逐个升大版本另行按各 action 发布节奏处理。
 - **README 全面更新**：反映 D1 轻后端里程碑（新增「第一次有了轻后端」说明段：静态站 + Serverless 路线验证、为后续真正后端铺路）、历史回顾板块与十一板块架构、21 个资讯源与按源轮询、Phase 7/8 路线图、策展内容新计数（时间线 213 / 工具箱 74 / 读书 58）、`functions/` 与 `scripts/` 目录结构、D1 绑定必须写入 wrangler.toml 的部署注意事项。
 - **历史回顾 · 云端读取（阶段 2）**：新增 Pages Function `/api/history`（读 D1，30 分钟缓存头，未配 D1 绑定时返回 503 由页面降级）；历史页数据源改为三源合并——云端接口 → IndexedDB 本地缓存 → 静态索引，同 id 以云端为准，云端数据首次加载即写入本地缓存，离线或无 Functions 的环境（GitHub Pages 备用站）自动降级。顺带修复两处既有问题：按日期分组逻辑失效（`grouped` 临时数组未赋值回写）、清除按钮文案与新数据模型不符。
 - **资讯源扩容 14 → 21（信息多元化）**：全部源经抓取实测后上线。AI 板块 +OpenAI 新闻、+Google AI 博客（两个官方一手源）；科技板块 +The Verge、+阮一峰的网络日志、+Solidot 奇客；游戏板块 +机核 GCORES、+触乐（该板块此前仅 2 源，为最弱板块）；新闻板块的少数派由公共 RSSHub 路线（实例不稳定）切换为官方源。每板块 24 条上限不变。

@@ -19,8 +19,8 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
+  # pages: write 与 id-token: write 已下沉到 deploy-github-pages job
+  # （zizmor excessive-permissions：构建/质量 job 只需要 contents: read）
 
 # 按「工作流 + 分支」隔离排队，PR 与主分支互不阻塞；
 # main 仍只有一个并发组，可防止 Pages 部署互相冲突。
@@ -34,11 +34,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
           cache: npm
@@ -65,11 +68,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
           cache: npm
@@ -93,11 +99,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
           cache: npm
@@ -118,12 +127,16 @@ jobs:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     needs: build-pages
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
       - id: deployment
@@ -136,14 +149,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
       # 必须拉取仓库以携带 functions/ 目录：否则 wrangler pages deploy dist 只上传静态产物，
       # 第一方 /api/feed 代理（Cloudflare Pages Function）不会部署，
       # 导致浏览器端所有需代理的 RSS 源（量子位/ArXiv/Google News）刷新失败、内容被冲掉。
       - name: 拉取仓库（含 functions/ 代理）
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
+          persist-credentials: false
       - id: check
         name: 检查 Cloudflare 密钥是否已配置
         # secrets 上下文不能用于 if 条件（会导致 workflow 解析失败/红叉），
@@ -171,5 +187,6 @@ jobs:
     # advisory 语义由 dast-scan.yml 内部 job 的 continue-on-error 承载。
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     needs: [deploy-github-pages, deploy-cloudflare]
-    uses: ./.github/workflows/dast-scan.yml
-    secrets: inherit
+    # 自引用语法（GitHub 2026-07 起官方支持）：$/ 解析到当前运行的提交（zizmor
+    # self-repository 修复）；被调工作流不用 secrets，故不传（secrets-inherit 修复）。
+    uses: $/.github/workflows/dast-scan.yml

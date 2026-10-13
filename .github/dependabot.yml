@@ -6,6 +6,10 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    # 冷却期：新版本发布后等待数日再出 PR，避开"刚发布即暴雷"的版本
+    # （zizmor dependabot-cooldown 要求 default-days >= 7）
+    cooldown:
+      default-days: 7
     # 将第三方 Action 锁定到 commit SHA（与 deploy.yml 一致），避免浮动标签 @v4/@v7 带来的供应链风险
     pin-actions: true
     commit-message:
@@ -20,6 +24,9 @@ updates:
     schedule:
       interval: 'weekly'
     open-pull-requests-limit: 10
+    # 冷却期：同上，避开刚发布即有问题的 npm 版本
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: 'build'
     labels:

@@ -22,9 +22,13 @@
 #      例如 dependency-review，引用前更需逐一核实。
 #   4. 仓库迁移会改路径：zizmor 的 action 旧路径 woodruffw/zizmor-action 已 404，
 #      现为 zizmorcore/zizmor-action（官方文档推荐 SHA pin，故本文件用 SHA）。
-#   已核实可用：checkout@v4、github-script@v7、gitleaks@v2、lychee@v2、codeql@v3、
-#      zaproxy/action-baseline@v0.15.0、zizmorcore/zizmor-action@v0.6.4（SHA cc914d7f…）、
-#      ossf/scorecard-action@v2.5.0、step-security/harden-runner@v2.22.1。
+#   已核实可用（2026-10-13 起全部 SHA pin，标签仅作注释；Dependabot pin-actions
+#     负责把 SHA 滚动到各 action 最新发布，兼顾供应链安全与可更新性）：
+#     checkout@v5、github-script@v7、gitleaks@v2、lychee@v2、codeql@v3、
+#     zaproxy/action-baseline@v0.15.0、zizmorcore/zizmor-action@v0.6.4（SHA cc914d7f…）、
+#     ossf/scorecard-action@v2.5.0、step-security/harden-runner@v2.22.1。
+#     checkout/setup-node 用 v5 而非 v4：v4 基于 Node 20，GitHub 已强制迁移到
+#     Node 24 并弃用告警，v5 原生 Node 24（2026-10-13 顺手处理）。
 
 name: 安全门禁
 
@@ -59,14 +63,16 @@ jobs:
       # harden-runner 必须是每个 job 的第一步（pre 步骤，先于 checkout 运行）。
       # audit = 只记录出口流量不阻断；block 模式会断掉本 job 的必要出站连接。
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
+          # 本 job 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
+          persist-credentials: false
       - name: Gitleaks（密钥扫描）
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
 
@@ -79,16 +85,18 @@ jobs:
       security-events: write # CodeQL 上传分析结果需要
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: 初始化 CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@9f759ee644a3e7c15c1390abf49868036c00067b # v3
         with:
           languages: javascript-typescript
       - name: CodeQL 分析
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@9f759ee644a3e7c15c1390abf49868036c00067b # v3
 
   # ── 依赖漏洞扫描 ──
   osv-scanner:
@@ -96,10 +104,12 @@ jobs:
     continue-on-error: true # advisory
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       # ⚠️ 为什么不用 google/osv-scanner-action：
       #    该仓库根 action.yml 自 v1.9.2 起就缺少顶层 `runs:` 段（实测每个 tag 都是
       #    18 行的残缺文件），runner 会报
@@ -143,12 +153,14 @@ jobs:
     continue-on-error: true # advisory
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: Lychee 死链检查
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2
         with:
           args: --no-progress --max-concurrency 4 --exclude-mail './**/*.md'
           fail: false
@@ -160,14 +172,16 @@ jobs:
     continue-on-error: true # advisory
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: Dependency Review
         # ⚠️ 该 action 的 v4 移动标签不存在（实测 404），只能 pin 具体版本。
         # 该 job 仅在 PR 触发，本地无法验证，故更需谨慎核对标签。
-        uses: actions/dependency-review-action@v4.9.0
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
 
   # ── CI 工作流自身安全审计（zizmor）──
   zizmor:
@@ -182,10 +196,10 @@ jobs:
       security-events: write
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           # zizmor 官方建议：审计 CI 配置时不应把凭据留在工作区，防止误扫/误用
           persist-credentials: false
@@ -209,22 +223,22 @@ jobs:
       id-token: write
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@v2.22.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
       - name: Scorecard 分析
-        uses: ossf/scorecard-action@v2.5.0
+        uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e # v2.5.0
         with:
           results_file: results.sarif
           results_format: sarif
           # 公开库：把分数发布到 scorecard.dev，徽章可直接引用
-          # https://api.scorecard.dev/projects/github.com/xiaoyu-hue/jiuxi/badges/score
+          # https://api.scorecard.dev/projects/github.com/xiaoyu-hue/jiuxi/badge
           publish_results: true
       - name: 上传 Scorecard SARIF 到代码扫描告警
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@9f759ee644a3e7c15c1390abf49868036c00067b # v3
         with:
           sarif_file: results.sarif
           category: scorecard
@@ -235,6 +249,7 @@ jobs:
   # 这几个键——runs-on 与 continue-on-error 写在这里会导致工作流解析失败（红叉）。
   # advisory 语义由被调用工作流 dast-scan.yml 内部的 job 级 continue-on-error 承载。
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/dast-scan.yml
-    # 复用工作流的 secrets 需显式传递（inherit 亦可，本项目无敏感 secrets，用 inherit 最简）
-    secrets: inherit
+    # 自引用语法（GitHub 2026-07 起官方支持）：$/ 解析到当前运行的提交，
+    # 比 ./ 更安全（zizmor self-repository 告警的修复）。
+    # 被调工作流不使用任何 secrets，故不传 secrets（zizmor secrets-inherit 修复）。
+    uses: $/.github/workflows/dast-scan.yml
