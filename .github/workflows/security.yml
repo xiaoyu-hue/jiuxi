@@ -59,6 +59,9 @@ jobs:
     permissions:
       contents: read
       security-events: write # gitleaks-action 自动上传 SARIF 到代码扫描需要
+      # PR 事件扫描需要（gitleaks-action v2.3 起破坏性变更）：列 PR 提交走 GitHub API，
+      # 缺 pull-requests 读权限时 job 直接失败（本仓库此前无 PR，隐患一直未暴露）
+      pull-requests: read
     steps:
       # harden-runner 必须是每个 job 的第一步（pre 步骤，先于 checkout 运行）。
       # audit = 只记录出口流量不阻断；block 模式会断掉本 job 的必要出站连接。
@@ -75,6 +78,9 @@ jobs:
         uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
         env:
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
+          # gitleaks-action v2.3 起破坏性变更：PR 事件扫描强制要求 GITHUB_TOKEN
+          # （经 GitHub API 列 PR 提交、在 PR 上评论发现项），缺失即 job 失败
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ── SAST：CodeQL（公开库免费，无需 token）──
   codeql:
