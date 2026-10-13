@@ -31,7 +31,7 @@ jobs:
   build-pages:
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
           persist-credentials: false
@@ -54,7 +54,7 @@ jobs:
   build-cloudflare:
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
           persist-credentials: false
