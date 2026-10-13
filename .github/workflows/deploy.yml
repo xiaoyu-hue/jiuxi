@@ -31,7 +31,7 @@ concurrency:
 jobs:
   # ── 质量门禁：类型检查 + 单元测试（合并门槛）──
   quality:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     steps:
       - name: Harden-Runner（出口审计）
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
@@ -65,7 +65,7 @@ jobs:
     # 构建与部署只在推送到 main 时进行；PR 上仅跑上面的 quality 门禁，绝不触发部署。
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     needs: quality
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     steps:
       - name: Harden-Runner（出口审计）
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
@@ -96,7 +96,7 @@ jobs:
   build-cloudflare:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     needs: quality
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     steps:
       - name: Harden-Runner（出口审计）
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
@@ -126,7 +126,7 @@ jobs:
   deploy-github-pages:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     needs: build-pages
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     permissions:
       contents: read
       pages: write
@@ -146,7 +146,7 @@ jobs:
   deploy-cloudflare:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     needs: build-cloudflare
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     steps:
       - name: Harden-Runner（出口审计）
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1

@@ -54,7 +54,7 @@ permissions:
 jobs:
   # ── 密钥扫描 ──
   gitleaks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     continue-on-error: true # advisory：失败只标红本 job，不阻断整条流水线
     permissions:
       contents: read
@@ -84,7 +84,7 @@ jobs:
 
   # ── SAST：CodeQL（公开库免费，无需 token）──
   codeql:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     continue-on-error: true # advisory
     permissions:
       contents: read
@@ -106,7 +106,7 @@ jobs:
 
   # ── 依赖漏洞扫描 ──
   osv-scanner:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     continue-on-error: true # advisory
     steps:
       - name: Harden-Runner（出口审计）
@@ -155,7 +155,7 @@ jobs:
 
   # ── 死链校验（文档/页面外链）──
   lychee:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     continue-on-error: true # advisory
     steps:
       - name: Harden-Runner（出口审计）
@@ -174,7 +174,7 @@ jobs:
   # ── PR 依赖审查（仅 PR 触发，比对 base 的依赖变更）──
   dependency-review:
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     continue-on-error: true # advisory
     steps:
       - name: Harden-Runner（出口审计）
@@ -185,13 +185,16 @@ jobs:
         with:
           persist-credentials: false
       - name: Dependency Review
-        # ⚠️ 该 action 的 v4 移动标签不存在（实测 404），只能 pin 具体版本。
+        # ⚠️ 该 action 的 v4/v5 移动标签均不存在（实测 404），只能 pin 具体版本。
         # 该 job 仅在 PR 触发，本地无法验证，故更需谨慎核对标签。
-        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+        # v5.0.0 为 Dependabot 漏开的升级（github-actions 更新任务部分失败），
+        # 经核实 v5.0.0 的 action.yml 输入与本 job 用法（无 with 参数）兼容后手动补上；
+        # 同时消除 Node 20 弃用告警（v4 基于 Node 20）。
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
 
   # ── CI 工作流自身安全审计（zizmor）──
   zizmor:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     continue-on-error: true # advisory
     # zizmor 需要 actions:read（读取工作流定义）与 security-events:write（上传 SARIF）。
     # 仓库若未开启 GitHub Advanced Security 公开扫描，上传会失败，
@@ -218,7 +221,7 @@ jobs:
 
   # ── 供应链健康分（OpenSSF Scorecard，公开库免费）──
   scorecard:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     continue-on-error: true # advisory
     permissions:
       contents: read
