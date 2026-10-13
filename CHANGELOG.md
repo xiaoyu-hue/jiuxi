@@ -2,6 +2,12 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [Unreleased]
+
+### Fixed
+
+- **AI 板块实时刷新不覆盖内嵌旧数据**：`src/components/FeedSection.astro` 后台刷新（`refreshFeedOnline`）成功后直接整屏渲染在线最新结果，不再用 `mergeFeedItems` 把构建期内嵌的陈旧快照与在线最新做 round-robin 混合，解决「AI 板块显示的内容不是最新」的问题。主站 `/api/feed` 第一方代理已实测可用且能拉到更新数据（如 ArXiv 经代理返回当天条目）；备站（GitHub Pages 无 Functions 代理）的 RSS 源仍依赖构建期内嵌，需另做「自动重抓」层才能彻底新鲜。
+
 ## [v1.4.1] — 2026-10-13
 
 ### Added

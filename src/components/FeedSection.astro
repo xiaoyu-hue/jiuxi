@@ -30,7 +30,7 @@ const { section, title, description = '' } = Astro.props;
 </BaseLayout>
 
 <script>
-  import { loadFeed, refreshFeedOnline, mergeFeedItems, renderItems, wireFavorites } from '../lib/feeds';
+  import { loadFeed, refreshFeedOnline, renderItems, wireFavorites } from '../lib/feeds';
 
   document.querySelectorAll<HTMLElement>('.feed-grid').forEach(async (el) => {
     const section = el.dataset.section as any;
@@ -45,13 +45,13 @@ const { section, title, description = '' } = Astro.props;
           renderItems(el, base);
           wireFavorites(el);
           if (status) status.textContent = `已加载 · ${new Date().toLocaleString('zh-CN')}`;
-          // 后台刷新：在线最新与当前内嵌取「并集」，绝不回退/冲掉已展示内容。
-          // 即便部分源（如代理未部署时的 RSS）失败，内嵌内容也保留，只补进成功源。
+          // 后台刷新：主站（/api/feed 代理可用）实时拉最新，成功后整屏替换为在线结果，
+          // 确保用户看到的是最新资讯而非构建期内嵌的陈旧快照；在线全部源失败才保留内嵌。
           refreshFeedOnline(section)
             .then((online) => {
-              if (!online.length) return; // 全部源失败则保留内嵌
-              const merged = mergeFeedItems(base, online);
-              renderItems(el, merged);
+              if (!online.length) return; // 全部源失败则保留内嵌旧数据
+              // 直接用实时抓取结果（各源最新合并去重），不再混合可能陈旧的构建期内嵌
+              renderItems(el, online);
               wireFavorites(el);
               if (status) status.textContent = `已更新 · ${new Date().toLocaleString('zh-CN')}`;
             })
