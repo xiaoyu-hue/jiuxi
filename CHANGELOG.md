@@ -20,11 +20,11 @@
 
 ### Changed
 
-- **安全门禁第一批 · zizmor 告警清理（51 → 预期个位数）**：zizmor 首跑报 51 个告警，本轮按类清理——
-  - **action 全部 SHA 固定（23 处 unpinned-uses）**：security.yml / deploy.yml / dast-scan.yml / refresh-feeds.yml / weekly-timeline-proposal.yml 中所有标签引用（harden-runner、gitleaks-action、codeql-action×3、lychee-action、dependency-review-action、scorecard-action、action-baseline、github-script、checkout、setup-node）改为 commit SHA + 版本注释，与项目既定策略（deploy.yml 长期实践 + dependabot.yml 注释）对齐；Dependabot `pin-actions: true` 负责滚动 SHA。
+- **安全门禁第一批 · zizmor 告警清理（51 → 0）**：zizmor 首跑报 51 个告警，本轮按类清理，实测清零（仅剩 1 条「ubuntu-latest 将于 2026-10-19 迁移 Ubuntu 26」的提示性 notice，非告警）——
+  - **action 全部 SHA 固定（23 处 unpinned-uses）**：security.yml / deploy.yml / dast-scan.yml / refresh-feeds.yml / weekly-timeline-proposal.yml 中所有标签引用（harden-runner、gitleaks-action、codeql-action×3、lychee-action、dependency-review-action、scorecard-action、action-baseline、github-script、checkout、setup-node）改为 commit SHA + 版本注释，与项目既定策略对齐；Dependabot 依据尾部版本注释把 SHA 滚动到各 action 最新发布（dependabot.yml 并无 `pin-actions` 选项——官方选项列表无此键、GitHub schema 校验直接拒绝，已删除；SHA 固定由工作流引用本身承载，Dependabot 只负责滚动）。
   - **checkout 补 persist-credentials: false（14 处 artipacked）**：本项目所有 job 均只读仓库、无 git 推送，关闭凭据持久化零风险。
   - **权限下沉（5 处 excessive-permissions）**：deploy.yml / refresh-feeds.yml 的 `pages: write`、`id-token: write` 从工作流级移到 deploy-github-pages job；security.yml 上一轮已收紧。
-  - **自引用语法（2 处 self-repository）**：两处 zap-baseline 调用方 `./` → `$/`（GitHub 2026-07 起官方支持，解析到当前运行提交，需 runner ≥ 2.336.0，GitHub 托管 runner 满足，下次部署实证）。
+  - **自引用语法（2 处 self-repository）**：两处 zap-baseline 调用方 `./` → `$/`（GitHub 2026-07 起官方支持，解析到当前运行提交，需 runner ≥ 2.336.0，GitHub 托管 runner 满足；3cbc8ee 部署链路已实证——deploy.yml 的 zap-baseline 调用方在双部署成功后自动触发并 success）。
   - **删 secrets: inherit（2 处）**：dast-scan.yml 不使用任何 secrets。
   - **Dependabot 冷却期（2 处 dependabot-cooldown）**：两个 ecosystem 均加 `cooldown: default-days: 7`。
   - **模板注入修复（2 处 template-injection）**：weekly-timeline-proposal.yml 的 github-script 不再内联 `${{ steps.*.outputs.* }}`，改 env 传参（脚本内 `process.env` 读取）。

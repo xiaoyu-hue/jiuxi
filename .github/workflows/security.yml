@@ -22,8 +22,8 @@
 #      例如 dependency-review，引用前更需逐一核实。
 #   4. 仓库迁移会改路径：zizmor 的 action 旧路径 woodruffw/zizmor-action 已 404，
 #      现为 zizmorcore/zizmor-action（官方文档推荐 SHA pin，故本文件用 SHA）。
-#   已核实可用（2026-10-13 起全部 SHA pin，标签仅作注释；Dependabot pin-actions
-#     负责把 SHA 滚动到各 action 最新发布，兼顾供应链安全与可更新性）：
+#   已核实可用（2026-10-13 起全部 SHA pin，标签仅作注释；Dependabot 依据尾部
+#     版本注释把 SHA 滚动到各 action 最新发布，兼顾供应链安全与可更新性）：
 #     checkout@v5、github-script@v7、gitleaks@v2、lychee@v2、codeql@v3、
 #     zaproxy/action-baseline@v0.15.0、zizmorcore/zizmor-action@v0.6.4（SHA cc914d7f…）、
 #     ossf/scorecard-action@v2.5.0、step-security/harden-runner@v2.22.1。
