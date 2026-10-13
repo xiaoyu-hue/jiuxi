@@ -5,6 +5,8 @@ updates:
   # 并同步注释，兼顾供应链安全与可更新性。
   # 注意：dependabot.yml 并无 pin-actions 选项（官方选项列表无此键，GitHub schema
   # 校验直接拒绝），SHA 固定由工作流引用本身承载，Dependabot 只负责滚动——勿再添加。
+  # 维护要点：滚动机制依赖 uses 引用尾部的版本注释（如 actions/checkout@<sha> # v5），
+  # 新增或修改 action 引用时勿删除该注释，否则 Dependabot 无法定位版本、SHA 将冻结。
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
