@@ -448,6 +448,8 @@ export function renderItems(container: HTMLElement, items: FeedItem[]): void {
     fav.className = `fav-btn${isFavorite(it.link) ? ' active' : ''}`;
     fav.type = 'button';
     fav.dataset.link = sanitizeUrl(it.link);
+    fav.dataset.title = it.title || '';
+    fav.dataset.source = it.source || '';
     fav.setAttribute('aria-label', '收藏');
     fav.textContent = '♥';
     card.appendChild(fav);
@@ -462,7 +464,11 @@ export function wireFavorites(container: HTMLElement): void {
   container.querySelectorAll<HTMLButtonElement>('.fav-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const link = btn.dataset.link || '';
-      const nowFav = toggleFavorite(link);
+      const nowFav = toggleFavorite({
+        link,
+        title: btn.dataset.title || link,
+        source: btn.dataset.source || undefined,
+      });
       btn.classList.toggle('active', nowFav);
     });
   });

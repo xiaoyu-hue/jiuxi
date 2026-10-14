@@ -1,6 +1,6 @@
 // 九溪 · 设置与数据管理（轻量版，无 Zod 依赖）
 // settings.astro、feeds.ts 等均使用本模块，避免将 Zod 整库打入生产 bundle。
-// 收藏逻辑见 ./favorites；偏好与缓存键见本文件 FEED_PREFIX。
+// 收藏逻辑统一由 ./favorites 提供（单一数据源），本文件仅 re-export。
 
 const SETTINGS_KEY = 'jiuxi-settings';
 const FAV_KEY = 'jiuxi-favorites';
@@ -50,31 +50,10 @@ export function applySettings(s: JiuxiSettings): void {
   document.body.classList.toggle('reduce-motion', s.reduceMotion);
 }
 
-export function getFavorites(): string[] {
-  try {
-    const a = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
-    return Array.isArray(a) ? a : [];
-  } catch {
-    return [];
-  }
-}
-
-export function isFavorite(link: string): boolean {
-  return getFavorites().includes(link);
-}
-
-export function toggleFavorite(link: string): boolean {
-  const f = getFavorites();
-  const i = f.indexOf(link);
-  if (i >= 0) f.splice(i, 1);
-  else f.push(link);
-  try {
-    localStorage.setItem(FAV_KEY, JSON.stringify(f));
-  } catch {
-    /* ignore */
-  }
-  return i < 0;
-}
+// 收藏逻辑统一由 ./favorites 提供（单一数据源，避免两份实现漂移）
+import { getFavorites, isFavorite, toggleFavorite } from './favorites';
+export { getFavorites, isFavorite, toggleFavorite };
+export type { Favorite } from './favorites';
 
 export function exportData(): string {
   return JSON.stringify({ settings: getSettings(), favorites: getFavorites() }, null, 2);
@@ -93,8 +72,22 @@ export function importData(json: string): boolean {
         glassBlur: Math.min(40, Math.max(0, s.glassBlur)),
       });
     }
-    if (Array.isArray(f) && f.every((x: unknown) => typeof x === 'string')) {
-      localStorage.setItem(FAV_KEY, JSON.stringify(f));
+    if (Array.isArray(f)) {
+      const norm = f
+        .map((x: unknown): any =>
+          typeof x === 'string'
+            ? { link: x, title: x, ts: 0 }
+            : x && typeof (x as any).link === 'string'
+              ? {
+                  link: (x as any).link,
+                  title: (x as any).title || (x as any).link,
+                  source: (x as any).source,
+                  ts: (x as any).ts || 0,
+                }
+              : null,
+        )
+        .filter(Boolean);
+      localStorage.setItem(FAV_KEY, JSON.stringify(norm));
     }
     return true;
   } catch {

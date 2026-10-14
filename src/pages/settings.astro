@@ -151,7 +151,7 @@ import GlassCard from '../components/GlassCard.astro';
     if (!list) return;
     const favs = getFavorites();
     list.innerHTML = favs
-      .map((l) => `<li><a href="${escapeHtml(sanitizeUrl(l))}" target="_blank" rel="noopener">${escapeHtml(l)}</a></li>`)
+      .map((f) => `<li><a href="${escapeHtml(sanitizeUrl(f.link))}" target="_blank" rel="noopener">${escapeHtml(f.title || f.link)}</a></li>`)
       .join('');
     if (empty) empty.style.display = favs.length ? 'none' : 'block';
   }
