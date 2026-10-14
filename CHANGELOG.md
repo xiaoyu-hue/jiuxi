@@ -2,10 +2,16 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
-## [v1.4.3] — 2026-10-14
+## [v1.5.0] — 2026-10-14
+
+> 体验升级版本：补齐九溪相对 AIHOT 的信息架构与移动端短板，同时把「人工策展深度沉淀」护城河做厚。Phase A（首页今日热点 + 收藏体系）与 Phase B（热点榜 + 分组导航 + 移动 TabBar + 站内搜索）合并发布。
 
 ### Added
 
+- **阶段 A · 首页今日热点 + 收藏体系重构**：
+  - **首页「今日热点」模块**：在 Bento 门户之前新增跨板块聚合条，并发读取四板块 D1 候选（`/api/candidates?section=`），按「独立信源数（cluster_size）」降序取前 10 条；D1 为空时回退浏览器端实时聚合（`refreshFeedOnline`），永不白屏。
+  - **收藏单数据源重构**：原 `favorites.ts` 与 `settings.ts` 各写一套实现、共用 `jiuxi-favorites` 键易冲突；改为 `favorites.ts` 单一真相（对象化存储 `{link,title,source?,ts}`，旧版纯字符串条目自动归一化），`settings.ts` 仅 re-export 复用；`renderItems` 写入 `data-title`/`data-source`、`wireFavorites` 改为 `toggleFavorite({link,title,source})`。
+  - **收藏页 `/starred`**：新增带标题的收藏列表（读 `getFavorites()` 映射为 items，复用 `renderItems`/`wireFavorites`）；设置页收藏渲染改为显示标题（`<a>` 链接）。
 - **阶段 B · 信息架构与移动端（全局热点榜 + 分组导航 + 移动 TabBar + 站内搜索）**：补齐九溪相对 AIHOT 的短板，同时保留「人工策展深度沉淀」护城河。
   - **全局热点榜 `/hot`**：跨 AI / 新闻 / 科技 / 游戏 四板块，按「独立信源数（cluster_size）」降序聚合，顶部 `Filters` 可按板块筛选；复用首页「今日热点」逻辑，D1 为空时回退实时聚合，永不白屏。
   - **主导航分组**：改为「动态 / 策展 / 更多」三组胶囊（动态含首页/AI/热点/新闻/科技/游戏/历史回顾；策展含时间线/工具箱/读书；更多含收藏/设置/关于）。
