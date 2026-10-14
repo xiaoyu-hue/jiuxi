@@ -2,7 +2,9 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
-## [Unreleased] — 架构精简：移除 GitHub Pages 备用站
+## [Unreleased]
+
+## [v1.5.1] — 2026-10-14
 
 > 聚焦 Cloudflare Pages 单站（Pages Functions 轻后端 + D1 保留），移除备站与双站容灾。
 
