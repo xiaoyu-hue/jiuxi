@@ -2,6 +2,7 @@
 // 九溪 · 首页聚合（Bento 卡片门户 + 今日热点模块）
 import BaseLayout from '../layouts/BaseLayout.astro';
 import GlassCard from '../components/GlassCard.astro';
+import JiuxiMark from '../components/JiuxiMark.astro';
 import { withBase } from '../lib/site';
 
 const blocks = [
@@ -19,8 +20,9 @@ const blocks = [
 ---
 <BaseLayout title="九溪">
   <header class="masthead">
-    <h1 class="masthead-title">九溪</h1>
-    <hr class="masthead-rule" />
+    <h1 class="masthead-mark" aria-label="九溪">
+      <JiuxiMark size={64} />
+    </h1>
     <p class="masthead-lead">综合信息聚集地 · AI 为主，热点新闻为辅</p>
     <p class="masthead-date">
       {
@@ -36,7 +38,7 @@ const blocks = [
 
   <header class="feed-head">
     <h2>今日热点</h2>
-    <p>跨板块按独立信源数排序 · 被越多源报道越靠前</p>
+    <p>聚合 AI · 新闻 · 科技 · 游戏 四板块热讯 · 多源交叉的同一事件置顶</p>
   </header>
   <div class="feed-grid" id="home-hot">
     <p class="feed-meta">正在加载今日热点…</p>
@@ -55,8 +57,7 @@ const blocks = [
 </BaseLayout>
 
 <script>
-  import { renderItems, wireFavorites, refreshFeedOnline } from '../lib/feeds';
-  import { cleanFeedItems, type FeedItemClean } from '../lib/feeds';
+  import { renderItems, wireFavorites, refreshFeedOnline, cleanFeedItems, rankByHeat } from '../lib/feeds';
 
   const SECTIONS = ['ai', 'news', 'tech', 'gaming'] as const;
   const el = document.getElementById('home-hot');
@@ -78,18 +79,15 @@ const blocks = [
         }
       }),
     );
-    const byHeat = (a: FeedItemClean, b: FeedItemClean) => (b.sources?.length || 1) - (a.sources?.length || 1);
     const items = cleanFeedItems(raw);
     if (items.length) {
-      items.sort(byHeat);
-      renderItems(root, items.slice(0, 10));
+      renderItems(root, rankByHeat(items, 3).slice(0, 10));
       wireFavorites(root);
     } else {
       // D1 为空时回退实时聚合（同 /curate 逻辑），永不白屏
       const live = cleanFeedItems((await Promise.all(SECTIONS.map((s) => refreshFeedOnline(s)))).flat());
       if (live.length) {
-        live.sort(byHeat);
-        renderItems(root, live.slice(0, 10));
+        renderItems(root, rankByHeat(live, 3).slice(0, 10));
         wireFavorites(root);
       } else {
         root.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
@@ -102,13 +100,14 @@ const blocks = [
 
 <style>
   .bento {
+    margin: 44px 0 8px;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
+    gap: 18px;
   }
   .bento-card h3 {
-    margin: 0 0 6px;
-    font-size: 1.15rem;
+    margin: 0 0 8px;
+    font-size: var(--fs-card);
   }
   .bento-card p {
     margin: 0;

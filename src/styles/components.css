@@ -5,13 +5,14 @@
 
 /* ── 动态资讯卡片（报刊版式）── */
 .feed-head {
-  margin: 28px 0 16px;
-  padding-bottom: 10px;
+  margin: 44px 0 20px;
+  padding-bottom: 14px;
   border-bottom: 2px solid var(--text-strong);
 }
 .feed-head h2 {
-  margin: 0 0 4px;
-  font-size: 1.7rem;
+  margin: 0 0 6px;
+  font-size: var(--fs-h2);
+  letter-spacing: 0.01em;
 }
 .feed-status {
   font-size: 0.8rem;
@@ -22,14 +23,14 @@
 .feed-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  column-gap: 32px;
+  column-gap: 44px;
   row-gap: 0;
 }
 
 /* 卡片：无气泡面板，以顶部发丝线分隔，呈报刊条目感 */
 .feed-card {
   position: relative;
-  padding: 18px 0;
+  padding: 24px 0;
   border-top: 1px solid var(--rule);
   transition:
     transform 0.25s ease,
@@ -66,7 +67,7 @@
 .feed-title {
   margin: 0 0 8px;
   font-family: var(--font-serif);
-  font-size: 1.18rem;
+  font-size: var(--fs-feed-title);
   font-weight: 700;
   line-height: 1.45;
   transition: color 0.2s ease;
@@ -123,13 +124,13 @@
 
 /* ── 通用页面标题 ── */
 .page-head {
-  margin: 28px 0 16px;
-  padding-bottom: 10px;
+  margin: 44px 0 20px;
+  padding-bottom: 14px;
   border-bottom: 2px solid var(--text-strong);
 }
 .page-head h2 {
-  margin: 0 0 4px;
-  font-size: 1.7rem;
+  margin: 0 0 6px;
+  font-size: var(--fs-h2);
 }
 .page-head p {
   margin: 0;
@@ -139,35 +140,105 @@
 
 /* ── 首页报头（masthead，报刊气息）── */
 .masthead {
-  margin: 28px 0 8px;
+  margin: 32px 0 12px;
   text-align: center;
 }
-.masthead-title {
-  font-family: var(--font-serif);
-  font-size: 2.6rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  margin: 0;
+/* 九点汇聚 · 签名母题：外环随文字色（currentColor），中心点用强调色 */
+.jiuxi-mark {
+  display: inline-block;
+  vertical-align: middle;
 }
-.masthead-rule {
-  width: 64px;
-  height: 3px;
-  background: var(--accent);
-  margin: 14px auto;
-  border: none;
+.masthead-mark {
+  margin: 0;
+  line-height: 1;
+}
+.masthead-mark .jiuxi-mark {
+  display: block;
+  margin: 0 auto 4px;
+  color: var(--text-strong);
 }
 .masthead-lead {
   margin: 0;
   color: var(--text-muted);
-  font-family: var(--font-sans);
-  letter-spacing: 0.08em;
+  font-family: var(--font-serif);
+  font-size: var(--fs-lead);
+  letter-spacing: 0.14em;
 }
 .masthead-date {
-  margin: 6px 0 0;
+  margin: 10px 0 0;
   font-family: var(--font-sans);
   font-size: 0.8rem;
   color: var(--text-muted);
   letter-spacing: 0.1em;
+}
+
+/* ── ③ 九点汇聚 · 报头进视口时逐点落定（记忆点）；中心"汇聚点"最后落定 ── */
+@media (prefers-reduced-motion: no-preference) {
+  .masthead.reveal .masthead-mark .jiuxi-mark circle {
+    opacity: 0;
+    transform: scale(0.3);
+    transform-origin: center;
+    transform-box: fill-box;
+  }
+  .masthead .masthead-mark circle {
+    --d: 0s;
+  }
+  .masthead .masthead-mark circle:nth-child(1) {
+    --d: 0s;
+  }
+  .masthead .masthead-mark circle:nth-child(2) {
+    --d: 0.05s;
+  }
+  .masthead .masthead-mark circle:nth-child(3) {
+    --d: 0.1s;
+  }
+  .masthead .masthead-mark circle:nth-child(4) {
+    --d: 0.15s;
+  }
+  .masthead .masthead-mark circle:nth-child(6) {
+    --d: 0.2s;
+  }
+  .masthead .masthead-mark circle:nth-child(7) {
+    --d: 0.25s;
+  }
+  .masthead .masthead-mark circle:nth-child(8) {
+    --d: 0.3s;
+  }
+  .masthead .masthead-mark circle:nth-child(9) {
+    --d: 0.35s;
+  }
+  .masthead .masthead-mark circle:nth-child(5) {
+    --d: 0.45s;
+  } /* 中心 · 汇聚点最后落定 */
+  .masthead.reveal.is-visible .masthead-mark .jiuxi-mark circle {
+    animation: jiuxi-dot-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d) forwards;
+  }
+}
+@keyframes jiuxi-dot-in {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+/* 今日热点逐条级联进入（仅前排克制，避免刷屏感） */
+@media (prefers-reduced-motion: no-preference) {
+  .feed-grid .feed-card.reveal {
+    transition:
+      opacity 0.5s ease var(--fd, 0s),
+      transform 0.5s ease var(--fd, 0s);
+  }
+  .feed-grid .feed-card.reveal:nth-child(2) {
+    --fd: 0.06s;
+  }
+  .feed-grid .feed-card.reveal:nth-child(3) {
+    --fd: 0.12s;
+  }
+  .feed-grid .feed-card.reveal:nth-child(4) {
+    --fd: 0.18s;
+  }
+  .feed-grid .feed-card.reveal:nth-child(5) {
+    --fd: 0.24s;
+  }
 }
 
 /* ── 滚动锁（搜索浮层 / 我的 sheet 打开时）── */

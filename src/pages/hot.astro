@@ -21,7 +21,7 @@ const SECTIONS = [
 >
   <header class="page-head">
     <h2>全局热点榜</h2>
-    <p>跨板块聚合，按「独立信源数」排序——被越多不同来源报道的同一事件越靠前。点击板块可筛选。</p>
+    <p>跨板块聚合，多源交叉的同一事件越靠前，单一来源已限流不刷屏。点击板块可筛选。</p>
   </header>
 
   <Filters target="hot-grid" sections={SECTIONS} />
@@ -32,12 +32,10 @@ const SECTIONS = [
 </BaseLayout>
 
 <script>
-  import { refreshFeedOnline, renderItems, wireFavorites } from '../lib/feeds';
+  import { refreshFeedOnline, renderItems, wireFavorites, rankByHeat } from '../lib/feeds';
 
   const SECTIONS = ['ai', 'news', 'tech', 'gaming'] as const;
   const grid = document.getElementById('hot-grid');
-
-  const byHeat = (a: any, b: any) => (b.sources?.length || 1) - (a.sources?.length || 1);
 
   // 渲染并给每张卡片写入 data-section（Filters 组件据此筛选）
   function renderTagged(container: HTMLElement, items: any[]) {
@@ -71,8 +69,7 @@ const SECTIONS = [
     );
 
     if (all.length) {
-      all.sort(byHeat);
-      renderTagged(grid, all.slice(0, 60));
+      renderTagged(grid, rankByHeat(all, 6).slice(0, 60));
       return;
     }
 
@@ -84,8 +81,7 @@ const SECTIONS = [
       live.push(...items);
     }
     if (live.length) {
-      live.sort(byHeat);
-      renderTagged(grid, live.slice(0, 60));
+      renderTagged(grid, rankByHeat(live, 6).slice(0, 60));
     } else {
       grid.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
     }

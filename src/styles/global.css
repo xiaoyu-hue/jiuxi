@@ -19,6 +19,12 @@
     'Noto Sans SC', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --radius: 12px;
   --measure: 68ch;
+
+  /* 流式字号（clamp：小屏取最小、大屏取最大、中间随视口呼吸）——替代固定 rem 断点跳档 */
+  --fs-lead: clamp(1.05rem, 0.95rem + 0.6vw, 1.5rem);
+  --fs-h2: clamp(1.5rem, 1.3rem + 1.1vw, 2.2rem);
+  --fs-card: clamp(1.05rem, 0.98rem + 0.4vw, 1.3rem);
+  --fs-feed-title: clamp(1.05rem, 1rem + 0.45vw, 1.4rem);
 }
 
 /* ── 基础排版（报刊基线）── */

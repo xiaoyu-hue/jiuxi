@@ -4,6 +4,26 @@
 
 ## [Unreleased]
 
+## [v1.6.0] — 2026-10-14
+
+> 报刊版式体验升级 v2：今日热点「多源交叉信任」排序修复 + 品牌签名母题「九点汇聚」+ 导航收敛 + 流式排版与留白节奏 + 克制动效编排。承续 v1.5.1 的 Cloudflare Pages 单站部署。
+
+### Fixed
+
+- **今日热点「多源交叉」信任排序**：`src/lib/feeds.ts` 新增 `rankByHeat(items, maxPerSource?)`——按「独立信源数」降序、平局按时间打破、同源可选限流，取代原先「全部为单源时打平 → 高频源（如 IT 之家）量最大占满」的退化排序。首页「今日热点」（`index.astro`，`rankByHeat(items/live, 3)`）与全局热点榜（`hot.astro`，`rankByHeat(all/live, 6)`）改用 `rankByHeat`，副标题文案改为「多源交叉的同一事件置顶」。
+
+### Added
+
+- **品牌签名母题「九点汇聚」**：新增 `src/components/JiuxiMark.astro`——3×3 九点 SVG（外环 `currentColor`、中心 `var(--accent)`，零依赖、随主题换色），作为九溪的视觉签名（「九源汇聚成一点」）。
+
+### Changed
+
+- **导航收敛（4 + 更多）**：`SiteNav.astro` 由三组 13 链接（16 胶囊）改为常驻 4 项（首页 / AI / 热点 / 科技）+ 原生 `<details>`「更多 ▾」收纳其余 9 项；零 JS、可访问、面板悬浮。移动端仍走底部 TabBar（3 + 1），不动。
+- **双「九溪」字标收一**：`BaseLayout.astro` 顶栏「九溪」字标 → 九点母题 + 字标；`index.astro` 报头删除大号「九溪」h1 与分隔横线，改由九点母题 + 标语 + 日期承载报头（报头大九点 + 顶栏小九点 = 报刊「头版 vs 刊头」惯例）。
+- **流式排版（fluid type）**：`global.css` 新增 `clamp()` 流式字号令牌 `--fs-lead / --fs-h2 / --fs-card / --fs-feed-title`，应用于报头标语、栏目/页头 h2、资讯标题、bento 卡片标题——字号随视口呼吸，不再断点跳档。
+- **留白节奏（whitespace）**：栏目/页头上边距 28 → 44px、资讯栏列距 32 → 44px、卡片内边距加大、bento 间距 14 → 18px，整体更「报刊」、更透气。
+- **克制动效编排（记忆点）**：`components.css` 新增 `jiuxi-dot-in`——报头九点进视口时逐颗落定（中心「汇聚点」最后）、今日热点卡片逐条级联进入（`--d`/`--fd` 延迟）；纯 CSS、零新增依赖，`prefers-reduced-motion` 全门控（减弱 / 关闭动画时直接静态显示、不卡死）。
+
 ## [v1.5.1] — 2026-10-14
 
 > 聚焦 Cloudflare Pages 单站（Pages Functions 轻后端 + D1 保留），移除备站与双站容灾。

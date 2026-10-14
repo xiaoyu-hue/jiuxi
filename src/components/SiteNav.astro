@@ -1,94 +1,76 @@
 ---
-// 九溪 · 主导航（分组：动态 / 策展 / 更多；小屏隐藏，由底部 TabBar 承载）
+// 九溪 · 主导航（4 个高频页常驻 + 原生「更多 ▾」收纳其余；小屏隐藏，由底部 TabBar 承载）
 import { withBase } from '../lib/site';
 
-const groups = [
-  {
-    label: '动态',
-    links: [
-      { href: '/', label: '首页' },
-      { href: '/ai', label: 'AI' },
-      { href: '/hot', label: '热点' },
-      { href: '/news', label: '新闻' },
-      { href: '/tech', label: '科技' },
-      { href: '/gaming', label: '游戏' },
-      { href: '/history', label: '历史回顾' },
-    ],
-  },
-  {
-    label: '策展',
-    links: [
-      { href: '/timeline', label: '时间线' },
-      { href: '/tools', label: '工具箱' },
-      { href: '/reading', label: '读书' },
-    ],
-  },
-  {
-    label: '更多',
-    links: [
-      { href: '/starred', label: '收藏' },
-      { href: '/settings', label: '设置' },
-      { href: '/about', label: '关于' },
-    ],
-  },
+// 常驻高频（认知负荷最低的 4 个）
+const primary = [
+  { href: '/', label: '首页' },
+  { href: '/ai', label: 'AI' },
+  { href: '/hot', label: '热点' },
+  { href: '/tech', label: '科技' },
+];
+// 收纳进「更多」
+const more = [
+  { href: '/news', label: '新闻' },
+  { href: '/gaming', label: '游戏' },
+  { href: '/history', label: '历史回顾' },
+  { href: '/timeline', label: '时间线' },
+  { href: '/tools', label: '工具箱' },
+  { href: '/reading', label: '读书' },
+  { href: '/starred', label: '收藏' },
+  { href: '/settings', label: '设置' },
+  { href: '/about', label: '关于' },
 ];
 
 const path = Astro.url.pathname;
 const isActive = (href: string) =>
-  href === '/'
-    ? path === withBase('/')
-    : path.startsWith(withBase(href));
+  href === '/' ? path === withBase('/') : path.startsWith(withBase(href));
+const moreActive = more.some((l) => isActive(l.href));
 ---
 
 <nav class="site-nav glass" aria-label="主导航">
-  {
-    groups.map((g) => (
-      <div class="nav-group">
-        <span class="nav-group-label">{g.label}</span>
-        <ul>
-          {g.links.map((l) => (
-            <li>
-              <a
-                href={withBase(l.href)}
-                class:list={['nav-link', { active: isActive(l.href) }]}
-                aria-current={isActive(l.href) ? 'page' : undefined}
-              >
-                {l.label}
-              </a>
-            </li>
-          ))}
-        </ul>
+  <div class="nav-row">
+    {
+      primary.map((l) => (
+        <a
+          href={withBase(l.href)}
+          class:list={['nav-link', 'primary', { active: isActive(l.href) }]}
+          aria-current={isActive(l.href) ? 'page' : undefined}
+        >
+          {l.label}
+        </a>
+      ))
+    }
+    <details class="nav-more">
+      <summary
+        class:list={['nav-link', 'nav-more-summary', { active: moreActive }]}
+      >
+        更多
+      </summary>
+      <div class="nav-more-panel">
+        {more.map((l) => (
+          <a
+            href={withBase(l.href)}
+            class:list={['nav-link', { active: isActive(l.href) }]}
+            aria-current={isActive(l.href) ? 'page' : undefined}
+          >
+            {l.label}
+          </a>
+        ))}
       </div>
-    ))
-  }
+    </details>
+  </div>
 </nav>
 
 <style>
   .site-nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px 22px;
     margin: 0 12px 12px;
     padding: 10px 14px;
   }
-  .nav-group {
+  .nav-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .nav-group-label {
-    font-size: 0.72rem;
-    letter-spacing: 0.14em;
-    color: var(--text-muted);
-    font-family: var(--font-sans);
-  }
-  .nav-group ul {
-    display: flex;
     gap: 6px;
-    list-style: none;
-    margin: 0;
-    padding: 0;
     flex-wrap: wrap;
   }
   .nav-link {
@@ -103,16 +85,59 @@ const isActive = (href: string) =>
       background 0.2s,
       color 0.2s;
   }
+  .nav-link.primary {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-strong);
+  }
   .nav-link:hover {
     color: var(--text-strong);
     background: var(--accent-soft);
   }
   .nav-link.active {
-    color: var(--text-strong);
+    color: var(--accent);
     background: var(--accent-soft);
     font-weight: 600;
   }
-  /* 小屏由底部 TabBar 承载导航，隐藏分组主导航避免重复 */
+  /* 「更多」：原生 <details>，零 JS、可访问；面板绝对定位悬浮 */
+  .nav-more {
+    position: relative;
+  }
+  .nav-more-summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  .nav-more-summary::-webkit-details-marker {
+    display: none;
+  }
+  .nav-more-summary::after {
+    content: ' ▸';
+    font-size: 0.7em;
+  }
+  .nav-more[open] .nav-more-summary::after {
+    content: ' ▾';
+  }
+  .nav-more-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 30;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 240px;
+    max-width: min(420px, 80vw);
+    padding: 10px;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.14);
+  }
+  .nav-more-panel .nav-link {
+    font-size: 0.9rem;
+  }
+  /* 小屏由底部 TabBar 承载，隐藏分组主导航 */
   @media (max-width: 768px) {
     .site-nav {
       display: none;

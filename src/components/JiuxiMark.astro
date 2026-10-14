@@ -1,0 +1,19 @@
+---
+// 九溪 · 签名母题「九点汇聚」：3×3 九点，中心点用强调色（各源汇聚的焦点）。
+// 纯 SVG、零依赖、随主题换色（外环 currentColor、中心 var(--accent)）；大小/位置由外部 class 控制。
+interface Props {
+  size?: number;   // 外框边长（px），默认 20
+  class?: string; // 外部附加类（定位/间距/换色）
+}
+const { size = 20, class: cls = '' } = Astro.props;
+const coords = [5, 12, 19];
+const cells: Array<{ x: number; y: number; accent: boolean }> = [];
+for (const y of coords) for (const x of coords) cells.push({ x, y, accent: x === 12 && y === 12 });
+const className = ['jiuxi-mark', cls].filter(Boolean).join(' ');
+---
+<svg class={className} viewBox="0 0 24 24" width={size} height={size} aria-hidden="true"
+     xmlns="http://www.w3.org/2000/svg">
+  {cells.map((c) => (
+    <circle cx={c.x} cy={c.y} r="2" style={c.accent ? 'fill:var(--accent)' : 'fill:currentColor'} />
+  ))}
+</svg>

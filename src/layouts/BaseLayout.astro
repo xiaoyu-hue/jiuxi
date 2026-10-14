@@ -9,6 +9,7 @@ import ThemeSwitcher from '../components/ThemeSwitcher.astro';
 import SiteNav from '../components/SiteNav.astro';
 import MobileTabBar from '../components/MobileTabBar.astro';
 import SearchOverlay from '../components/SearchOverlay.astro';
+import JiuxiMark from '../components/JiuxiMark.astro';
 import { withBase } from '../lib/site';
 
 interface Props {
@@ -81,7 +82,10 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
   </head>
   <body>
     <header class="site-header glass">
-      <a class="brand" href={withBase('/')}>九溪</a>
+      <a class="brand" href={withBase('/')}>
+        <JiuxiMark size={18} />
+        <span class="brand-name">九溪</span>
+      </a>
       <div class="site-header-actions">
         <button
           type="button"
@@ -147,11 +151,21 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
     padding: 10px 18px;
   }
   .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
     font-weight: 800;
     font-size: 1.3rem;
     letter-spacing: 0.12em;
     color: var(--text-strong);
     text-decoration: none;
+  }
+  .brand .jiuxi-mark {
+    color: var(--text-strong);
+    flex: none;
+  }
+  .brand-name {
+    letter-spacing: 0.12em;
   }
   .site-header-actions {
     display: flex;

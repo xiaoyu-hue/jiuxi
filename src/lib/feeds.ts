@@ -404,6 +404,33 @@ export async function loadFeed(section: Section): Promise<FeedItem[]> {
  * 标题/来源/摘要一律用 textContent 写入（天然免疫 XSS，无需 HTML 转义）；
  * 链接用 sanitizeUrl 校验后写 href / data-link。
  */
+/**
+ * 「今日热点」排序 + 同源限流：先按独立信源数降序，平局再按时间降序打破；
+ * 同一来源 label 在结果里最多 maxPerSource 条，避免单一媒体刷屏。
+ * @maxPerSource 传 0/undefined 表示不限流。
+ */
+export function rankByHeat<T extends { sources?: string[]; source?: string; pubDate?: string }>(
+  items: T[],
+  maxPerSource?: number,
+): T[] {
+  const timeDesc = (a: T, b: T) =>
+    (b.pubDate ? Date.parse(b.pubDate) : 0) - (a.pubDate ? Date.parse(a.pubDate) : 0);
+  const sorted = [...items].sort(
+    (a, b) => ((b.sources?.length || 1) - (a.sources?.length || 1)) || timeDesc(a, b),
+  );
+  if (!maxPerSource || maxPerSource <= 0) return sorted;
+  const counts = new Map<string, number>();
+  const out: T[] = [];
+  for (const it of sorted) {
+    const key = it.source || it.sources?.[0] || 'unknown';
+    const n = counts.get(key) || 0;
+    if (n >= maxPerSource) continue;
+    counts.set(key, n + 1);
+    out.push(it);
+  }
+  return out;
+}
+
 export function renderItems(container: HTMLElement, items: FeedItem[]): void {
   const frag = document.createDocumentFragment();
   items.forEach((it, i) => {
