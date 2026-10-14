@@ -6,7 +6,7 @@
 
 | 项目     | 说明                                                                                                                                |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| 当前版本 | **v1.4.1**（Cloudflare D1 云端历史存储、资讯源扩至 21 个、按源轮询多元化选取、策展内容大扩充——时间线 213 条 / 工具箱 74 个 / 读书 58 本；安全门禁两批工具链上线：第一批 ZAP / zizmor / Scorecard / harden-runner / TruffleHog，第二批 Nuclei / Trivy / SBOM；osv-scanner 依赖漏洞门禁转强制、SECURITY.md 漏洞披露策略、修复历史回顾页存储型 DOM-XSS） |
+| 当前版本 | **v1.4.1**（Cloudflare D1 云端历史存储、资讯源扩至 21 个、按源轮询多元化选取、策展内容大扩充——时间线 255 条 / 工具箱 151 个 / 读书 128 本；安全门禁两批工具链上线：第一批 ZAP / zizmor / Scorecard / harden-runner / TruffleHog，第二批 Nuclei / Trivy / SBOM；osv-scanner 依赖漏洞门禁转强制、SECURITY.md 漏洞披露策略、修复历史回顾页存储型 DOM-XSS） |
 | 技术栈   | Astro 7 · Tailwind CSS 4 · TypeScript（纯静态输出 + Cloudflare Pages Functions 轻后端）                                             |
 | 托管目标 | [Cloudflare Pages](https://jiuxi-bm1.pages.dev/)（主站）+ [GitHub Pages](https://xiaoyu-hue.github.io/jiuxi/)（备用副站，双站容灾） |
 | 许可证   | 代码 Apache-2.0 / 文档与内容 CC BY-NC 4.0                                                                                           |

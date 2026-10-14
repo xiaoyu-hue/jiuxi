@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **策展内容大扩充（时间线 213 → 255 条 / 工具箱 74 → 151 个 / 读书 58 → 128 本）**：补全 AI 发展时间线空缺年份国际经典事件（SNARC 1951、达特茅斯提案 1955、Unimate 1961、Sketchpad 1963、SHRDLU 1970、MYCIN 1976、深蓝 1996、AIBO 1999、ASIMO 2000、Stanley 2005 等 33 条）与国内早期里程碑（1956 中科院自动化所、1986 863 计划、2013 百度 IDL、2016 百度大脑/寒武纪、2019 智谱/昇腾 910、2022 文心一格等）；工具箱补齐语音（Whisper / CosyVoice / GPT-SoVITS / ChatTTS / F5-TTS）、数字人（HeyGen / SadTalker）、3D（Meshy / 混元 3D）、设计（v0 / Motiff）、办公（AiPPT）、编程（Devin / OpenHands / Bolt.new）、RAG（FastGPT / GraphRAG）、浏览器（Skyvern）、数据（Firecrawl / MinerU）、评测（OpenCompass）、具身（LeRobot）等大类；阅读推荐新增经济学 / 商业 / 政治 / 心理 / 社会 / 科学 / 传记 / 艺术 / 文学 / 哲学 / 历史 / AI / 思维等类别，优先公版在线直读（Gutenberg / ctext / marxists / OpenStax / feynmanlectures），无直读链接者附微信读书搜索兜底。全部外链经批量核验，唯一死链（Nature 404）已替换为维基 DeepSeek 条目。
+
 ### Fixed
 
 - **AI 板块实时刷新不覆盖内嵌旧数据**：`src/components/FeedSection.astro` 后台刷新（`refreshFeedOnline`）成功后直接整屏渲染在线最新结果，不再用 `mergeFeedItems` 把构建期内嵌的陈旧快照与在线最新做 round-robin 混合，解决「AI 板块显示的内容不是最新」的问题。主站 `/api/feed` 第一方代理已实测可用且能拉到更新数据（如 ArXiv 经代理返回当天条目）；备站（GitHub Pages 无 Functions 代理）的 RSS 源仍依赖构建期内嵌，需另做「自动重抓」层才能彻底新鲜。
