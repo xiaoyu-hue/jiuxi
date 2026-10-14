@@ -5,9 +5,8 @@
 //   - 有空：逐条挑，认可的沉淀进 timeline / tools / reading；
 //   - 没空：交自动流接管（高质量候选直接发布，门禁见 docs/feed-policy）。
 //
-// 复用 src/lib/feeds.ts 的 refreshFeedOnline（主站走服务端聚合端点、备站降级前端
-// 聚簇），不在本页重复算法。D1 持久化候选（定时写入、跨会话留痕）作为后续增强，
-// 待 Cloudflare 部署权限后接入——本页只消费实时聚簇结果，零新增服务端依赖。
+// 优先读 D1 持久化的候选（/api/candidates，跨会话留痕）；D1 缺失/为空时回退
+// 实时聚合端点（refreshFeedOnline，会写穿回填 D1），保证永不白屏。
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const sections = ['ai', 'news', 'tech', 'gaming'] as const;
@@ -37,22 +36,49 @@ const labels: Record<string, string> = { ai: 'AI', news: '新闻', tech: '科技
 
   <script>
     import { refreshFeedOnline, renderItems, wireFavorites } from '../lib/feeds';
+    const CANDIDATES_API = '/api/candidates';
     const sections = ['ai', 'news', 'tech', 'gaming'] as const;
+
+    async function loadCandidates(s: string): Promise<any[] | null> {
+      try {
+        const res = await fetch(`${CANDIDATES_API}?section=${s}`);
+        if (!res.ok) return null;
+        const json = (await res.json()) as { items?: any[] };
+        if (Array.isArray(json.items)) return json.items;
+        return null;
+      } catch {
+        return null;
+      }
+    }
+
+    async function fallback(s: string, el: HTMLElement) {
+      try {
+        const items = await refreshFeedOnline(s as any);
+        if (!items.length) {
+          el.innerHTML = '<p class="feed-meta">暂无候选</p>';
+          return;
+        }
+        renderItems(el, items);
+        wireFavorites(el);
+      } catch {
+        el.innerHTML = '<p class="feed-meta">加载失败，请稍后重试</p>';
+      }
+    }
+
     for (const s of sections) {
       const el = document.getElementById(`curate-${s}`) as HTMLElement | null;
       if (!el) continue;
-      refreshFeedOnline(s as any)
-        .then((items: any[]) => {
-          if (!items.length) {
-            el.innerHTML = '<p class="feed-meta">暂无候选</p>';
-            return;
+      loadCandidates(s)
+        .then((items) => {
+          // D1 有候选 → 直接展示；否则回退实时聚合（该路径会写穿回填 D1）
+          if (items && items.length) {
+            renderItems(el, items);
+            wireFavorites(el);
+          } else {
+            fallback(s, el);
           }
-          renderItems(el, items);
-          wireFavorites(el);
         })
-        .catch(() => {
-          el.innerHTML = '<p class="feed-meta">加载失败，请稍后重试</p>';
-        });
+        .catch(() => fallback(s, el));
     }
   </script>
 </BaseLayout>

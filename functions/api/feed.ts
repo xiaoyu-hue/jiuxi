@@ -92,6 +92,66 @@ function clusterFeed(items: any[]): any[] {
   }));
 }
 
+// ── D1 写穿（B-2 候选持久化）：聚簇结果落 candidates 表，跨会话留痕 ──
+// 仅用 Web 标准 D1 API；best-effort，任何失败只告警不阻断响应。
+function djb2(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = (((h << 5) + h + s.charCodeAt(i)) >>> 0) >>> 0;
+  return h.toString(16);
+}
+
+async function persistCandidates(env: any, section: string | null, items: any[]): Promise<void> {
+  const db = env && env.DB;
+  if (!db || !section || !items || !items.length) return;
+  const now = Date.now();
+  const stmts: any[] = [];
+  for (const it of items.slice(0, 30)) {
+    const title = (it.title || '').trim();
+    if (!title || !it.link) continue;
+    const hash = djb2(normalizeTitle(title) + '|' + section);
+    const sourceList = JSON.stringify(
+      it.sources && it.sources.length ? it.sources : it.source ? [it.source] : [],
+    );
+    stmts.push(
+      db
+        .prepare(
+          `INSERT INTO candidates (section, title, url, source, source_list, snippet, pub_date, cluster_size, hash, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(hash) DO UPDATE SET
+             title=excluded.title, url=excluded.url, source=excluded.source,
+             source_list=excluded.source_list, snippet=excluded.snippet, pub_date=excluded.pub_date,
+             cluster_size=excluded.cluster_size, updated_at=excluded.updated_at`,
+        )
+        .bind(
+          section,
+          title,
+          it.link,
+          it.source || null,
+          sourceList,
+          (it.snippet || '').slice(0, 280) || null,
+          it.pubDate || null,
+          it.sources?.length || 1,
+          hash,
+          now,
+          now,
+        ),
+    );
+  }
+  // 超出 250 条时裁剪最旧（按 updated_at），避免无限增长
+  stmts.push(
+    db
+      .prepare(
+        `DELETE FROM candidates WHERE section=? AND id NOT IN (SELECT id FROM candidates WHERE section=? ORDER BY updated_at DESC LIMIT 250)`,
+      )
+      .bind(section, section),
+  );
+  try {
+    await db.batch(stmts);
+  } catch (e: any) {
+    console.warn('[九溪] 候选落库失败（不影响响应）:', (e && e.message) || e);
+  }
+}
+
 // 轻量 RSS/Atom 解析（Worker 端不引 feed-extractor，正则提取覆盖九溪全部源）
 function decodeEntities(s: string): string {
   return (s || '')
@@ -133,7 +193,8 @@ function parseFeedXml(xml: string): any[] {
   return out.slice(0, 30);
 }
 
-async function handleAggregate(here: URL): Promise<Response> {
+async function handleAggregate(here: URL, env: any): Promise<Response> {
+  const section = here.searchParams.get('section');
   const specs = here.searchParams.getAll('s').filter(Boolean);
   if (!specs.length) return new Response('missing s', { status: 400 });
   const collected: any[] = [];
@@ -164,7 +225,10 @@ async function handleAggregate(here: URL): Promise<Response> {
   const clustered = clusterFeed(collected);
   // 按独立信源数（热度）降序：被越多不同源报道的事件越重要
   clustered.sort((a: any, b: any) => (b.sources?.length || 1) - (a.sources?.length || 1));
-  return new Response(JSON.stringify({ items: clustered.slice(0, 30) }), {
+  const items = clustered.slice(0, 30);
+  // 写穿：聚簇结果落 D1（best-effort，失败不阻断）；缺 DB 或 section 时静默跳过
+  await persistCandidates(env, section, items);
+  return new Response(JSON.stringify({ items, persisted: !!env?.DB }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
@@ -183,7 +247,7 @@ export const onRequest = async (context: any) => {
   if (here.searchParams.get('aggregate') === '1') {
     const origin = request.headers.get('origin');
     if (origin && origin !== here.origin) return new Response('origin not allowed', { status: 403 });
-    return handleAggregate(here);
+    return handleAggregate(here, context.env);
   }
 
   const target = here.searchParams.get('url');

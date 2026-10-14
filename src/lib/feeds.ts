@@ -303,7 +303,7 @@ async function refreshOnline(section: Section): Promise<FeedItem[]> {
   if (rssSources.length) {
     try {
       const aggUrl =
-        `${FEED_PROXY_PATH}?aggregate=1&` +
+        `${FEED_PROXY_PATH}?aggregate=1&section=${encodeURIComponent(section)}&` +
         rssSources.map((s) => `s=${encodeURIComponent(`${s.label}@${s.url}`)}`).join('&');
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), 8000);

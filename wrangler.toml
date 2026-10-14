@@ -13,7 +13,9 @@ pages_build_output_dir = "dist"
 # 移除该标志后发布恢复正常）。
 compatibility_date = "2024-09-23"
 
-# 历史回顾数据接口（functions/api/history.ts）读取的 D1 数据库绑定。
+# 历史回顾数据接口（functions/api/history.ts）读取的 D1 数据库绑定；
+# 候选持久化（functions/api/candidates.ts 读 / functions/api/feed.ts 聚合写穿）也复用本绑定，
+# 表为 candidates（建表见 scripts/ensure-candidates.mjs）。
 # 注意：本文件一旦包含 pages_build_output_dir，即成为 Pages 项目配置的唯一来源
 # （source of truth）—— CI 每次 wrangler pages deploy 都会用本文件覆盖云端设置，
 # 因此 D1 绑定必须写在这里：只在仪表盘/API 里绑定，会在下次部署时被抹掉
