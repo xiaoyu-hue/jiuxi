@@ -1,12 +1,9 @@
-# 九溪 · 双站部署
-# 主站：Cloudflare Pages（需仓库 Secrets: CLOUDFLARE_API_TOKEN、CLOUDFLARE_ACCOUNT_ID）
-# 备用：GitHub Pages（已在仓库 Settings 开启，Source=GitHub Actions）
-# 两个站点 base 路径不同：GitHub Pages 用 /jiuxi/，Cloudflare 用 /，故各自独立构建。
-# 任一失败不影响另一。
+# 九溪 · 单站部署（Cloudflare Pages 主站 + 轻后端）
+# 站点：Cloudflare Pages（需仓库 Secrets: CLOUDFLARE_API_TOKEN、CLOUDFLARE_ACCOUNT_ID）
 # 安全增强：每个 job 第一步均装 harden-runner（出口审计模式，只记录不阻断）；
 # 部署完成后调用 dast-scan.yml 可复用工作流对生产主站做 ZAP 基线扫描（advisory）。
 
-name: Deploy 九溪（双站）
+name: Deploy 九溪（Cloudflare）
 
 on:
   push:
@@ -19,11 +16,10 @@ on:
 
 permissions:
   contents: read
-  # pages: write 与 id-token: write 已下沉到 deploy-github-pages job
-  # （zizmor excessive-permissions：构建/质量 job 只需要 contents: read）
+  # （zizmor excessive-permissions：所有 job 只需 contents: read；GitHub Pages 权限已随备站移除）
 
 # 按「工作流 + 分支」隔离排队，PR 与主分支互不阻塞；
-# main 仍只有一个并发组，可防止 Pages 部署互相冲突。
+# main 仍只有一个并发组，可防止部署互相冲突。
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -60,38 +56,6 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-  # ── GitHub Pages 构建（base=/jiuxi/）──
-  build-pages:
-    # 构建与部署只在推送到 main 时进行；PR 上仅跑上面的 quality 门禁，绝不触发部署。
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-    needs: quality
-    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
-    steps:
-      - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: 构建静态站点
-        run: npm run build
-        env:
-          SITE_BASE: /jiuxi/
-          # GitHub Pages 副站规范域名（origin；/jiuxi 子路径由 base 负责）
-          SITE_URL: https://xiaoyu-hue.github.io
-      - name: 预抓取并注入动态资讯
-        run: node scripts/fetch-feeds.mjs
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: dist
-
   # ── Cloudflare 构建（base=/）──
   build-cloudflare:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
@@ -122,26 +86,6 @@ jobs:
         with:
           name: cf-dist
           path: dist
-
-  deploy-github-pages:
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-    needs: build-pages
-    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
-        with:
-          egress-policy: audit
-      - id: deployment
-        name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
   deploy-cloudflare:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
@@ -182,11 +126,11 @@ jobs:
 
   # ── DAST：部署完成后立即扫描生产主站（调用可复用工作流）──
   zap-baseline:
-    # 双站部署都成功后才扫；任一站点没部署（如未配 CF 密钥）则本 job 自动跳过。
+    # 主站部署成功后才扫；未配 CF 密钥则本 job 自动跳过。
     # ⚠️ 调用方可复用工作流的 job 不允许写 runs-on / continue-on-error（会解析失败），
     # advisory 语义由 dast-scan.yml 内部 job 的 continue-on-error 承载。
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-    needs: [deploy-github-pages, deploy-cloudflare]
+    needs: [deploy-cloudflare]
     # 自引用语法（GitHub 2026-07 起官方支持）：$/ 解析到当前运行的提交（zizmor
     # self-repository 修复）；被调工作流不用 secrets，故不传（secrets-inherit 修复）。
     uses: $/.github/workflows/dast-scan.yml
