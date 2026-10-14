@@ -65,6 +65,7 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
           {items.map(({ e, Content }) => (
             <article
               class="glass tl-item"
+              id={e.id}
               data-category={e.data.category}
               data-search={`${e.data.title} ${e.data.category} ${e.body}`}
             >

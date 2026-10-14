@@ -169,3 +169,16 @@
   color: var(--text-muted);
   letter-spacing: 0.1em;
 }
+
+/* ── 滚动锁（搜索浮层 / 我的 sheet 打开时）── */
+body.search-open,
+body.sheet-open {
+  overflow: hidden;
+}
+
+/* ── 移动端底部 TabBar 占位（避免内容被遮挡）── */
+@media (max-width: 768px) {
+  .site-main {
+    padding-bottom: 76px;
+  }
+}

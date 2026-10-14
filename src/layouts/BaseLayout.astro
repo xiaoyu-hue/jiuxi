@@ -7,6 +7,8 @@ import '../styles/components.css';
 import { ClientRouter } from 'astro:transitions';
 import ThemeSwitcher from '../components/ThemeSwitcher.astro';
 import SiteNav from '../components/SiteNav.astro';
+import MobileTabBar from '../components/MobileTabBar.astro';
+import SearchOverlay from '../components/SearchOverlay.astro';
 import { withBase } from '../lib/site';
 
 interface Props {
@@ -80,13 +82,24 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
   <body>
     <header class="site-header glass">
       <a class="brand" href={withBase('/')}>九溪</a>
-      <ThemeSwitcher />
+      <div class="site-header-actions">
+        <button
+          type="button"
+          class="header-search"
+          id="header-search"
+          aria-label="搜索"
+          title="搜索（/ 或 Cmd/Ctrl+K）"
+        >🔍</button>
+        <ThemeSwitcher />
+      </div>
     </header>
     <SiteNav />
     <main class="site-main">
       <slot />
     </main>
     <footer class="site-footer">九溪 · 综合信息聚集地</footer>
+    <MobileTabBar />
+    <SearchOverlay />
 
     <!-- 克制动效初始化（滚动渐显 / 卡片流过渡 / 平滑滚动），详见 src/lib/motion.ts -->
     <script>
@@ -99,6 +112,15 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
       }
       // astro:transitions 换页后重新绑定动效
       document.addEventListener('astro:after-swap', start);
+    </script>
+    <!-- 顶部搜索按钮 → 派发 jiuxi:open-search（由 SearchOverlay 接收） -->
+    <script>
+      document.addEventListener('click', (e) => {
+        const t = e.target as HTMLElement;
+        if (t.closest('#header-search')) {
+          window.dispatchEvent(new CustomEvent('jiuxi:open-search'));
+        }
+      });
     </script>
   </body>
 </html>
@@ -130,6 +152,30 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
     letter-spacing: 0.12em;
     color: var(--text-strong);
     text-decoration: none;
+  }
+  .site-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-search {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    display: grid;
+    place-items: center;
+    transition:
+      color 0.2s,
+      border-color 0.2s;
+  }
+  .header-search:hover {
+    color: var(--text-strong);
+    border-color: var(--accent);
   }
   .site-main {
     flex: 1;

@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/build-search-index.mjs && astro build",
     "preview": "astro preview",
     "astro": "astro",
     "check": "astro check",

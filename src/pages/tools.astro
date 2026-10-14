@@ -29,6 +29,7 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
       entries.map((e) => (
         <a
           class="glass tool-card"
+          id={e.id}
           href={sanitizeUrl(e.data.url)}
           target="_blank"
           rel="noopener"

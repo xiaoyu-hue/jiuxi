@@ -1,0 +1,223 @@
+---
+// 九溪 · 移动端底部 TabBar（仅小屏显示，桌面隐藏）
+//
+// 固定底部：首页 / 热点 / 工具 / 我的。「我的」展开底部 sheet，
+// 含 收藏 / 搜索 / 设置 / 关于。搜索按钮派发 jiuxi:open-search 事件，
+// 由 SearchOverlay 接收打开搜索浮层。
+// 通过事件委托绑定，兼容 astro:transitions 换页后节点重建。
+import { withBase } from '../lib/site';
+
+const path = Astro.url.pathname;
+const tabs = [
+  { href: '/', label: '首页', icon: '⌂' },
+  { href: '/hot', label: '热点', icon: '🔥' },
+  { href: '/tools', label: '工具', icon: '🛠' },
+];
+const moreActive = ['/starred', '/settings', '/about', '/search'].some(
+  (p) => path === withBase(p) || path.startsWith(withBase(p) + '/'),
+);
+
+const isActive = (href: string) =>
+  href === '/' ? path === withBase('/') : path.startsWith(withBase(href));
+---
+
+<nav class="tabbar" aria-label="移动端导航">
+  {
+    tabs.map((t) => (
+      <a
+        class:list={['tabbar-item', { active: isActive(t.href) }]}
+        href={withBase(t.href)}
+        aria-current={isActive(t.href) ? 'page' : undefined}
+      >
+        <span class="tabbar-icon" aria-hidden="true">{t.icon}</span>
+        <span class="tabbar-label">{t.label}</span>
+      </a>
+    ))
+  }
+  <button
+    type="button"
+    class:list={['tabbar-item', 'tabbar-more', { active: moreActive }]}
+    id="tabbar-more"
+    aria-haspopup="dialog"
+    aria-expanded="false"
+  >
+    <span class="tabbar-icon" aria-hidden="true">☰</span>
+    <span class="tabbar-label">我的</span>
+  </button>
+</nav>
+
+<div
+  class="tabbar-sheet"
+  id="tabbar-sheet"
+  role="dialog"
+  aria-modal="true"
+  aria-label="更多"
+  hidden
+>
+  <div class="tabbar-sheet-backdrop" data-close></div>
+  <div class="tabbar-sheet-panel glass">
+    <div class="tabbar-sheet-head">
+      <span>我的九溪</span>
+      <button type="button" class="tabbar-sheet-close" data-close aria-label="关闭">×</button>
+    </div>
+    <a class="tabbar-sheet-link" href={withBase('/starred')}>♥ 收藏</a>
+    <button type="button" class="tabbar-sheet-link" id="tabbar-search">🔍 搜索</button>
+    <a class="tabbar-sheet-link" href={withBase('/settings')}>⚙ 设置</a>
+    <a class="tabbar-sheet-link" href={withBase('/about')}>ℹ 关于</a>
+  </div>
+</div>
+
+<style>
+  /* 默认（桌面）隐藏；仅小屏显示，避免与分组主导航重复 */
+  .tabbar {
+    display: none;
+  }
+  @media (max-width: 768px) {
+    .tabbar {
+      display: flex;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 30;
+      justify-content: space-around;
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--glass-border);
+      padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    }
+  }
+  .tabbar-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-family: var(--font-sans);
+    padding: 4px 0;
+  }
+  .tabbar-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+  .tabbar-label {
+    font-size: 0.7rem;
+  }
+  .tabbar-item.active {
+    color: var(--accent);
+  }
+
+  /* ── 我的 sheet（底部弹层）── */
+  .tabbar-sheet[hidden] {
+    display: none;
+  }
+  .tabbar-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    align-items: flex-end;
+  }
+  .tabbar-sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+  }
+  .tabbar-sheet-panel {
+    position: relative;
+    width: 100%;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .tabbar-sheet-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-serif);
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+  .tabbar-sheet-close {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 1;
+  }
+  .tabbar-sheet-link {
+    display: block;
+    padding: 12px 8px;
+    border-radius: 10px;
+    color: var(--text-strong);
+    text-decoration: none;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+  }
+  .tabbar-sheet-link:hover {
+    background: var(--accent-soft);
+  }
+</style>
+
+<script>
+  // 通过事件委托绑定（兼容 astro:transitions 换页后节点重建），全局只绑一次
+  if (!(window as any).__jiuxiTabbarBound) {
+    (window as any).__jiuxiTabbarBound = true;
+
+    const $sheet = () => document.getElementById('tabbar-sheet');
+    const $more = () => document.getElementById('tabbar-more');
+
+    const openSheet = () => {
+      const s = $sheet();
+      const m = $more();
+      if (!s || !m) return;
+      s.hidden = false;
+      m.setAttribute('aria-expanded', 'true');
+      document.body.classList.add('sheet-open');
+    };
+    const closeSheet = () => {
+      const s = $sheet();
+      const m = $more();
+      if (!s || !m) return;
+      s.hidden = true;
+      m.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('sheet-open');
+    };
+    const toggleSheet = () => {
+      const s = $sheet();
+      if (!s) return;
+      s.hidden ? openSheet() : closeSheet();
+    };
+
+    document.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      if (t.closest('#tabbar-more')) {
+        toggleSheet();
+      } else if (t.closest('#tabbar-search')) {
+        closeSheet();
+        window.dispatchEvent(new CustomEvent('jiuxi:open-search'));
+      } else if (t.closest('[data-close]') && t.closest('.tabbar-sheet')) {
+        closeSheet();
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      const s = $sheet();
+      if (e.key === 'Escape' && s && !s.hidden) closeSheet();
+    });
+    document.addEventListener('astro:after-swap', closeSheet);
+  }
+</script>

@@ -1,0 +1,80 @@
+---
+// 九溪 · 板块筛选条（可复用组件）
+//
+// 用法：<Filters target="hot-grid" sections={[{key:'ai',label:'AI'}, ...]} />
+// 被筛选的网格容器需含 .feed-card[data-section]（由调用方在 renderItems 后写入）。
+// 点击筛选条按板块显示/隐藏卡片。脚本幂等（同页多次包含只绑定一次）。
+interface Props {
+  target: string; // 要筛选的网格容器 id
+  sections: { key: string; label: string }[];
+  allLabel?: string;
+}
+const { target, sections, allLabel = '全部' } = Astro.props;
+---
+
+<nav class="filters" data-filter-target={target} aria-label="板块筛选">
+  <button type="button" class="filter-btn active" data-filter="all">{allLabel}</button>
+  {
+    sections.map((s) => (
+      <button type="button" class="filter-btn" data-filter={s.key}>
+        {s.label}
+      </button>
+    ))
+  }
+</nav>
+
+<style>
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 18px;
+  }
+  .filter-btn {
+    padding: 6px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: var(--font-sans);
+    transition:
+      background 0.2s,
+      color 0.2s;
+  }
+  .filter-btn:hover {
+    color: var(--text-strong);
+  }
+  .filter-btn.active {
+    color: var(--text-strong);
+    background: var(--accent-soft);
+    font-weight: 600;
+  }
+</style>
+
+<script>
+  // 幂等：全局只绑定一次（同页多次包含本组件也只跑一遍）
+  if (!(window as any).__jiuxiFiltersBound) {
+    (window as any).__jiuxiFiltersBound = true;
+    document.querySelectorAll<HTMLElement>('.filters').forEach((nav) => {
+      const gridId = nav.dataset.filterTarget;
+      if (!gridId) return;
+      const grid = document.getElementById(gridId);
+      if (!grid) return;
+      nav.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.filter-btn');
+        if (!btn) return;
+        nav
+          .querySelectorAll('.filter-btn')
+          .forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        const f = btn.dataset.filter || 'all';
+        grid.querySelectorAll<HTMLElement>('.feed-card').forEach((card) => {
+          const sec = card.dataset.section || '';
+          card.style.display = f === 'all' || sec === f ? '' : 'none';
+        });
+      });
+    });
+  }
+</script>

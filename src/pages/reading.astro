@@ -8,7 +8,7 @@ import { sanitizeUrl } from '../lib/security';
 const books = await Promise.all(
   (await getCollection('reading')).map(async (e) => {
     const { Content } = await render(e);
-    return { data: e.data, Content };
+    return { id: e.id, data: e.data, Content };
   })
 );
 ---
@@ -21,8 +21,8 @@ const books = await Promise.all(
 
   <div class="book-grid">
     {
-      books.map(({ data, Content }) => (
-        <article class="glass book-card">
+      books.map(({ id, data, Content }) => (
+        <article class="glass book-card" id={id}>
           <h3>{data.title}</h3>
           {data.author && <p class="book-author">{data.author}</p>}
           {data.rating != null && (

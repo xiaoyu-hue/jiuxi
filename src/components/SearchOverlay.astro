@@ -1,0 +1,285 @@
+---
+// 九溪 · 站内搜索浮层（本地优先）
+//
+// 监听 jiuxi:open-search 事件（顶部搜索按钮 / 移动端「我的」sheet 触发），
+// 以及快捷键 `/` 与 Cmd/Ctrl+K。本地索引 public/search-index.json 由构建期
+// scripts/build-search-index.mjs 生成，零额外后端、零额外请求。
+// 站内未命中时给出 Google News 搜索兜底链接（新标签页打开，不直连写入 CSP）。
+// 通过事件委托 + 每次处理时重新查询节点，兼容 astro:transitions 换页。
+---
+
+<div
+  class="search-overlay"
+  id="search-overlay"
+  role="dialog"
+  aria-modal="true"
+  aria-label="站内搜索"
+  hidden
+>
+  <div class="search-backdrop" data-search-close></div>
+  <div class="search-panel glass">
+    <div class="search-bar">
+      <span class="search-icon" aria-hidden="true">🔍</span>
+      <input
+        id="search-input"
+        class="search-input"
+        type="search"
+        placeholder="搜索时间线 / 工具 / 读书…"
+        autocomplete="off"
+        aria-label="搜索关键词"
+      />
+      <button type="button" class="search-close" data-search-close aria-label="关闭">×</button>
+    </div>
+    <div class="search-results" id="search-results"></div>
+    <p class="search-hint">Enter 打开首个结果 · Esc 关闭 · 仅检索本站策展内容</p>
+  </div>
+</div>
+
+<style>
+  .search-overlay[hidden] {
+    display: none;
+  }
+  .search-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 12vh;
+  }
+  .search-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+  }
+  .search-panel {
+    position: relative;
+    width: min(640px, 92vw);
+    max-height: 76vh;
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--glass-border);
+  }
+  .search-icon {
+    color: var(--text-muted);
+  }
+  .search-input {
+    flex: 1;
+    border: none;
+    background: none;
+    color: var(--text-strong);
+    font-size: 1.05rem;
+    font-family: var(--font-sans);
+    outline: none;
+  }
+  .search-close {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 1;
+  }
+  .search-results {
+    overflow-y: auto;
+    padding: 8px 12px;
+  }
+  .search-empty {
+    color: var(--text-muted);
+    padding: 16px;
+    text-align: center;
+    font-family: var(--font-sans);
+  }
+  .search-empty a {
+    color: var(--accent);
+  }
+  .search-result {
+    display: block;
+    padding: 12px 10px;
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid var(--rule);
+  }
+  .search-result:hover {
+    background: var(--accent-soft);
+  }
+  .search-result-type {
+    font-size: 0.7rem;
+    color: var(--accent);
+    font-family: var(--font-sans);
+    margin-right: 8px;
+  }
+  .search-result-title {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 1.02rem;
+  }
+  .search-result-cat {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-left: 8px;
+    font-family: var(--font-sans);
+  }
+  .search-result-snippet {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    font-family: var(--font-sans);
+  }
+  .search-hint {
+    margin: 0;
+    padding: 10px 16px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    border-top: 1px solid var(--glass-border);
+  }
+</style>
+
+<script>
+  // 全局只绑一次；每次处理都重新查询节点，兼容 astro:transitions 换页
+  if (!(window as any).__jiuxiSearchBound) {
+    (window as any).__jiuxiSearchBound = true;
+
+    const base = import.meta.env.BASE_URL || '/';
+    let indexCache: { items: any[] } | null = null;
+    let loadPromise: Promise<{ items: any[] }> | null = null;
+
+    const $overlay = () => document.getElementById('search-overlay');
+    const $input = () => document.getElementById('search-input') as HTMLInputElement | null;
+    const $results = () => document.getElementById('search-results');
+
+    function loadIndex() {
+      if (loadPromise) return loadPromise;
+      loadPromise = fetch(base + 'search-index.json')
+        .then((r) => (r.ok ? r.json() : { items: [] }))
+        .catch(() => ({ items: [] }));
+      return loadPromise;
+    }
+
+    async function open() {
+      const ov = $overlay();
+      const inp = $input();
+      if (!ov || !inp) return;
+      ov.hidden = false;
+      document.body.classList.add('search-open');
+      inp.value = '';
+      const res = $results();
+      if (res) res.innerHTML = '<p class="search-empty">输入关键词开始搜索</p>';
+      inp.focus();
+      indexCache = await loadIndex();
+    }
+    function close() {
+      const ov = $overlay();
+      if (!ov) return;
+      ov.hidden = true;
+      document.body.classList.remove('search-open');
+    }
+
+    function render() {
+      const inp = $input();
+      const res = $results();
+      if (!inp || !res) return;
+      const q = inp.value.trim();
+      if (!q) {
+        res.innerHTML = '<p class="search-empty">输入关键词开始搜索</p>';
+        return;
+      }
+      const query = q.toLowerCase();
+      const items: any[] = indexCache?.items || [];
+      const hits = items
+        .filter((it: any) =>
+          (it.title + ' ' + (it.category || '') + ' ' + (it.snippet || ''))
+            .toLowerCase()
+            .includes(query),
+        )
+        .slice(0, 30);
+
+      if (!hits.length) {
+        const url = 'https://news.google.com/search?q=' + encodeURIComponent(q);
+        res.innerHTML = `<p class="search-empty">站内未找到，可<a href="${url}" target="_blank" rel="noopener">去 Google News 搜「${q.replace(/[<>&"]/g, '')}」</a></p>`;
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      for (const it of hits) {
+        const a = document.createElement('a');
+        a.className = 'search-result';
+        a.href = base + (it.url as string).replace(/^\//, '');
+        const type = document.createElement('span');
+        type.className = 'search-result-type';
+        type.textContent = it.type;
+        const title = document.createElement('span');
+        title.className = 'search-result-title';
+        title.textContent = it.title;
+        a.appendChild(type);
+        a.appendChild(title);
+        if (it.category) {
+          const cat = document.createElement('span');
+          cat.className = 'search-result-cat';
+          cat.textContent = it.category;
+          a.appendChild(cat);
+        }
+        if (it.snippet) {
+          const snip = document.createElement('p');
+          snip.className = 'search-result-snippet';
+          snip.textContent = it.snippet;
+          a.appendChild(snip);
+        }
+        frag.appendChild(a);
+      }
+      res.replaceChildren(frag);
+    }
+
+    function firstHref(): string | null {
+      const res = $results();
+      const a = res?.querySelector('a.search-result') as HTMLAnchorElement | null;
+      return a ? a.href : null;
+    }
+
+    window.addEventListener('jiuxi:open-search', open);
+
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target as HTMLElement).tagName;
+      const ov = $overlay();
+      if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+        e.preventDefault();
+        open();
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        open();
+      } else if (e.key === 'Escape' && ov && !ov.hidden) {
+        close();
+      } else if (e.key === 'Enter' && e.target === $input()) {
+        const h = firstHref();
+        if (h) {
+          close();
+          window.location.href = h;
+        }
+      }
+    });
+
+    document.addEventListener('input', (e) => {
+      if (e.target === $input()) render();
+    });
+
+    document.addEventListener('click', (e) => {
+      const t = e.target as HTMLElement;
+      if (t.closest('[data-search-close]')) close();
+    });
+
+    document.addEventListener('astro:after-swap', close);
+  }
+</script>

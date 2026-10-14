@@ -1,20 +1,38 @@
 ---
-// 九溪 · 主导航（移动优先：横向滚动胶囊；桌面内联）
+// 九溪 · 主导航（分组：动态 / 策展 / 更多；小屏隐藏，由底部 TabBar 承载）
 import { withBase } from '../lib/site';
-const links = [
-  { href: '/', label: '首页' },
-  { href: '/ai', label: 'AI' },
-  { href: '/news', label: '热点' },
-  { href: '/tech', label: '科技' },
-  { href: '/gaming', label: '游戏' },
-  { href: '/timeline', label: '时间线' },
-  { href: '/tools', label: '工具箱' },
-  { href: '/reading', label: '读书' },
-  { href: '/history', label: '历史回顾' },
-  { href: '/starred', label: '收藏' },
-  { href: '/settings', label: '设置' },
-  { href: '/about', label: '关于' },
+
+const groups = [
+  {
+    label: '动态',
+    links: [
+      { href: '/', label: '首页' },
+      { href: '/ai', label: 'AI' },
+      { href: '/hot', label: '热点' },
+      { href: '/news', label: '新闻' },
+      { href: '/tech', label: '科技' },
+      { href: '/gaming', label: '游戏' },
+      { href: '/history', label: '历史回顾' },
+    ],
+  },
+  {
+    label: '策展',
+    links: [
+      { href: '/timeline', label: '时间线' },
+      { href: '/tools', label: '工具箱' },
+      { href: '/reading', label: '读书' },
+    ],
+  },
+  {
+    label: '更多',
+    links: [
+      { href: '/starred', label: '收藏' },
+      { href: '/settings', label: '设置' },
+      { href: '/about', label: '关于' },
+    ],
+  },
 ];
+
 const path = Astro.url.pathname;
 const isActive = (href: string) =>
   href === '/'
@@ -23,36 +41,55 @@ const isActive = (href: string) =>
 ---
 
 <nav class="site-nav glass" aria-label="主导航">
-  <ul>
-    {
-      links.map((l) => (
-        <li>
-          <a
-            href={withBase(l.href)}
-            class:list={['nav-link', { active: isActive(l.href) }]}
-            aria-current={isActive(l.href) ? 'page' : undefined}
-          >
-            {l.label}
-          </a>
-        </li>
-      ))
-    }
-  </ul>
+  {
+    groups.map((g) => (
+      <div class="nav-group">
+        <span class="nav-group-label">{g.label}</span>
+        <ul>
+          {g.links.map((l) => (
+            <li>
+              <a
+                href={withBase(l.href)}
+                class:list={['nav-link', { active: isActive(l.href) }]}
+                aria-current={isActive(l.href) ? 'page' : undefined}
+              >
+                {l.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))
+  }
 </nav>
 
 <style>
   .site-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 22px;
     margin: 0 12px 12px;
-    padding: 8px 10px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    padding: 10px 14px;
   }
-  ul {
+  .nav-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .nav-group-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+  }
+  .nav-group ul {
     display: flex;
     gap: 6px;
     list-style: none;
     margin: 0;
     padding: 0;
+    flex-wrap: wrap;
   }
   .nav-link {
     display: block;
@@ -62,7 +99,9 @@ const isActive = (href: string) =>
     text-decoration: none;
     color: var(--text-muted);
     font-size: 0.92rem;
-    transition: background 0.2s, color 0.2s;
+    transition:
+      background 0.2s,
+      color 0.2s;
   }
   .nav-link:hover {
     color: var(--text-strong);
@@ -72,5 +111,11 @@ const isActive = (href: string) =>
     color: var(--text-strong);
     background: var(--accent-soft);
     font-weight: 600;
+  }
+  /* 小屏由底部 TabBar 承载导航，隐藏分组主导航避免重复 */
+  @media (max-width: 768px) {
+    .site-nav {
+      display: none;
+    }
   }
 </style>

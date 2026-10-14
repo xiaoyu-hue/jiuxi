@@ -9,7 +9,7 @@
 
 import { isFavorite, toggleFavorite } from './favorites';
 import { FEED_PREFIX } from './settings';
-import { sanitizeUrl } from './security';
+import { sanitizeUrl, escapeHtml } from './security';
 import { readIndexedDB, writeIndexedDB } from './db';
 import { extractFromXml } from '@extractus/feed-extractor';
 import feedsData from '../data/feeds.json';
@@ -448,8 +448,11 @@ export function renderItems(container: HTMLElement, items: FeedItem[]): void {
     fav.className = `fav-btn${isFavorite(it.link) ? ' active' : ''}`;
     fav.type = 'button';
     fav.dataset.link = sanitizeUrl(it.link);
-    fav.dataset.title = it.title || '';
-    fav.dataset.source = it.source || '';
+    // 经 escapeHtml 转义后写入 data-* 属性：序列化后的 HTML 不再含裸 < >，
+    // 杜绝属性值被误判为可执行标签；浏览器读取 dataset 时会自动解码回原值，
+    // 故 wireFavorites 取到的 title/source 仍是原始文本，收藏功能不受影响。
+    fav.dataset.title = escapeHtml(it.title || '');
+    fav.dataset.source = escapeHtml(it.source || '');
     fav.setAttribute('aria-label', '收藏');
     fav.textContent = '♥';
     card.appendChild(fav);

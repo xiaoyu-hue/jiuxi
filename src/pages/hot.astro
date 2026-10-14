@@ -1,0 +1,95 @@
+---
+// 九溪 · 全局热点榜（跨板块按独立信源数排序）
+//
+// 复用首页「今日热点」的合并排序逻辑，跨 AI/新闻/科技/游戏 四个板块，
+// 按「独立信源数（cluster_size）」降序展示全局热点；顶部 Filters 可按板块筛选。
+// D1（/api/candidates）为空时回退实时聚合（同 /curate），永不白屏。
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Filters from '../components/Filters.astro';
+
+const SECTIONS = [
+  { key: 'ai', label: 'AI' },
+  { key: 'news', label: '新闻' },
+  { key: 'tech', label: '科技' },
+  { key: 'gaming', label: '游戏' },
+];
+---
+
+<BaseLayout
+  title="九溪 · 全局热点榜"
+  description="跨 AI / 新闻 / 科技 / 游戏，按独立信源数排序的全局热点"
+>
+  <header class="page-head">
+    <h2>全局热点榜</h2>
+    <p>跨板块聚合，按「独立信源数」排序——被越多不同来源报道的同一事件越靠前。点击板块可筛选。</p>
+  </header>
+
+  <Filters target="hot-grid" sections={SECTIONS} />
+
+  <div class="feed-grid" id="hot-grid">
+    <p class="feed-meta">正在加载全局热点…</p>
+  </div>
+</BaseLayout>
+
+<script>
+  import { refreshFeedOnline, renderItems, wireFavorites } from '../lib/feeds';
+
+  const SECTIONS = ['ai', 'news', 'tech', 'gaming'] as const;
+  const grid = document.getElementById('hot-grid');
+
+  const byHeat = (a: any, b: any) => (b.sources?.length || 1) - (a.sources?.length || 1);
+
+  // 渲染并给每张卡片写入 data-section（Filters 组件据此筛选）
+  function renderTagged(container: HTMLElement, items: any[]) {
+    renderItems(container, items);
+    wireFavorites(container);
+    const cards = container.querySelectorAll<HTMLElement>('.feed-card');
+    items.forEach((it, i) => {
+      const card = cards[i];
+      if (card) card.dataset.section = it._section || '';
+    });
+  }
+
+  async function loadHot() {
+    if (!grid) return;
+    const all: any[] = [];
+    await Promise.all(
+      SECTIONS.map(async (s) => {
+        try {
+          const res = await fetch(`/api/candidates?section=${s}`);
+          if (res.ok) {
+            const j = await res.json();
+            if (Array.isArray(j.items)) {
+              (j.items as any[]).forEach((it: any) => (it._section = s));
+              all.push(...j.items);
+            }
+          }
+        } catch {
+          /* 单板块失败忽略，不阻断其它板块 */
+        }
+      }),
+    );
+
+    if (all.length) {
+      all.sort(byHeat);
+      renderTagged(grid, all.slice(0, 60));
+      return;
+    }
+
+    // D1 为空 → 回退实时聚合（按板块逐次拉，可靠标注板块）
+    const live: any[] = [];
+    for (const s of SECTIONS) {
+      const items = await refreshFeedOnline(s);
+      items.forEach((it: any) => (it._section = s));
+      live.push(...items);
+    }
+    if (live.length) {
+      live.sort(byHeat);
+      renderTagged(grid, live.slice(0, 60));
+    } else {
+      grid.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
+    }
+  }
+
+  loadHot();
+</script>
