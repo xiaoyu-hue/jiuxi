@@ -56,6 +56,7 @@ const blocks = [
 
 <script>
   import { renderItems, wireFavorites, refreshFeedOnline } from '../lib/feeds';
+  import { cleanFeedItems, type FeedItemClean } from '../lib/schema';
 
   const SECTIONS = ['ai', 'news', 'tech', 'gaming'] as const;
   const el = document.getElementById('home-hot');
@@ -63,28 +64,29 @@ const blocks = [
   async function loadHot() {
     if (!el) return;
     const root = el;
-    const all: any[] = [];
+    const raw: unknown[] = [];
     await Promise.all(
       SECTIONS.map(async (s) => {
         try {
           const res = await fetch(`/api/candidates?section=${s}`);
           if (res.ok) {
             const j = await res.json();
-            if (Array.isArray(j.items)) all.push(...j.items);
+            if (Array.isArray(j.items)) raw.push(...j.items);
           }
         } catch {
           /* 单板块失败忽略 */
         }
       }),
     );
-    const byHeat = (a: any, b: any) => (b.sources?.length || 1) - (a.sources?.length || 1);
-    if (all.length) {
-      all.sort(byHeat);
-      renderItems(root, all.slice(0, 10));
+    const byHeat = (a: FeedItemClean, b: FeedItemClean) => (b.sources?.length || 1) - (a.sources?.length || 1);
+    const items = cleanFeedItems(raw);
+    if (items.length) {
+      items.sort(byHeat);
+      renderItems(root, items.slice(0, 10));
       wireFavorites(root);
     } else {
       // D1 为空时回退实时聚合（同 /curate 逻辑），永不白屏
-      const live = (await Promise.all(SECTIONS.map((s) => refreshFeedOnline(s)))).flat() as any[];
+      const live = cleanFeedItems((await Promise.all(SECTIONS.map((s) => refreshFeedOnline(s)))).flat());
       if (live.length) {
         live.sort(byHeat);
         renderItems(root, live.slice(0, 10));
