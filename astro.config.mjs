@@ -23,7 +23,7 @@ export default defineConfig({
   //   4) 将 FeedSection 的资讯渲染改为 Server Island（server:defer）走 /api/feed。
   // ⚠️ 说明：已移除 GitHub Pages 备站（它原先是「暂不开 SSR」的主要理由——
   //    GH Pages 只托管静态产物、无法承载 SSR）。现在只剩 Cloudflare 单站，
-  //    若日后要开 SSR 让「每次访问都新鲜」，直接走上述 hybrid 路线即可，不再有双站顾虑。
+  //    若日后要开 SSR 让「每次访问都新鲜」，直接走上述 hybrid 路线即可（已无站点兼容顾虑）。
   //    当前先保留静态：「第一方 Functions 代理 + 定时重建」已能兼顾新鲜度，故暂不开启。
   output: 'static',
   // SEO：自动生成 sitemap-index.xml（含全站页面绝对地址）
