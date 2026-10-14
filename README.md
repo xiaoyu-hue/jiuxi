@@ -8,7 +8,7 @@
 | -------- | ---------------------------------------------------------------------------------------------------------------- |
 | 当前版本 | **v1.5.0**（体验升级：首页「今日热点」+ 收藏体系 · 全局热点榜 · 分组导航 · 移动 TabBar · 站内搜索）           |
 | 技术栈   | Astro 7 · Tailwind CSS 4 · TypeScript（纯静态输出 + Cloudflare Pages Functions 轻后端 + Cloudflare D1）        |
-| 托管目标 | [Cloudflare Pages](https://jiuxi-bm1.pages.dev/)（主站）+ [GitHub Pages](https://xiaoyu-hue.github.io/jiuxi/)（备用副站，双站容灾） |
+| 托管目标 | [Cloudflare Pages](https://jiuxi-bm1.pages.dev/)（单站，含 Pages Functions 轻后端 + D1） |
 | 许可证   | 代码 Apache-2.0 / 文档与内容 CC BY-NC 4.0                                                                        |
 
 ---
@@ -49,7 +49,7 @@
 
 - **它是什么**：一个以 AI 为主、热点新闻为辅的**纯静态个人信息站**——零服务器、手机可维护、浏览器端实时聚合资讯。
 - **你能做什么**：浏览 13 个页面的聚合资讯，翻看 AI 发展时间线 / 工具箱 / 读书推荐，收藏与导出数据；所有策展内容以仓库内 Markdown 存储，手机登录 GitHub 即可编辑上线。
-- **去哪看**：主站 [jiuxi-bm1.pages.dev](https://jiuxi-bm1.pages.dev/) · 备站 [xiaoyu-hue.github.io/jiuxi](https://xiaoyu-hue.github.io/jiuxi/)（双站容灾，内容一致）。
+- **去哪看**：[jiuxi-bm1.pages.dev](https://jiuxi-bm1.pages.dev/)（Cloudflare Pages，全球 CDN 加速）。
 
 ## 本文档面向谁
 
@@ -66,7 +66,7 @@
 
 九溪是一个**个人向的综合性信息聚集地**。在「不会后端、目前只用手机、代码最终推送 GitHub」的约束下，选择「纯静态站点 + 浏览器端实时聚合」的方案，做到四点：
 
-- **零服务器运维**：站点由 Astro 构建为纯静态文件，托管在 Cloudflare Pages / GitHub Pages。
+- **零服务器运维**：站点由 Astro 构建为纯静态文件，托管在 Cloudflare Pages。
 - **手机可维护**：时间线、工具箱、读书推荐等策展内容以仓库内 Markdown 文件存储，手机登录 GitHub 即可编辑、提交后自动上线。
 - **实时资讯**：AI / 新闻 / 科技 / 游戏板块在浏览器端实时抓取公开数据源并本地缓存；每板块 24 条名额**按源轮询**分配，高频源不会淹没低频源。
 - **报刊版式视觉**：暖白纸底 + 墨色字 + 单一强调色 + 自托管中文衬线字体，4 套可切换主题（晨曦 / 午夜 / 极光 / 樱粉），偏好持久化记忆。
@@ -88,16 +88,16 @@
 - 策展内容已扩充至：AI 发展时间线 **255** 条（1950–2026）、AI 工具箱 **151** 个（14 大类）、读书推荐 **128** 本（多类别，配客观推荐语与在线可读链接）。
 
 **📡 资讯引擎**
-- **浏览器端实时资讯聚合**：直连优先 + 第一方同域代理（Cloudflare Pages Functions `/api/feed`，同源免 CORS，含 SSRF 防护与目标白名单），GitHub Pages 备站降级为构建期注入数据；30 分钟缓存。
+- **浏览器端实时资讯聚合**：直连优先 + 第一方同域代理（Cloudflare Pages Functions `/api/feed`，同源免 CORS，含 SSRF 防护与目标白名单），构建期注入兜底数据；30 分钟缓存。
 - **21 个资讯源**（AI 6 / 热点 4 / 科技 7 / 游戏 4），每板块 24 条名额**按源轮询**分配——每个有数据的源都有曝光位，高频源（如 ArXiv 日更 15 条）不再淹没低频源。
 - **首页「今日热点」**：并发读四板块 D1 候选，按「独立信源数（cluster_size）」降序取前 10；D1 为空时回退浏览器端实时聚合，永不白屏。
 - **全局热点榜 `/hot`**：跨四板块按「独立信源数」降序聚合前 60，顶部 `Filters` 按板块筛选。
 
 **🔒 安全与工程**
-- **双站部署**：Cloudflare Pages 主 + GitHub Pages 备，push 即上线，内容一致、互为容灾。
+- **单站部署**：Cloudflare Pages，push 即上线，全球 CDN 加速。
 - **历史回顾 · 云端存储**：定时构建将每日资讯快照写入 Cloudflare D1（SQLite），`/api/history` 接口读取，页面三级降级（云端 → IndexedDB → 静态索引），离线可用。
 - **安全门禁分层**：SAST / DAST / 依赖 / 密钥 / 供应链 五类（详见 9.3 与 `docs/`）。
-- **SEO 增强**：自动生成 sitemap / RSS / Open Graph 分享图，双站规范地址（canonical）。
+- **SEO 增强**：自动生成 sitemap / RSS / Open Graph 分享图，规范地址（canonical）。
 - **系统能力**：收藏、外观设置、数据导出 / 导入（JSON）、清空缓存。
 
 ---
@@ -113,7 +113,7 @@
 | 内容   | Astro Content Collections（Zod schema）                                                                                                    | 时间线 / 工具箱 / 读书的结构化数据         |
 | 轻后端 | **Cloudflare Pages Functions**（`/api/feed` 代理 + `/api/history` 读 D1 + `/api/candidates` 读候选）+ **Cloudflare D1**（SQLite）         | 第一方 CORS 代理、云端历史与候选存储       |
 | 数据源 | 量子位 / OpenAI 新闻 / Google AI 博客 / Hacker News / ArXiv / Google 新闻；IT之家 / 爱范儿 / 少数派；TechCrunch / Ars Technica / The Verge / 阮一峰 / Solidot；机核 / 触乐——共 21 源，直连优先，失败回退第一方同域代理 `/api/feed` | 动态资讯实时抓取 |
-| 部署   | GitHub Actions + Cloudflare Pages / GitHub Pages                                                                                           | 自动构建与双站发布                         |
+| 部署   | GitHub Actions + Cloudflare Pages                                                                                           | 自动构建与单站发布                         |
 
 ---
 
@@ -161,7 +161,7 @@ jiuxi/
 │  ├─ fetch-feeds.mjs           # 预抓取注入（构建期内嵌资讯）
 │  ├─ build-search-index.mjs    # 生成 public/search-index.json（站内搜索用）
 │  └─ save-history.mjs          # 写 D1 每日快照
-├─ .github/workflows/           # deploy.yml(双站) + security.yml(安全门禁) + 其它
+├─ .github/workflows/           # deploy.yml(单站) + security.yml(安全门禁) + 其它
 ├─ wrangler.toml                # Cloudflare Pages 配置（含 D1 绑定声明）
 ├─ astro.config.mjs             # Astro 配置
 ├─ package.json                 # 依赖与脚本
@@ -195,22 +195,16 @@ jiuxi/
 
 ## 七、部署指南（推送即上线）
 
-**🌐 线上访问地址（均已上线）：**
+**🌐 线上访问地址：**
 
-- **主站 · Cloudflare Pages**：[https://jiuxi-bm1.pages.dev/](https://jiuxi-bm1.pages.dev/)
-- **备用副站 · GitHub Pages**：[https://xiaoyu-hue.github.io/jiuxi/](https://xiaoyu-hue.github.io/jiuxi/)
+- **Cloudflare Pages**：[https://jiuxi-bm1.pages.dev/](https://jiuxi-bm1.pages.dev/)（全球 CDN 加速、无限带宽）
 
-> 主站由全球 CDN 加速、无限带宽，优先访问；副站为 GitHub 原生托管，作容灾备份。两者内容完全一致，任一不可用可切到另一个。
+采用**单站部署**，由 `.github/workflows/deploy.yml`（push 即构建并发布）驱动：
 
-采用**双站部署**，由 `.github/workflows/deploy.yml`（push 即构建并双发）驱动，两步在 CI 中相互独立，任一失败不影响另一：
-
-- **主站 · Cloudflare Pages**：无限带宽、全球 CDN。需在仓库 `Settings → Secrets` 添加 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID`（最小权限：仅 Pages Edit）。
-- **备用副站 · GitHub Pages**：仓库 `Settings → Pages → Source` 选择 **GitHub Actions** 即可，无需密钥。
-- 缺 Cloudflare 密钥时，主站步骤自动跳过，不阻塞副站。你只需 `git push` 到 `main`。
+- **Cloudflare Pages**：无限带宽、全球 CDN。需在仓库 `Settings → Secrets` 添加 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID`（最小权限：仅 Pages Edit）。
+- 缺 Cloudflare 密钥时，部署步骤自动跳过（不阻塞流水线）。你只需 `git push` 到 `main`。
 
 > ⚠️ **D1 绑定必须写在 `wrangler.toml`**：该文件一旦包含 `pages_build_output_dir`，就成为 Pages 项目配置的唯一来源（source of truth），每次 `wrangler pages deploy` 都会用它覆盖云端设置——只在仪表盘里绑定的 D1，一次部署后就会被抹掉（2026-10 实测复现）。当前绑定（库 `jiuxi-history`）已声明在 `wrangler.toml` 的 `[[d1_databases]]`，随每次部署自动同步，无需手动操作。
-
-> ⚠️ **GitHub Pages 路径提示**：若用「项目站点」（`https://<用户>.github.io/<仓库>/`，无自定义域名），静态资源根路径会偏移。最省心做法是两个站点都绑**自定义域名**（Cloudflare 主站绑域名后，把 `astro.config.mjs` 的 `site` 改为该域名）。若只用 GitHub 项目站点、不绑域名，需把 `astro.config.mjs` 的 `base` 设为 `/<仓库名>/` 再构建。
 
 ---
 
@@ -224,7 +218,7 @@ jiuxi/
 | Phase 3  | 动态资讯板块（AI / 新闻 / 科技 / 游戏）                                        | ✅ 已完成 |
 | Phase 4  | 策展板块（时间线 / 工具箱 / 读书）                                             | ✅ 已完成 |
 | Phase 5  | 系统板块（设置与数据 / 关于）                                                  | ✅ 已完成 |
-| Phase 6  | 双站部署配置                                                                   | ✅ 已完成 |
+| Phase 6  | 部署配置（Cloudflare Pages 单站）                                              | ✅ 已完成 |
 | Phase 7  | 轻后端试水：历史回顾 + Cloudflare D1 云端快照 + `/api/history` 接口            | ✅ 已完成 |
 | Phase 8  | 内容大扩充：时间线 / 工具箱 / 读书全面补全                                     | ✅ 已完成 |
 | 阶段 A   | 首页「今日热点」+ 收藏体系重构（单数据源 + `/starred`）                        | ✅ 已完成 |
@@ -297,7 +291,7 @@ jiuxi/
 九溪虽是个人的小项目，但其中若干**架构与工程决策**对想自建「内容站 / 信息聚合站」的人有参考价值。以下按「做法 → 为什么」列出：
 
 1. **静态优先，按需补足轻后端（渐进式 Serverless）**：纯静态托底，只在需要跨会话 / 离线数据时才上 D1 + Pages Functions（历史回顾、候选整理）。不要为一上来就上重后端——能用构建期 + 浏览器端解决的事，就不引入服务器。
-2. **浏览器端 RSS 聚合的三级降级**：直连优先 → 第一方同域代理（含目标主机白名单 + 协议检查 + 私有地址拦截 + Origin 校验）→ GitHub Pages 备站构建期注入。同一份代码在两站都能跑，弱网 / 无 Functions 环境自动降级，永不白屏。
+2. **浏览器端 RSS 聚合的三级降级**：直连优先 → 第一方同域代理（含目标主机白名单 + 协议检查 + 私有地址拦截 + Origin 校验）→ 构建期注入兜底。同一份代码在弱网 / 无 Functions 环境自动降级，永不白屏。
 3. **按源轮询而非纯按时间排序**：高频源（如 ArXiv 日更 15 条）会占满名额、淹没低频源。改为「每个源轮流取一条、凑满上限为止」，保证「综合信息聚集地」的多元化定位。
 4. **收藏单数据源**：多个模块共用同一个 localStorage 键极易双写冲突。抽成 `favorites.ts` 单一真相（对象化存储、旧版格式自动归一化），`settings.ts` / `starred.astro` 只消费、不各写——UI 与数据解耦。
 5. **自托管中文衬线字体**：经 `@fontsource` 子集化、零外链（思源宋体标题/正文、思源黑体 UI），既构成报刊版式基底，又规避 GDPR/隐私与加载抖动，离线也能渲染。
@@ -365,7 +359,7 @@ jiuxi/
 
 - `docs/九溪-调研报告.md`：全网技术 / UI / 数据源 / 开源项目调研结论
 - `docs/九溪-PRD.md`：产品需求文档（定位、架构、功能优先级、风险）
-- `docs/九溪-架构文档.md`：技术架构与运行原理（模块协作、双站部署、安全与隐私）
+- `docs/九溪-架构文档.md`：技术架构与运行原理（模块协作、部署与站点拓扑、安全与隐私）
 - `docs/九溪-实施计划.md`：分阶段实施方案、技术选型理由、部署细节
 - `docs/d1-candidates.md`：候选表（candidates）建表与聚合接口说明
 
