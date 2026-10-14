@@ -1,4 +1,4 @@
-# 九溪 · 安全响应头（Cloudflare Pages 生效；GitHub Pages 不支持 _headers，见 BaseLayout 的 meta 兜底）
+# 九溪 · 安全响应头（Cloudflare Pages 生效；另由 BaseLayout 的 meta 做兜底）
 # 说明：
 #   - 第一方 feed 代理 /api/feed 与站点同源，故 connect-src 只需 'self'（加 hn.algolia.com 直连）；
 #   - 组件样式与防闪烁脚本均为内联，故 style-src / script-src 保留 'unsafe-inline'（真实防线在代码转义）。

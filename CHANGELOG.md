@@ -2,6 +2,21 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [Unreleased] — 架构精简：移除 GitHub Pages 备用站
+
+> 聚焦 Cloudflare Pages 单站（Pages Functions 轻后端 + D1 保留），移除备站与双站容灾。
+
+### Removed
+
+- **GitHub Pages 备用站**：删除备站 Worker `worker/`（`jiuxi-fallback-headers`，为 GH Pages 注入安全响应头）；`.github/workflows/deploy.yml` 与 `refresh-feeds.yml` 移除 `build-pages` / `deploy-github-pages` 两个 job。
+- **双站容灾**：部署拓扑由「Cloudflare Pages 主 + GitHub Pages 备」收敛为 Cloudflare Pages 单站；`public/_headers`、`astro.config.mjs`、`dast-scan.yml` 等注释同步去掉双站措辞。
+
+### Changed
+
+- 部署、访问地址与文档（README 速览 / 特性 / 部署指南）全部更新为单站口径。
+- `siteBase()`（`src/lib/site.ts`）保留为无害兼容层：单站下 base 恒为 `/`，行为不变。
+- 移除双站顾虑后，Cloudflare Pages 原生支持 SSR：如需「每次访问都新鲜」，可启用 Astro hybrid + `@astrojs/cloudflare`（原先「双站」是暂不开 SSR 的主要理由，现已解除）。
+
 ## [v1.5.0] — 2026-10-14
 
 > 体验升级版本：补齐九溪相对 AIHOT 的信息架构与移动端短板，同时把「人工策展深度沉淀」护城河做厚。Phase A（首页今日热点 + 收藏体系）与 Phase B（热点榜 + 分组导航 + 移动 TabBar + 站内搜索）合并发布。
