@@ -1,0 +1,74 @@
+---
+// 九溪 · 资讯策展标准（feed-policy）
+// 公开「什么算重要 AI 进展」的精选标准，可改。对应 llms.txt 的「资讯策展标准」入口。
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="九溪 · 资讯策展标准" description="什么算重要 AI 进展的精选标准（可配置）">
+  <article class="prose">
+    <h1>九溪 · 资讯策展标准（feed-policy）</h1>
+    <p>
+      本文件公开「什么算重要 AI 进展 / 重要资讯」的精选标准，可改。流水线：
+      <strong>AI 推荐候选 → 聚簇去重 → 作者筛选 → 沉淀入库</strong>；作者没空时交自动流接管。
+      思路呼应 AIHOT 的「精选规则显式化、可配置」——标准写在明处，而非黑箱。
+    </p>
+
+    <h2>一、来源可信度分档</h2>
+    <table>
+      <thead><tr><th>档位</th><th>示例</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>第一方 / 官方</td><td>OpenAI、Google AI、ArXiv、各公司官方博客</td><td>一手信源，优先</td></tr>
+        <tr><td>权威媒体</td><td>量子位、TechCrunch、Ars Technica、The Verge、爱范儿、IT之家</td><td>经编辑核实</td></tr>
+        <tr><td>聚合源</td><td>Google News</td><td>覆盖广、兜底用，须聚簇去重</td></tr>
+        <tr><td>社区</td><td>Hacker News、少数派、机核、触乐、Solidot、阮一峰</td><td>信号强但需甄别</td></tr>
+      </tbody>
+    </table>
+
+    <h2>二、重要性维度（评分参考）</h2>
+    <ol>
+      <li><strong>影响力</strong>：是否改变行业路线 / 技术范式 / 政策。</li>
+      <li><strong>新颖性</strong>：新模型、新能力、新开源，而非旧闻翻炒。</li>
+      <li><strong>可验证</strong>：有论文 / 官方公告 / 可复现，而非传闻。</li>
+      <li><strong>多样性</strong>：避免单一高频源刷屏（靠按源轮询 + 聚簇保证）。</li>
+    </ol>
+
+    <h2>三、去重与聚簇规则</h2>
+    <ul>
+      <li>同一事件被多源报道 → <strong>聚簇为一条</strong>，累计来源标签；来源数越高 = 热度越高。</li>
+      <li>标题词集合 <strong>Jaccard 相似度 ≥ 0.5</strong> 视为同事件（忽略标点、大小写、来源后缀）。</li>
+      <li>聚簇后按 <strong>独立信源数降序</strong> 排列，最热的事件排最前。</li>
+      <li>服务端与前端共用同一套聚簇算法（<code>functions/api/feed.ts</code> 聚合端点 + <code>src/lib/feeds.ts</code> 的 <code>clusterItems</code>），主站 / 备站行为一致。</li>
+    </ul>
+
+    <h2>四、人工把关原则</h2>
+    <ul>
+      <li>AI 推荐的候选经聚簇去重后呈现给作者（见 <a href="/curate">候选策展台</a>）。</li>
+      <li><strong>有空</strong>：逐条筛选，认可的沉淀进 <code>timeline</code>（时间线）/ <code>tools</code>（工具箱）/ <code>reading</code>（读书）。</li>
+      <li><strong>没空</strong>：自动流接管——高质量候选直接发布，阈值与熔断见第五节。</li>
+      <li>低质、无法验证、纯营销软文的内容不沉淀。</li>
+    </ul>
+
+    <h2>五、质量门禁（自动流启用时）</h2>
+    <ul>
+      <li>重要性评分低于阈值的不自动打。</li>
+      <li>来源不在白名单的不自动打。</li>
+      <li>API 失败 / 超预算（月度熔断）即停止自动流，回退人工把关。</li>
+      <li>预算上限由 owner 设定（建议月度封顶，如 ¥100）。</li>
+    </ul>
+  </article>
+</BaseLayout>
+
+<style>
+  .prose {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+    line-height: 1.7;
+  }
+  .prose h1 { font-size: 1.6rem; margin-bottom: 0.8rem; }
+  .prose h2 { font-size: 1.2rem; margin: 1.5rem 0 0.6rem; border-left: 3px solid var(--accent, #4f7cff); padding-left: 0.5rem; }
+  .prose table { width: 100%; border-collapse: collapse; margin: 0.6rem 0; font-size: 0.92rem; }
+  .prose th, .prose td { border: 1px solid #ddd; padding: 0.4rem 0.6rem; text-align: left; }
+  .prose th { background: #f5f5f5; }
+  .prose code { background: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+</style>

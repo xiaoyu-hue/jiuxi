@@ -1,0 +1,74 @@
+---
+// 九溪 · 候选策展台（作者视图）
+//
+// 把聚簇去重后的各板块最新候选集中展示，供作者筛选沉淀：
+//   - 有空：逐条挑，认可的沉淀进 timeline / tools / reading；
+//   - 没空：交自动流接管（高质量候选直接发布，门禁见 docs/feed-policy）。
+//
+// 复用 src/lib/feeds.ts 的 refreshFeedOnline（主站走服务端聚合端点、备站降级前端
+// 聚簇），不在本页重复算法。D1 持久化候选（定时写入、跨会话留痕）作为后续增强，
+// 待 Cloudflare 部署权限后接入——本页只消费实时聚簇结果，零新增服务端依赖。
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const sections = ['ai', 'news', 'tech', 'gaming'] as const;
+const labels: Record<string, string> = { ai: 'AI', news: '新闻', tech: '科技', gaming: '游戏' };
+---
+
+<BaseLayout title="九溪 · 候选策展台" description="聚簇去重后的候选资讯，供作者筛选沉淀">
+  <header class="page-head">
+    <h2>候选策展台</h2>
+    <p>
+      已聚簇去重的各板块最新候选（按独立信源数排热度）。有空就挑条目沉淀进
+      时间线 / 工具箱 / 读书；没空可交自动流接管。
+    </p>
+    <a class="back-link" href="/">← 返回首页</a>
+  </header>
+
+  <div id="curate-root">
+    {
+      sections.map((s) => (
+        <section class="curate-section">
+          <h3>{labels[s]}</h3>
+          <div class="feed-grid" id={`curate-${s}`} data-section={s} />
+        </section>
+      ))
+    }
+  </div>
+
+  <script>
+    import { refreshFeedOnline, renderItems, wireFavorites } from '../lib/feeds';
+    const sections = ['ai', 'news', 'tech', 'gaming'] as const;
+    for (const s of sections) {
+      const el = document.getElementById(`curate-${s}`) as HTMLElement | null;
+      if (!el) continue;
+      refreshFeedOnline(s as any)
+        .then((items: any[]) => {
+          if (!items.length) {
+            el.innerHTML = '<p class="feed-meta">暂无候选</p>';
+            return;
+          }
+          renderItems(el, items);
+          wireFavorites(el);
+        })
+        .catch(() => {
+          el.innerHTML = '<p class="feed-meta">加载失败，请稍后重试</p>';
+        });
+    }
+  </script>
+</BaseLayout>
+
+<style>
+  .curate-section {
+    margin: 1.5rem 0;
+  }
+  .curate-section h3 {
+    font-size: 1.1rem;
+    border-left: 3px solid var(--accent, #4f7cff);
+    padding-left: 0.5rem;
+  }
+  .back-link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    color: var(--accent, #4f7cff);
+  }
+</style>

@@ -22,6 +22,8 @@ export interface FeedItem {
   source?: string;
   pubDate?: string;
   snippet?: string;
+  /** 聚簇后聚合的来源标签：同一事件被多源报道时累计（如 ["量子位", "Hacker News"]） */
+  sources?: string[];
 }
 
 interface FeedSource {
@@ -210,6 +212,79 @@ export function mergeFeedItems(base: FeedItem[], incoming: FeedItem[]): FeedItem
   return out;
 }
 
+// ── 聚簇：跨源同事件归并（消除重复，呼应 AIHOT 的「聚合→聚簇→热度」思路）──
+// 同一事件常被多个源报道（Google News 聚合 + 原站 + HN 转帖），标题相似但链接不同，
+// 直接展示会产生一堆重复。这里按「标题词集合 Jaccard 相似度」归并为一个条目，
+// 累计来源数（用作热度），保留最新/最完整的一条为代表。纯函数、无 DOM 依赖，
+// 以便前端与服务端（functions/api/feed.ts 聚合端点）复用同一套逻辑。
+const TITLE_STOP = new Set([
+  'the', 'a', 'an', 'of', 'to', 'in', 'on', 'for', 'and', 'with', 'is', 'are', 'via',
+  'how', 'why', 'this', 'that', 'what',
+  '的', '了', '与', '和', '及', '在', '是', '等', '如何', '什么', '为什么', '怎么', '一款', '一个',
+]);
+
+function normalizeTitle(t: string): string {
+  return (t || '')
+    .toLowerCase()
+    .replace(/[\s ]+/g, ' ')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function titleTokens(t: string): Set<string> {
+  return new Set(
+    normalizeTitle(t)
+      .split(' ')
+      .filter((w) => w.length > 1 && !TITLE_STOP.has(w)),
+  );
+}
+
+function jaccard(a: Set<string>, b: Set<string>): number {
+  if (!a.size || !b.size) return 0;
+  let inter = 0;
+  for (const w of a) if (b.has(w)) inter++;
+  return inter / (a.size + b.size - inter);
+}
+
+/**
+ * 跨源聚簇：把标题相似（词集合 Jaccard ≥ 0.5）的条目合并为一条。
+ * 合并后保留最新发布时间/最长标题作代表，sources 累计去重来源标签。
+ */
+export function clusterItems(items: FeedItem[]): FeedItem[] {
+  const prepared = (items || [])
+    .filter((it) => it && it.title)
+    .map((it) => ({ it, tk: titleTokens(it.title) }));
+  const clusters: { rep: FeedItem; tk: Set<string>; sources: string[] }[] = [];
+
+  for (const { it, tk } of prepared) {
+    let merged = false;
+    for (const c of clusters) {
+      if (jaccard(tk, c.tk) >= 0.5) {
+        const src = it.source || '';
+        if (src && !c.sources.includes(src)) c.sources.push(src);
+        const da = it.pubDate ? new Date(it.pubDate).getTime() : 0;
+        const db = c.rep.pubDate ? new Date(c.rep.pubDate).getTime() : 0;
+        if (da > db) {
+          c.rep = { ...c.rep, ...it, sources: c.sources };
+        }
+        c.tk = new Set([...c.tk, ...tk]);
+        merged = true;
+        break;
+      }
+    }
+    if (!merged) {
+      clusters.push({ rep: { ...it }, tk, sources: it.source ? [it.source] : [] });
+    }
+  }
+
+  return clusters.map((c) => ({
+    ...c.rep,
+    source: c.sources.length ? c.sources.join(' · ') : c.rep.source,
+    sources: c.sources,
+  }));
+}
+
 /**
  * 在线刷新某板块：依次尝试所有源，**合并**全部成功源（而非只取第一个成功的源），
  * 任一源成功即视为该板块可刷新。全部失败返回空数组（不回退缓存，
@@ -217,13 +292,38 @@ export function mergeFeedItems(base: FeedItem[], incoming: FeedItem[]): FeedItem
  */
 async function refreshOnline(section: Section): Promise<FeedItem[]> {
   const sources = SOURCES[section];
-  const lists: FeedItem[][] = [];
+  const rssSources = sources.filter((s) => s.type !== 'hn');
   let lastError: string | null = null;
 
-  for (const s of sources) {
+  // 1) 优先：服务端聚合端点（functions/api/feed.ts 的 ?aggregate=1）。
+  //    一次性把各 RSS 源拉到边缘、跨源聚簇、按独立信源数算热度并返回干净 JSON，
+  //    既减少前端请求数，又复用边缘缓存。备站无 Functions 时该请求会失败，
+  //    自动走下方逐源回退（前端聚簇，效果一致）。
+  let aggItems: FeedItem[] = [];
+  if (rssSources.length) {
     try {
-      let items: FeedItem[] = [];
-      if (s.type === 'hn') {
+      const aggUrl =
+        `${FEED_PROXY_PATH}?aggregate=1&` +
+        rssSources.map((s) => `s=${encodeURIComponent(`${s.label}@${s.url}`)}`).join('&');
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      const res = await fetch(aggUrl, { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (res.ok) {
+        const json = (await res.json()) as { items?: FeedItem[] };
+        if (Array.isArray(json.items) && json.items.length) aggItems = json.items;
+      }
+    } catch {
+      /* 聚合端点不可用（如备站），回退逐源拉取 */
+    }
+  }
+
+  // 2) HN 源始终前端直拉（聚合端点只处理 RSS）；聚合失败时 RSS 源也在此逐源补齐。
+  const lists: FeedItem[][] = [];
+  const needFallback = aggItems.length === 0;
+  for (const s of sources) {
+    if (s.type === 'hn') {
+      try {
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), 5000);
         const res = await fetch(s.url, { signal: ctrl.signal });
@@ -232,23 +332,28 @@ async function refreshOnline(section: Section): Promise<FeedItem[]> {
           lastError = `HN ${res.status}`;
           continue;
         }
-        items = parseHn(await res.json());
-      } else {
-        const xml = await fetchText(s.url);
-        items = parseRss(xml).map((it) => ({ ...it, source: it.source || s.label }));
+        lists.push(parseHn(await res.json()));
+      } catch (e) {
+        lastError = e instanceof Error ? e.message : String(e);
       }
-      if (items.length) lists.push(items);
-    } catch (e) {
-      lastError = e instanceof Error ? e.message : String(e);
-      console.debug(`[九溪] ${section} 源失败 (${s.label}):`, lastError);
+    } else if (needFallback) {
+      try {
+        const xml = await fetchText(s.url);
+        lists.push(parseRss(xml).map((it) => ({ ...it, source: it.source || s.label })));
+      } catch (e) {
+        lastError = e instanceof Error ? e.message : String(e);
+        console.debug(`[九溪] ${section} 源失败 (${s.label}):`, lastError);
+      }
     }
   }
 
-  if (!lists.length) {
+  const all = [...aggItems, ...lists.flat()];
+  if (!all.length) {
     console.warn(`[九溪] ${section} 所有在线源失败:`, lastError);
     return [];
   }
-  const merged = mergeFeedItems([], lists.flat());
+  // 跨源聚簇（幂等：聚合端点已聚过的 RSS 不会再被重复合并），按源轮询多元化 + 去重。
+  const merged = clusterItems(mergeFeedItems([], all));
   writeCache(section, merged);
   await writeIndexedDB(section, merged);
   return merged;
@@ -309,10 +414,16 @@ export function renderItems(container: HTMLElement, items: FeedItem[]): void {
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
 
-    // 栏目编号 / 来源：编辑策展意图（编号居前，来源次之）
+    // 栏目编号 / 来源：编辑策展意图（编号居前，来源次之）。
+    // 聚簇后若同一事件被多源报道，显示主要来源 +「+N」来源数徽标。
+    const srcCount = it.sources?.length ?? (it.source ? 1 : 0);
+    const srcLabel =
+      srcCount > 1
+        ? `${it.sources!.slice(0, 2).join('·')}${srcCount > 2 ? ` +${srcCount - 2}` : ''}`
+        : it.source || '资讯';
     const kicker = document.createElement('span');
     kicker.className = 'feed-kicker';
-    kicker.textContent = `${String(i + 1).padStart(2, '0')} / ${it.source || '资讯'}`;
+    kicker.textContent = `${String(i + 1).padStart(2, '0')} / ${srcLabel}`;
     a.appendChild(kicker);
 
     const h3 = document.createElement('h3');

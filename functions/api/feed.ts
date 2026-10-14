@@ -40,9 +40,152 @@ function isPrivateHost(host: string): boolean {
   return /^(10\.|127\.|169\.254\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h);
 }
 
+// ── 聚合模式辅助（?aggregate=1）：服务端跨源聚簇，返回干净 JSON ──
+// 与 src/lib/feeds.ts 的 clusterItems 同一套算法，确保主站（服务端聚簇）与
+// 备站（前端逐源聚簇）行为一致。仅用 Web 标准 API，无 DOM 依赖。
+
+const TITLE_STOP = new Set([
+  'the', 'a', 'an', 'of', 'to', 'in', 'on', 'for', 'and', 'with', 'is', 'are', 'via',
+  'how', 'why', 'this', 'that', 'what',
+  '的', '了', '与', '和', '及', '在', '是', '等', '如何', '什么', '为什么', '怎么', '一款', '一个',
+]);
+function normalizeTitle(t: string): string {
+  return (t || '')
+    .toLowerCase()
+    .replace(/[\s ]+/g, ' ')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function titleTokens(t: string): Set<string> {
+  return new Set(normalizeTitle(t).split(' ').filter((w) => w.length > 1 && !TITLE_STOP.has(w)));
+}
+function jaccard(a: Set<string>, b: Set<string>): number {
+  if (!a.size || !b.size) return 0;
+  let inter = 0;
+  for (const w of a) if (b.has(w)) inter++;
+  return inter / (a.size + b.size - inter);
+}
+function clusterFeed(items: any[]): any[] {
+  const prepared = (items || []).filter((it) => it && it.title).map((it) => ({ it, tk: titleTokens(it.title) }));
+  const clusters: { rep: any; tk: Set<string>; sources: string[] }[] = [];
+  for (const { it, tk } of prepared) {
+    let merged = false;
+    for (const c of clusters) {
+      if (jaccard(tk, c.tk) >= 0.5) {
+        const src = it.source || '';
+        if (src && !c.sources.includes(src)) c.sources.push(src);
+        const da = it.pubDate ? new Date(it.pubDate).getTime() : 0;
+        const db = c.rep.pubDate ? new Date(c.rep.pubDate).getTime() : 0;
+        if (da > db) c.rep = { ...c.rep, ...it, sources: c.sources };
+        c.tk = new Set([...c.tk, ...tk]);
+        merged = true;
+        break;
+      }
+    }
+    if (!merged) clusters.push({ rep: { ...it }, tk, sources: it.source ? [it.source] : [] });
+  }
+  return clusters.map((c) => ({
+    ...c.rep,
+    source: c.sources.length ? c.sources.join(' · ') : c.rep.source,
+    sources: c.sources,
+  }));
+}
+
+// 轻量 RSS/Atom 解析（Worker 端不引 feed-extractor，正则提取覆盖九溪全部源）
+function decodeEntities(s: string): string {
+  return (s || '')
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/<[^>]+>/g, '')
+    .trim();
+}
+function tagText(block: string, tag: string): string | null {
+  const m = block.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'));
+  return m ? decodeEntities(m[1]) : null;
+}
+function linkOf(block: string): string | null {
+  const rss = block.match(/<link>([\s\S]*?)<\/link>/i);
+  if (rss && rss[1].trim()) return rss[1].trim();
+  const atom = block.match(/<link[^>]*href="([^"]+)"[^>]*\/?>/i);
+  if (atom) return atom[1].trim();
+  return null;
+}
+function parseFeedXml(xml: string): any[] {
+  const blocks = xml.match(/<item[\s\S]*?<\/item>|<entry[\s\S]*?<\/entry>/gi) || [];
+  const out: any[] = [];
+  for (const b of blocks) {
+    const title = tagText(b, 'title');
+    const link = linkOf(b);
+    if (!title || !link) continue;
+    out.push({
+      title,
+      link,
+      pubDate: tagText(b, 'pubDate') || tagText(b, 'updated') || tagText(b, 'published') || undefined,
+      snippet: (tagText(b, 'description') || tagText(b, 'summary') || '').slice(0, 140) || undefined,
+    });
+  }
+  return out.slice(0, 30);
+}
+
+async function handleAggregate(here: URL): Promise<Response> {
+  const specs = here.searchParams.getAll('s').filter(Boolean);
+  if (!specs.length) return new Response('missing s', { status: 400 });
+  const collected: any[] = [];
+  for (const spec of specs) {
+    const idx = spec.indexOf('@');
+    if (idx < 0) continue;
+    const label = spec.slice(0, idx);
+    let parsed: URL;
+    try {
+      parsed = new URL(spec.slice(idx + 1));
+    } catch {
+      continue;
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') continue;
+    if (!ALLOWED_HOSTS.includes(parsed.hostname.toLowerCase()) || isPrivateHost(parsed.hostname)) continue;
+    try {
+      const upstream = await fetch(parsed.toString(), {
+        headers: { 'User-Agent': 'Jiuxi/1.0 (+https://jiuxi-bm1.pages.dev)' },
+        redirect: 'follow',
+      });
+      const text = await upstream.text();
+      const items = parseFeedXml(text).map((it) => ({ ...it, source: it.source || label }));
+      collected.push(...items);
+    } catch {
+      /* 单源失败跳过，不阻断其它源 */
+    }
+  }
+  const clustered = clusterFeed(collected);
+  // 按独立信源数（热度）降序：被越多不同源报道的事件越重要
+  clustered.sort((a: any, b: any) => (b.sources?.length || 1) - (a.sources?.length || 1));
+  return new Response(JSON.stringify({ items: clustered.slice(0, 30) }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': `public, max-age=${CACHE_TTL}, s-maxage=${CACHE_TTL}`,
+      'Access-Control-Allow-Origin': here.origin,
+    },
+  });
+}
+
 export const onRequest = async (context: any) => {
   const request: Request = context.request;
   const here: URL = new URL(request.url);
+  // 聚合模式：?aggregate=1&s=<label>@<enc_url>&s=... ——跨源拉取→聚簇→按独立信源数排热度。
+  // 主站（有 Functions）走此分支，前端一次请求拿到理好的候选；备站无 Functions 时
+  // 该请求失败，前端自动降级为逐源拉取 + 前端聚簇（效果一致）。仅放行同源调用。
+  if (here.searchParams.get('aggregate') === '1') {
+    const origin = request.headers.get('origin');
+    if (origin && origin !== here.origin) return new Response('origin not allowed', { status: 403 });
+    return handleAggregate(here);
+  }
+
   const target = here.searchParams.get('url');
   if (!target) return new Response('missing url', { status: 400 });
 
