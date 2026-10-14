@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 // 九溪 · 动态资讯数据源与抓取
 //
 // 纯浏览器端实现，无需后端：
@@ -475,4 +477,25 @@ export function wireFavorites(container: HTMLElement): void {
       btn.classList.toggle('active', nowFav);
     });
   });
+}
+
+
+// P1-5 type-safety + P2-4 bad-data guard: runtime zod check for FeedItem
+export const FeedItemSchema = z.object({
+  title: z.string().min(1),
+  link: z.string().min(1),
+  source: z.string().optional(),
+  pubDate: z.string().optional(),
+  snippet: z.string().optional(),
+  sources: z.array(z.string()).optional(),
+});
+export type FeedItemClean = z.infer<typeof FeedItemSchema>;
+export function cleanFeedItems(raw: unknown): FeedItemClean[] {
+  if (!Array.isArray(raw)) return [];
+  const out: FeedItemClean[] = [];
+  for (const it of raw) {
+    const r = FeedItemSchema.safeParse(it);
+    if (r.success) out.push(r.data);
+  }
+  return out;
 }
