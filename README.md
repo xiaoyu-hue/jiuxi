@@ -254,8 +254,8 @@ jiuxi/
 | [@astrojs/rss](https://docs.astro.build)                      | MIT        | 自动生成 RSS（`/rss.xml`）                                  |
 | [@astrojs/sitemap](https://docs.astro.build)                  | MIT        | 自动生成 sitemap                                            |
 | [@extractus/feed-extractor](https://github.com/extractus/feed-extractor) | MIT | 浏览器端解析 RSS/Atom（零正则 hack）                |
-| [@fontsource/noto-serif-sc](https://github.com/fontsource)    | MIT        | 自托管思源宋体（标题/正文衬线，子集化无外链）               |
-| [@fontsource/noto-sans-sc](https://github.com/fontsource)     | MIT        | 自托管思源黑体（UI 无衬线，子集化无外链）                   |
+| [@fontsource/noto-serif-sc](https://github.com/fontsource)    | OFL-1.1    | 自托管思源宋体（标题/正文衬线，子集化无外链）               |
+| [@fontsource/noto-sans-sc](https://github.com/fontsource)     | OFL-1.1    | 自托管思源黑体（UI 无衬线，子集化无外链）                   |
 | [@formkit/auto-animate](https://auto-animate.formkit.com)     | MIT        | 资讯卡片流增删过渡动效                                      |
 | [lenis](https://github.com/darkroomengineering/lenis)         | MIT        | 平滑滚动（Lenis）                                           |
 | [zod](https://zod.dev)                                        | MIT        | Content Collections 的 schema 校验                          |
@@ -346,6 +346,14 @@ jiuxi/
 - **文档与内容（CC BY-NC 4.0）**：**禁止商用（NC）**，转载 / 演绎须署名（BY）并提供许可链接。
 - **边界说明**：他人可基于九溪代码搭站（含商用），但不得搬运本仓库的文档与原创内容用于商业用途。
 - **第三方**：九溪为自研实现，未复制第三方项目源码；若未来引入第三方代码片段，将保留其原有许可证声明。依赖包（Astro / Tailwind / TypeScript 等）按各自原有许可证，经 `package.json` 体现。
+
+### 第三方许可证与合规说明
+
+九溪引用的第三方组件绝大多数为**宽松许可证（MIT / Apache-2.0）**，保留其版权声明即可，无传染性。需单独说明三点：
+
+- **自托管字体（OFL-1.1）**：`@fontsource/noto-serif-sc` / `noto-sans-sc`（思源宋体 / 黑体）遵循 **SIL Open Font License 1.1**，允许随项目自由嵌入与再分发；但字体文件本身不得作为独立商品出售、也不得施加比 OFL 更严格的限制。九溪将字体子集内嵌进产物，符合该条款。
+- **TruffleHog（AGPL-3.0，已隔离）**：CI 密钥扫描工具 TruffleHog 为 AGPL-3.0（具传染性），但**仅在 GitHub Actions 中以独立 CLI 进程运行、不链接进九溪代码、不进入站点产物**，AGPL 义务不传导至九溪本身；其余 CI 工具（ZAP / Trivy / osv-scanner / Nuclei / Scorecard 等）均为 MIT / Apache-2.0。
+- **完整清单**：逐包版本与许可证以 `package-lock.json` 为准；需生成人类可读的第三方许可清单，可运行 `npx license-report`（或 `license-checker`）。
 
 版权人：xiaoyu-hue，2026。
 
