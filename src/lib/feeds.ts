@@ -39,7 +39,7 @@ interface FeedSource {
 // GitHub Pages 备站无 Functions，运行时刷新会失败，但构建期注入的数据仍可见（备站降级）。
 const FEED_PROXY_PATH = '/api/feed';
 
-const CACHE_TTL = 30 * 60 * 1000; // 30 分钟
+const CACHE_TTL = 10 * 60 * 1000; // 10 分钟(自动刷新;「立即刷新」可强制实时)
 
 // 数据源外置到 src/data/feeds.json（运行端与构建端共用的唯一配置）
 const SOURCES = (feedsData as { sections: Record<Section, FeedSource[]> }).sections;
