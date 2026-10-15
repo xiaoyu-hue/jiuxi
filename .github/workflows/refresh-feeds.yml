@@ -13,7 +13,7 @@ name: 定时重建（刷新资讯）
 
 on:
   schedule:
-    - cron: '0 */2 * * *' # 每 2 小时（UTC），比 30 分钟档更易被调度
+    - cron: '0 * * * *'   # 每小时重建(1h,比 2h 更新鲜)
   workflow_dispatch:
   repository_dispatch:
     types: [refresh-feeds]
