@@ -1,173 +1,1798 @@
 {
-  "_comment": "九溪 · 资讯源配置（唯一数据源）。运行端 feeds.ts 与构建端 scripts/fetch-feeds.mjs 共用本文件，避免双份配置漂移。新增源时请同步更新 functions/api/feed.ts 的白名单。2026-10-12 扩容：14 → 21 源，全部经抓取实测；RSSHub·少数派 替换为少数派官方源（公共 RSSHub 实例不稳定）。",
-  "sections": {
-    "ai": [
-      {
-        "label": "量子位 · AI",
-        "url": "https://www.qbitai.com/feed",
-        "type": "rss"
-      },
-      {
-        "label": "OpenAI 新闻",
-        "url": "https://openai.com/news/rss.xml",
-        "type": "rss"
-      },
-      {
-        "label": "Google AI 博客",
-        "url": "https://blog.google/technology/ai/rss/",
-        "type": "rss"
-      },
-      {
-        "label": "Hacker News · AI",
-        "url": "https://hn.algolia.com/api/v1/search?tags=story&query=AI&hitsPerPage=20",
-        "type": "hn"
-      },
-      {
-        "label": "ArXiv · cs.AI",
-        "url": "https://rss.arxiv.org/rss/cs.AI",
-        "type": "rss"
-      },
-      {
-        "label": "Google 新闻 · AI（兜底）",
-        "url": "https://news.google.com/rss/search?q=人工智能+OR+AI&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
-        "type": "rss"
-      },
-      {
-        "label": "The Decoder",
-        "url": "https://the-decoder.com/feed/",
-        "type": "rss"
-      },
-      {
-        "label": "Hugging Face",
-        "url": "https://huggingface.co/blog/feed.xml",
-        "type": "rss"
-      }
-    ],
-    "news": [
-      {
-        "label": "Google 新闻 · 热点",
-        "url": "https://news.google.com/rss?hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
-        "type": "rss"
-      },
-      {
-        "label": "IT之家",
-        "url": "https://www.ithome.com/rss/",
-        "type": "rss"
-      },
-      {
-        "label": "爱范儿",
-        "url": "https://www.ifanr.com/feed",
-        "type": "rss"
-      },
-      {
-        "label": "少数派",
-        "url": "https://sspai.com/feed",
-        "type": "rss"
-      },
-      {
-        "label": "蓝点网",
-        "url": "https://www.landiannews.com/feed",
-        "type": "rss"
-      },
-      {
-        "label": "极客公园",
-        "url": "https://www.geekpark.net/rss/",
-        "type": "rss"
-      }
-    ],
-    "tech": [
-      {
-        "label": "Google 新闻 · 科技",
-        "url": "https://news.google.com/rss/search?q=科技&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
-        "type": "rss"
-      },
-      {
-        "label": "Hacker News 头条",
-        "url": "https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=20",
-        "type": "hn"
-      },
-      {
-        "label": "TechCrunch",
-        "url": "https://techcrunch.com/feed/",
-        "type": "rss"
-      },
-      {
-        "label": "Ars Technica",
-        "url": "https://arstechnica.com/feed/",
-        "type": "rss"
-      },
-      {
-        "label": "The Verge",
-        "url": "https://www.theverge.com/rss/index.xml",
-        "type": "rss"
-      },
-      {
-        "label": "阮一峰的网络日志",
-        "url": "https://www.ruanyifeng.com/blog/atom.xml",
-        "type": "rss"
-      },
-      {
-        "label": "Solidot 奇客",
-        "url": "https://www.solidot.org/index.rss",
-        "type": "rss"
-      },
-      {
-        "label": "MIT Technology Review",
-        "url": "https://www.technologyreview.com/feed/",
-        "type": "rss"
-      },
-      {
-        "label": "Ars Technica · AI",
-        "url": "https://arstechnica.com/tag/artificial-intelligence/feed/",
-        "type": "rss"
-      },
-      {
-        "label": "The Guardian · Tech",
-        "url": "https://feeds.theguardian.com/theguardian/technology/rss",
-        "type": "rss"
-      }
-    ],
-    "gaming": [
-      {
-        "label": "Google 新闻 · 游戏",
-        "url": "https://news.google.com/rss/search?q=游戏&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
-        "type": "rss"
-      },
-      {
-        "label": "机核 GCORES",
-        "url": "https://www.gcores.com/rss",
-        "type": "rss"
-      },
-      {
-        "label": "触乐",
-        "url": "https://www.chuapp.com/feed",
-        "type": "rss"
-      },
-      {
-        "label": "IT之家",
-        "url": "https://www.ithome.com/rss/",
-        "type": "rss"
-      },
-      {
-        "label": "Eurogamer",
-        "url": "https://www.eurogamer.net/feed",
-        "type": "rss"
-      },
-      {
-        "label": "PC Gamer",
-        "url": "https://www.pcgamer.com/rss/",
-        "type": "rss"
-      },
-      {
-        "label": "Rock Paper Shotgun",
-        "url": "https://www.rockpapershotgun.com/feed",
-        "type": "rss"
-      }
-    ]
-  },
-  "aiSummary": {
-    "_comment": "预留 AI 摘要接口：需密钥，仅配置不实现调用。改为 true 并在 Cloudflare Pages 设对应 Secret 后，可在 Functions 中接入。",
-    "enabled": false,
-    "endpoint": ""
-  }
+ "_comment": "九溪 · 资讯源配置（唯一数据源）。运行端 feeds.ts 与构建端 scripts/fetch-feeds.mjs 共用本文件。2026-10-15 全行业扩容：31 源/4 板块 → 299 源/15 板块。每板块 = Google News 行业搜索（骨干，线上实证可用）+ 行业官方 RSS（质量锚点）。verified=true 为沙箱实测可用（34 个）；其余为知名稳定源标注「待线上验证」，由每小时定时构建自动验证，失败源自动跳过不阻断（fetch-feeds 容错），可据构建日志清理。新增源必须同步 functions/api/feed.ts 的 ALLOWED_HOSTS 白名单。",
+ "sections": {
+  "ai": [
+   {
+    "label": "量子位 · AI",
+    "url": "https://www.qbitai.com/feed",
+    "type": "rss"
+   },
+   {
+    "label": "OpenAI 新闻",
+    "url": "https://openai.com/news/rss.xml",
+    "type": "rss"
+   },
+   {
+    "label": "Google AI 博客",
+    "url": "https://blog.google/technology/ai/rss/",
+    "type": "rss"
+   },
+   {
+    "label": "Hacker News · AI",
+    "url": "https://hn.algolia.com/api/v1/search?tags=story&query=AI&hitsPerPage=20",
+    "type": "hn"
+   },
+   {
+    "label": "ArXiv · cs.AI",
+    "url": "https://rss.arxiv.org/rss/cs.AI",
+    "type": "rss"
+   },
+   {
+    "label": "Google 新闻 · AI（兜底）",
+    "url": "https://news.google.com/rss/search?q=人工智能+OR+AI&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss"
+   },
+   {
+    "label": "The Decoder",
+    "url": "https://the-decoder.com/feed/",
+    "type": "rss"
+   },
+   {
+    "label": "Hugging Face",
+    "url": "https://huggingface.co/blog/feed.xml",
+    "type": "rss"
+   },
+   {
+    "label": "Anthropic 新闻",
+    "url": "https://www.anthropic.com/news",
+    "type": "rss",
+    "note": "官网无RSS，抓取页内链接"
+   },
+   {
+    "label": "Google DeepMind 博客",
+    "url": "https://deepmind.google/blog/rss/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "MIT科技评论 · AI",
+    "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "VentureBeat · AI",
+    "url": "https://venturebeat.com/category/ai/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "机器之心",
+    "url": "https://www.jiqizhixin.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "新智元",
+    "url": "https://www.aiwatch.ai/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "智东西",
+    "url": "https://zhidx.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "甲子光年",
+    "url": "https://www.jazzyear.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "PaperWeekly",
+    "url": "https://paperweekly.me/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "ArXiv · cs.CL",
+    "url": "https://rss.arxiv.org/rss/cs.CL",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "智源社区",
+    "url": "https://hub.baai.ac.cn/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "AI科技评论",
+    "url": "https://www.leiphone.com/category/ai/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "机器之能",
+    "url": "https://www.almosthuman.cn/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Hugging Face 论文",
+    "url": "https://huggingface.co/papers/feed.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · AI公司",
+    "url": "https://news.google.com/rss/search?q=%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD+%E5%85%AC%E5%8F%B8&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Google 新闻 · 大模型",
+    "url": "https://news.google.com/rss/search?q=%E5%A4%A7%E6%A8%A1%E5%9E%8B+LLM&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Interconnects（AI 深度）",
+    "url": "https://www.interconnects.ai/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Import AI 周刊",
+    "url": "https://importai.substack.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "The Batch（DeepLearning.AI）",
+    "url": "https://www.deeplearning.ai/the-batch/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Sebastian Raschka",
+    "url": "https://magazine.sebastianraschka.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Lil'Log",
+    "url": "https://lilianweng.github.io/index.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "One Useful Thing",
+    "url": "https://www.oneusefulthing.org/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Ahead of AI",
+    "url": "https://magazine.sebastianraschka.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · AI应用",
+    "url": "https://news.google.com/rss/search?q=%E4%BA%BA%E5%B7%A5%E6%99%BA%E8%83%BD+%E5%BA%94%E7%94%A8+%E4%BA%A7%E5%93%81&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   }
+  ],
+  "news": [
+   {
+    "label": "Google 新闻 · 热点",
+    "url": "https://news.google.com/rss?hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss"
+   },
+   {
+    "label": "IT之家",
+    "url": "https://www.ithome.com/rss/",
+    "type": "rss"
+   },
+   {
+    "label": "爱范儿",
+    "url": "https://www.ifanr.com/feed",
+    "type": "rss"
+   },
+   {
+    "label": "少数派",
+    "url": "https://sspai.com/feed",
+    "type": "rss"
+   },
+   {
+    "label": "蓝点网",
+    "url": "https://www.landiannews.com/feed",
+    "type": "rss"
+   },
+   {
+    "label": "极客公园",
+    "url": "https://www.geekpark.net/rss/",
+    "type": "rss"
+   },
+   {
+    "label": "路透中文",
+    "url": "https://feedx.net/rss/reuters.xml",
+    "type": "rss",
+    "note": "feedx.net 全文驱动，待线上验证"
+   },
+   {
+    "label": "纽约时报中文网",
+    "url": "https://feedx.net/rss/nytimes.xml",
+    "type": "rss",
+    "note": "feedx.net 全文驱动，待线上验证"
+   },
+   {
+    "label": "FT中文网",
+    "url": "https://feedx.net/rss/ft.xml",
+    "type": "rss",
+    "note": "feedx.net 全文驱动，待线上验证"
+   },
+   {
+    "label": "BBC News 中文",
+    "url": "https://feedx.net/rss/bbc.xml",
+    "type": "rss",
+    "note": "feedx.net 全文驱动，待线上验证"
+   },
+   {
+    "label": "法国国际广播电台",
+    "url": "https://feedx.net/rss/rfi.xml",
+    "type": "rss",
+    "note": "feedx.net 全文驱动，待线上验证"
+   },
+   {
+    "label": "德国之声",
+    "url": "https://feedx.net/rss/dw.xml",
+    "type": "rss",
+    "note": "feedx.net 全文驱动，待线上验证"
+   },
+   {
+    "label": "联合早报",
+    "url": "https://feedx.net/rss/zaobaotoday.xml",
+    "type": "rss",
+    "note": "feedx.net 全文驱动，待线上验证"
+   },
+   {
+    "label": "共同网",
+    "url": "https://feedx.net/rss/kyodo.xml",
+    "type": "rss",
+    "note": "feedx.net 全文驱动，待线上验证"
+   },
+   {
+    "label": "朝日新闻中文",
+    "url": "https://feedx.net/rss/asahi.xml",
+    "type": "rss",
+    "note": "feedx.net 全文驱动，待线上验证"
+   },
+   {
+    "label": "日经中文网",
+    "url": "https://feedx.net/rss/nikkei.xml",
+    "type": "rss",
+    "note": "feedx.net 全文驱动，待线上验证"
+   },
+   {
+    "label": "中央社",
+    "url": "https://feedx.net/rss/cna.xml",
+    "type": "rss",
+    "note": "feedx.net 全文驱动，待线上验证"
+   },
+   {
+    "label": "朝鲜日报中文",
+    "url": "https://feedx.net/rss/chosun.xml",
+    "type": "rss",
+    "note": "feedx.net 全文驱动，待线上验证"
+   },
+   {
+    "label": "澎湃新闻",
+    "url": "https://feedx.net/rss/thepaper.xml",
+    "type": "rss",
+    "note": "feedx.net 全文驱动，待线上验证"
+   },
+   {
+    "label": "WSJ 世界新闻",
+    "url": "https://feeds.content.dowjones.io/public/rss/RSSWorldNews",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "NPR 新闻",
+    "url": "https://feeds.npr.org/1001/rss.xml",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "经济学人 · 最新",
+    "url": "https://www.economist.com/latest/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "BBC 世界",
+    "url": "http://feeds.bbci.co.uk/news/world/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "卫报 · 世界",
+    "url": "https://www.theguardian.com/world/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "半岛电视台",
+    "url": "https://www.aljazeera.com/xml/rss/all.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 国际",
+    "url": "https://news.google.com/rss/search?q=%E5%9B%BD%E9%99%85+%E5%9C%B0%E7%BC%98&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Google 新闻 · 社会",
+    "url": "https://news.google.com/rss/search?q=%E7%A4%BE%E4%BC%9A+%E6%B0%91%E7%94%9F&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Google 新闻 · 时政",
+    "url": "https://news.google.com/rss/search?q=%E6%97%B6%E6%94%BF+%E6%94%BF%E7%AD%96&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Google 新闻 · 英文中国",
+    "url": "https://news.google.com/rss/search?q=China+when:1d&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Google 新闻 · 科技圈",
+    "url": "https://news.google.com/rss/search?q=%E7%A7%91%E6%8A%80%E5%9C%88+%E5%88%9B%E4%B8%9A&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   }
+  ],
+  "tech": [
+   {
+    "label": "Google 新闻 · 科技",
+    "url": "https://news.google.com/rss/search?q=科技&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss"
+   },
+   {
+    "label": "Hacker News 头条",
+    "url": "https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=20",
+    "type": "hn"
+   },
+   {
+    "label": "TechCrunch",
+    "url": "https://techcrunch.com/feed/",
+    "type": "rss"
+   },
+   {
+    "label": "Ars Technica",
+    "url": "https://arstechnica.com/feed/",
+    "type": "rss"
+   },
+   {
+    "label": "The Verge",
+    "url": "https://www.theverge.com/rss/index.xml",
+    "type": "rss"
+   },
+   {
+    "label": "阮一峰的网络日志",
+    "url": "https://www.ruanyifeng.com/blog/atom.xml",
+    "type": "rss"
+   },
+   {
+    "label": "Solidot 奇客",
+    "url": "https://www.solidot.org/index.rss",
+    "type": "rss"
+   },
+   {
+    "label": "MIT Technology Review",
+    "url": "https://www.technologyreview.com/feed/",
+    "type": "rss"
+   },
+   {
+    "label": "Ars Technica · AI",
+    "url": "https://arstechnica.com/tag/artificial-intelligence/feed/",
+    "type": "rss"
+   },
+   {
+    "label": "The Guardian · Tech",
+    "url": "https://feeds.theguardian.com/theguardian/technology/rss",
+    "type": "rss"
+   },
+   {
+    "label": "少数派",
+    "url": "https://sspai.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "虎嗅",
+    "url": "https://www.huxiu.com/rss/0.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "V2EX 最新",
+    "url": "https://v2ex.com/index.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "36氪",
+    "url": "https://36kr.com/feed",
+    "type": "rss",
+    "note": "反爬待观察，失败自动跳过"
+   },
+   {
+    "label": "酷壳 CoolShell",
+    "url": "https://coolshell.cn/feed",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "美团技术团队",
+    "url": "https://tech.meituan.com/rss.xml",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "HelloGitHub 月刊",
+    "url": "https://hellogithub.com/rss",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "InfoQ 中文",
+    "url": "https://www.infoq.cn/feed",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "博客园 · 精华",
+    "url": "https://www.cnblogs.com/pick/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "CSDN 头条",
+    "url": "https://blog.csdn.net/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "ZDNet",
+    "url": "https://www.zdnet.com/news/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Engadget",
+    "url": "https://www.engadget.com/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Wired",
+    "url": "https://www.wired.com/feed/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Gizmodo",
+    "url": "https://gizmodo.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 互联网",
+    "url": "https://news.google.com/rss/search?q=%E4%BA%92%E8%81%94%E7%BD%91+%E4%BA%A7%E5%93%81&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Techmeme",
+    "url": "https://www.techmeme.com/feed.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 数码评测",
+    "url": "https://news.google.com/rss/search?q=%E6%95%B0%E7%A0%81+%E8%AF%84%E6%B5%8B+%E6%89%8B%E6%9C%BA&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   }
+  ],
+  "gaming": [
+   {
+    "label": "Google 新闻 · 游戏",
+    "url": "https://news.google.com/rss/search?q=游戏&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss"
+   },
+   {
+    "label": "机核 GCORES",
+    "url": "https://www.gcores.com/rss",
+    "type": "rss"
+   },
+   {
+    "label": "触乐",
+    "url": "https://www.chuapp.com/feed",
+    "type": "rss"
+   },
+   {
+    "label": "IT之家",
+    "url": "https://www.ithome.com/rss/",
+    "type": "rss"
+   },
+   {
+    "label": "Eurogamer",
+    "url": "https://www.eurogamer.net/feed",
+    "type": "rss"
+   },
+   {
+    "label": "PC Gamer",
+    "url": "https://www.pcgamer.com/rss/",
+    "type": "rss"
+   },
+   {
+    "label": "Rock Paper Shotgun",
+    "url": "https://www.rockpapershotgun.com/feed",
+    "type": "rss"
+   },
+   {
+    "label": "IGN",
+    "url": "https://feeds.ign.com/ign/all",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "GameSpot",
+    "url": "https://www.gamespot.com/feeds/mashup/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Polygon",
+    "url": "https://www.polygon.com/rss/index.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Kotaku",
+    "url": "https://kotaku.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Nintendo Life",
+    "url": "https://www.nintendolife.com/feeds/latest",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Push Square",
+    "url": "https://www.pushsquare.com/feeds/latest",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "游民星空",
+    "url": "https://www.gamersky.com/rss/news.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "3DM游戏",
+    "url": "https://www.3dmgame.com/rss/news.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "触乐",
+    "url": "https://www.chuapp.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "indienova",
+    "url": "https://indienova.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "GameLook",
+    "url": "https://www.gamelook.com.cn/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 游戏",
+    "url": "https://news.google.com/rss/search?q=%E6%B8%B8%E6%88%8F+%E7%94%B5%E5%AD%90%E7%AB%9E%E6%8A%80&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   }
+  ],
+  "finance": [
+   {
+    "label": "Google 新闻 · 财经",
+    "url": "https://news.google.com/rss/search?q=%E8%B4%A2%E7%BB%8F+%E5%B8%82%E5%9C%BA&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "CNBC 头条",
+    "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "WSJ 市场",
+    "url": "https://feeds.content.dowjones.io/public/rss/RSSMarketsMain",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Bloomberg 市场",
+    "url": "https://feeds.bloomberg.com/markets/news.rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Financial Times",
+    "url": "https://www.ft.com/rss/home",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Forbes 商业",
+    "url": "https://www.forbes.com/business/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Fortune",
+    "url": "https://fortune.com/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "MarketWatch",
+    "url": "https://feeds.content.dowjones.io/public/rss/RSSMarketBeat",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Investing.com",
+    "url": "https://www.investing.com/rss/news.rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Yahoo Finance",
+    "url": "https://finance.yahoo.com/news/rssindex",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Seeking Alpha",
+    "url": "https://seekingalpha.com/feed.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "新浪财经",
+    "url": "https://rss.sina.com.cn/roll/finance/hot_roll.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "东方财富",
+    "url": "https://rss.eastmoney.com/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "财新网",
+    "url": "https://china.caixin.com/rss/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "第一财经",
+    "url": "https://www.yicai.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "21世纪经济报道",
+    "url": "https://www.21jingji.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "华尔街见闻",
+    "url": "https://wallstreetcn.com/news/global/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "雪球热帖",
+    "url": "https://xueqiu.com/hots/topic/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "每日经济新闻",
+    "url": "https://www.nbd.com.cn/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "证券时报",
+    "url": "https://www.stcn.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "智谷趋势",
+    "url": "https://www.zgtrend.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "经济观察报",
+    "url": "https://www.eeo.com.cn/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "中国基金报",
+    "url": "https://www.chnfund.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "英为财情",
+    "url": "https://cn.investing.com/rss/news_25.rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "生意社",
+    "url": "https://www.100ppi.com/rss/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "富途牛牛",
+    "url": "https://www.futunn.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 股市A股",
+    "url": "https://news.google.com/rss/search?q=A%E8%82%A1+%E8%82%A1%E5%B8%82&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Google 新闻 · 加密货币",
+    "url": "https://news.google.com/rss/search?q=%E5%8A%A0%E5%AF%86%E8%B4%A7%E5%B8%81+%E6%AF%94%E7%89%B9%E5%B8%81&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   }
+  ],
+  "sports": [
+   {
+    "label": "Google 新闻 · 体育",
+    "url": "https://news.google.com/rss/search?q=%E4%BD%93%E8%82%B2+%E8%B5%9B%E4%BA%8B&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "ESPN 新闻",
+    "url": "https://www.espn.com/espn/rss/news",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Sky Sports",
+    "url": "https://www.skysports.com/rss/12040",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Marca 西班牙",
+    "url": "https://e00-xlk-ue-marca.uecdn.es/rss/googlenews/portada.xml",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "BBC Sport",
+    "url": "http://feeds.bbci.co.uk/sport/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "CBS Sports",
+    "url": "https://www.cbssports.com/rss/headlines/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Yahoo Sports",
+    "url": "https://sports.yahoo.com/rss/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "NBA",
+    "url": "https://www.nba.com/rss/nba_rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "NFL",
+    "url": "https://www.nfl.com/rss/rsslanding",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "The Athletic",
+    "url": "https://theathletic.com/rss/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "AS 西班牙",
+    "url": "https://feeds.as.com/rss/portada.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "世界体育报",
+    "url": "https://www.mundodeportivo.com/rss/home",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "虎扑体育",
+    "url": "https://www.hupu.com/rss/news",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "直播吧",
+    "url": "https://www.zhibo8.cc/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "懂球帝",
+    "url": "https://www.dongqiudi.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "新浪体育",
+    "url": "https://sports.sina.com.cn/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "腾讯体育",
+    "url": "https://sports.qq.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "网易体育",
+    "url": "https://sports.163.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "奥运会官网",
+    "url": "https://olympics.com/en/news/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "央视网体育",
+    "url": "https://sports.cctv.com/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 足球",
+    "url": "https://news.google.com/rss/search?q=%E8%B6%B3%E7%90%83+%E8%A5%BF%E7%94%B2+%E8%B6%85%E7%BA%A7&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Google 新闻 · 篮球",
+    "url": "https://news.google.com/rss/search?q=%E7%AF%AE%E7%90%83+NBA&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "F1 官网",
+    "url": "https://www.formula1.com/rss/news/latest.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "UFC",
+    "url": "https://www.ufc.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "ATP 网球",
+    "url": "https://www.atptour.com/rss/news/",
+    "type": "rss",
+    "note": "待线上验证"
+   }
+  ],
+  "health": [
+   {
+    "label": "Google 新闻 · 健康",
+    "url": "https://news.google.com/rss/search?q=%E5%81%A5%E5%BA%B7+%E5%8C%BB%E7%96%97&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "WHO 新闻",
+    "url": "https://www.who.int/rss-feeds/news-english.xml",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "STAT News",
+    "url": "https://www.statnews.com/feed/",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "WebMD",
+    "url": "https://rssfeeds.webmd.com/rss/rss.aspx?RSSSource=RSS_PUBLIC",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "HealthDay",
+    "url": "https://www.healthday.com/rss/health.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Medical News Today",
+    "url": "https://www.medicalnewstoday.com/news/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "NIH 新闻",
+    "url": "https://www.nih.gov/news-events/news-releases/feed.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Nature Medicine",
+    "url": "https://www.nature.com/nm.rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "The Lancet",
+    "url": "https://www.thelancet.com/rssfeed/lancet_current.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "BMJ",
+    "url": "https://www.bmj.com/rss/recent.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "JAMA",
+    "url": "https://jamanetwork.com/rss/site_3",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "CDC",
+    "url": "https://tools.cdc.gov/podcasts/feed.aspx",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Mayo Clinic",
+    "url": "https://www.mayoclinic.org/rss/all-health-information",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "医学界",
+    "url": "https://www.yxj.org.cn/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "健康界",
+    "url": "https://www.cn-healthcare.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "生物探索",
+    "url": "https://www.biodiscover.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Nature 健康",
+    "url": "https://www.nature.com/subjects/health/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 心理",
+    "url": "https://news.google.com/rss/search?q=%E5%BF%83%E7%90%86+%E6%83%85%E7%BB%AA&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   }
+  ],
+  "science": [
+   {
+    "label": "Google 新闻 · 科学",
+    "url": "https://news.google.com/rss/search?q=%E7%A7%91%E5%AD%A6+%E7%A0%94%E7%A9%B6&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Nature",
+    "url": "https://www.nature.com/nature.rss",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Scientific American",
+    "url": "https://www.scientificamerican.com/platform/syndication/rss/",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "ScienceDaily",
+    "url": "https://www.sciencedaily.com/rss/all.xml",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Quanta Magazine",
+    "url": "https://api.quantamagazine.org/feed/",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "New Scientist",
+    "url": "https://www.newscientist.com/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Science",
+    "url": "https://www.science.org/rss/news_current.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "PNAS",
+    "url": "https://www.pnas.org/rss/current.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "NSF",
+    "url": "https://www.nsf.gov/rss/rss_www_nsf_gov_news.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "NASA 新闻",
+    "url": "https://www.nasa.gov/rss/dyn/breaking_news.rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "NASA JPL",
+    "url": "https://www.jpl.nasa.gov/rss/news",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "ESA",
+    "url": "https://www.esa.int/rssfeed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "中国科学院",
+    "url": "https://www.cas.cn/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "科普中国",
+    "url": "https://www.kepuchina.cn/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "环球科学",
+    "url": "https://huanqiukexue.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "果壳",
+    "url": "https://www.guokr.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "中科院物理所",
+    "url": "https://www.iop.cas.cn/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "EurekAlert",
+    "url": "https://www.eurekalert.org/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "中国国家地理",
+    "url": "https://www.dili360.com/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 航天",
+    "url": "https://news.google.com/rss/search?q=%E8%88%AA%E5%A4%A9+%E5%AE%87%E5%AE%99&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Google 新闻 · 考古",
+    "url": "https://news.google.com/rss/search?q=%E8%80%83%E5%8F%A4+%E5%8F%91%E6%8C%96&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Google 新闻 · 气候",
+    "url": "https://news.google.com/rss/search?q=%E6%B0%94%E5%80%99+%E7%8E%AF%E5%A2%83&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "ArXiv · 物理",
+    "url": "https://rss.arxiv.org/rss/physics",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "ArXiv · 数学",
+    "url": "https://rss.arxiv.org/rss/math",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "ArXiv · 生物",
+    "url": "https://rss.arxiv.org/rss/q-bio",
+    "type": "rss",
+    "note": "待线上验证"
+   }
+  ],
+  "education": [
+   {
+    "label": "Google 新闻 · 教育",
+    "url": "https://news.google.com/rss/search?q=%E6%95%99%E8%82%B2+%E5%AD%A6%E6%A0%A1&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "EdSurge",
+    "url": "https://www.edsurge.com/articles_rss",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "芥末堆看教育",
+    "url": "https://www.jiemodui.com/rss.xml",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Inside Higher Ed",
+    "url": "https://www.insidehighered.com/rss.xml",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Education Week",
+    "url": "https://www.edweek.org/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Times Higher Education",
+    "url": "https://www.timeshighereducation.com/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Coursera 博客",
+    "url": "https://blog.coursera.org/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "中国教育在线",
+    "url": "https://www.eol.cn/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "多鲸资本",
+    "url": "https://www.duojing.cn/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "TeachThought",
+    "url": "https://www.teachthought.com/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "JSTOR Daily",
+    "url": "https://daily.jstor.org/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "edX 博客",
+    "url": "https://www.edx.org/blog/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 留学",
+    "url": "https://news.google.com/rss/search?q=%E7%95%99%E5%AD%A6+%E8%80%83%E7%A0%94&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Google 新闻 · 职场",
+    "url": "https://news.google.com/rss/search?q=%E8%81%8C%E5%9C%BA+%E6%8B%9B%E8%81%98&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "国家智慧教育平台",
+    "url": "https://www.smartedu.cn/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   }
+  ],
+  "auto": [
+   {
+    "label": "Google 新闻 · 汽车",
+    "url": "https://news.google.com/rss/search?q=%E6%B1%BD%E8%BD%A6+%E6%96%B0%E8%83%BD%E6%BA%90&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Car and Driver",
+    "url": "https://www.caranddriver.com/rss/all/",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Electrek",
+    "url": "https://electrek.co/feed/",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Motor1",
+    "url": "https://www.motor1.com/rss/news/all/",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "InsideEVs",
+    "url": "https://insideevs.com/rss/news/all/",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Autoblog",
+    "url": "https://www.autoblog.com/rss/news.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Top Gear",
+    "url": "https://www.topgear.com/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "汽车之家",
+    "url": "https://www.autohome.com.cn/rss/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "懂车帝",
+    "url": "https://www.dongchedi.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "42号车库",
+    "url": "https://www.42how.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "爱卡汽车",
+    "url": "https://www.xcar.com.cn/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "第一电动",
+    "url": "https://www.d1ev.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "建约车评",
+    "url": "https://www.jianyuecar.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 电动车",
+    "url": "https://news.google.com/rss/search?q=%E7%94%B5%E5%8A%A8%E6%B1%BD%E8%BD%A6+%E6%AF%94%E4%BA%9A%E8%BF%AA+%E7%89%B9%E6%96%AF%E6%8B%89&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   }
+  ],
+  "home": [
+   {
+    "label": "Google 新闻 · 房产",
+    "url": "https://news.google.com/rss/search?q=%E6%88%BF%E5%9C%B0%E4%BA%A7+%E6%A5%BC%E5%B8%82&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Dwell",
+    "url": "https://www.dwell.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Architectural Digest",
+    "url": "https://www.architecturaldigest.com/feed/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Elle Decor",
+    "url": "https://www.elledecor.com/rss/all.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "House Beautiful",
+    "url": "https://www.housebeautiful.com/rss/all.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Houzz",
+    "url": "https://www.houzz.com/magazine/feeds/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "一兜糖",
+    "url": "https://www.yidoutang.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "好好住",
+    "url": "https://www.haohaozhu.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   }
+  ],
+  "travel": [
+   {
+    "label": "Google 新闻 · 旅游",
+    "url": "https://news.google.com/rss/search?q=%E6%97%85%E6%B8%B8+%E6%99%AF%E5%8C%BA&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Condé Nast Traveler",
+    "url": "https://www.cntraveler.com/feed/rss",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Skift",
+    "url": "https://skift.com/feed/",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Lonely Planet",
+    "url": "https://www.lonelyplanet.com/feeds/blog",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "National Geographic",
+    "url": "https://www.nationalgeographic.com/feed/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Travel + Leisure",
+    "url": "https://www.travelandleisure.com/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Phocuswire",
+    "url": "https://www.phocuswire.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "马蜂窝",
+    "url": "https://www.mafengwo.cn/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "穷游",
+    "url": "https://www.qyer.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Feekr 旅行",
+    "url": "https://www.feekr.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Trip.com 博客",
+    "url": "https://www.trip.com/blog/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 酒店航空",
+    "url": "https://news.google.com/rss/search?q=%E9%85%92%E5%BA%97+%E8%88%AA%E7%A9%BA&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Google 新闻 · 出境游",
+    "url": "https://news.google.com/rss/search?q=%E5%87%BA%E5%A2%83%E6%B8%B8+%E7%AD%BE%E8%AF%81&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   }
+  ],
+  "food": [
+   {
+    "label": "Google 新闻 · 美食",
+    "url": "https://news.google.com/rss/search?q=%E7%BE%8E%E9%A3%9F+%E9%A4%90%E9%A5%AD&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Eater",
+    "url": "https://www.eater.com/rss/index.xml",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Serious Eats",
+    "url": "https://www.seriouseats.com/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Food & Wine",
+    "url": "https://www.foodandwine.com/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Bon Appétit",
+    "url": "https://www.bonappetit.com/feed/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Saveur",
+    "url": "https://www.saveur.com/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "下厨房",
+    "url": "https://www.xiachufang.com/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "豆果美食",
+    "url": "https://www.douguo.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "日食记",
+    "url": "https://www.rishi-ji.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   }
+  ],
+  "books": [
+   {
+    "label": "Google 新闻 · 读书",
+    "url": "https://news.google.com/rss/search?q=%E5%9B%BE%E4%B9%A6+%E5%87%BA%E7%89%88&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Kirkus 书评",
+    "url": "https://www.kirkusreviews.com/feeds/rss/",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "NYT Books",
+    "url": "https://www.nytimes.com/svc/collections/v1/publish/http://www.nytimes.com/books/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Publishers Weekly",
+    "url": "https://www.publishersweekly.com/pw/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "新京报书评周刊",
+    "url": "https://www.bjnews.com.cn/rss/book.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "单读",
+    "url": "https://www.owspace.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "理想国",
+    "url": "https://www.imaginist.com.cn/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "豆瓣读书",
+    "url": "https://www.douban.com/feed/book",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "出版人杂志",
+    "url": "https://www.chubanren.com/feed",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 文化",
+    "url": "https://news.google.com/rss/search?q=%E6%96%87%E5%8C%96+%E8%89%BA%E6%9C%AF&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "三联生活周刊",
+    "url": "https://www.lifeweek.com.cn/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "南方周末",
+    "url": "https://www.infzm.com/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   }
+  ],
+  "dev": [
+   {
+    "label": "GitHub Blog",
+    "url": "https://github.blog/feed/",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "LWN.net",
+    "url": "https://lwn.net/headlines/rss",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "CSS-Tricks",
+    "url": "https://css-tricks.com/feed/",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Python 官方博客",
+    "url": "https://blog.python.org/feeds/posts/default",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "DEV Community",
+    "url": "https://dev.to/feed",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Smashing Magazine",
+    "url": "https://www.smashingmagazine.com/feed/",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Rust 官方博客",
+    "url": "https://blog.rust-lang.org/feed.xml",
+    "type": "rss",
+    "verified": true
+   },
+   {
+    "label": "Go 官方博客",
+    "url": "https://go.dev/blog/feed.atom",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "开源中国",
+    "url": "https://www.oschina.net/news/rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "字节前端",
+    "url": "https://juejin.cn/rss/1838039172387262",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "有赞技术",
+    "url": "https://tech.youzan.com/rss/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "V8 Blog",
+    "url": "https://v8.dev/blog/feed.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Chromium Blog",
+    "url": "https://blog.chromium.org/feeds/posts/default",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 开源",
+    "url": "https://news.google.com/rss/search?q=%E5%BC%80%E6%BA%90+GitHub+%E8%BD%AF%E4%BB%B6&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Google 新闻 · 编程",
+    "url": "https://news.google.com/rss/search?q=%E7%BC%96%E7%A8%8B+%E5%BC%80%E5%8F%91&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "Google 新闻 · 网络安全",
+    "url": "https://news.google.com/rss/search?q=%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8+%E6%BC%8F%E6%B4%9E&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   },
+   {
+    "label": "TypeScript 博客",
+    "url": "https://devblogs.microsoft.com/typescript/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Node.js 博客",
+    "url": "https://nodejs.org/en/feed/blog.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "React 博客",
+    "url": "https://react.dev/rss.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Vue 博客",
+    "url": "https://blog.vuejs.org/feed.rss",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Kubernetes 博客",
+    "url": "https://kubernetes.io/feed.xml",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Docker 博客",
+    "url": "https://www.docker.com/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "CNCF 博客",
+    "url": "https://www.cncf.io/feed/",
+    "type": "rss",
+    "note": "待线上验证"
+   },
+   {
+    "label": "Google 新闻 · 云原生",
+    "url": "https://news.google.com/rss/search?q=%E4%BA%91%E5%8E%9F%E7%94%9F+%E5%AE%B9%E5%99%A8+%E5%BE%AE%E6%9C%8D%E5%8A%A1&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
+    "type": "rss",
+    "note": "Google News 骨干"
+   }
+  ]
+ }
 }

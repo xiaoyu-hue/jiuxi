@@ -14,31 +14,234 @@
 
 // 允许代理的目标主机白名单（与 src/data/feeds.json 的 RSS 源保持一致）
 const ALLOWED_HOSTS: string[] = [
-  'news.google.com',
-  'hn.algolia.com',
-  'rss.arxiv.org',
-  'www.qbitai.com',
-  'openai.com',
-  'blog.google',
-  'www.ifanr.com',
-  'www.ithome.com',
-  'sspai.com',
-  'techcrunch.com',
+  '36kr.com',
+  'api.quantamagazine.org',
   'arstechnica.com',
-  'www.theverge.com',
-  'www.ruanyifeng.com',
-  'www.solidot.org',
-  'www.gcores.com',
-  'www.chuapp.com',
+  'blog.chromium.org',
+  'blog.coursera.org',
+  'blog.csdn.net',
+  'blog.google',
+  'blog.python.org',
+  'blog.rust-lang.org',
+  'blog.vuejs.org',
+  'china.caixin.com',
+  'cn.investing.com',
+  'coolshell.cn',
+  'css-tricks.com',
+  'daily.jstor.org',
+  'deepmind.google',
+  'dev.to',
+  'devblogs.microsoft.com',
+  'e00-xlk-ue-marca.uecdn.es',
+  'electrek.co',
+  'feeds.as.com',
+  'feeds.bbci.co.uk',
+  'feeds.bloomberg.com',
+  'feeds.content.dowjones.io',
+  'feeds.ign.com',
+  'feeds.npr.org',
   'feeds.theguardian.com',
+  'feedx.net',
+  'finance.yahoo.com',
+  'fortune.com',
+  'github.blog',
+  'gizmodo.com',
+  'go.dev',
+  'hellogithub.com',
+  'hn.algolia.com',
+  'huanqiukexue.com',
+  'hub.baai.ac.cn',
   'huggingface.co',
+  'importai.substack.com',
+  'indienova.com',
+  'insideevs.com',
+  'jamanetwork.com',
+  'juejin.cn',
+  'kotaku.com',
+  'kubernetes.io',
+  'lilianweng.github.io',
+  'lwn.net',
+  'magazine.sebastianraschka.com',
+  'news.google.com',
+  'nodejs.org',
+  'olympics.com',
+  'openai.com',
+  'paperweekly.me',
+  'react.dev',
+  'rss.arxiv.org',
+  'rss.eastmoney.com',
+  'rss.sina.com.cn',
+  'rssfeeds.webmd.com',
+  'seekingalpha.com',
+  'skift.com',
+  'sports.163.com',
+  'sports.cctv.com',
+  'sports.qq.com',
+  'sports.sina.com.cn',
+  'sports.yahoo.com',
+  'sspai.com',
+  'tech.meituan.com',
+  'tech.youzan.com',
+  'techcrunch.com',
   'the-decoder.com',
+  'theathletic.com',
+  'tools.cdc.gov',
+  'v2ex.com',
+  'v8.dev',
+  'venturebeat.com',
+  'wallstreetcn.com',
+  'www.100ppi.com',
+  'www.21jingji.com',
+  'www.3dmgame.com',
+  'www.42how.com',
+  'www.aiwatch.ai',
+  'www.aljazeera.com',
+  'www.almosthuman.cn',
+  'www.anthropic.com',
+  'www.architecturaldigest.com',
+  'www.atptour.com',
+  'www.autoblog.com',
+  'www.autohome.com.cn',
+  'www.biodiscover.com',
+  'www.bjnews.com.cn',
+  'www.bmj.com',
+  'www.bonappetit.com',
+  'www.caranddriver.com',
+  'www.cas.cn',
+  'www.cbssports.com',
+  'www.chnfund.com',
+  'www.chuapp.com',
+  'www.chubanren.com',
+  'www.cn-healthcare.com',
+  'www.cnbc.com',
+  'www.cnblogs.com',
+  'www.cncf.io',
+  'www.cntraveler.com',
+  'www.d1ev.com',
+  'www.deeplearning.ai',
+  'www.dili360.com',
+  'www.docker.com',
+  'www.dongchedi.com',
+  'www.dongqiudi.com',
+  'www.douban.com',
+  'www.douguo.com',
+  'www.duojing.cn',
+  'www.dwell.com',
+  'www.eater.com',
+  'www.economist.com',
+  'www.edsurge.com',
+  'www.edweek.org',
+  'www.edx.org',
+  'www.eeo.com.cn',
+  'www.elledecor.com',
+  'www.engadget.com',
+  'www.eol.cn',
+  'www.esa.int',
+  'www.espn.com',
+  'www.eurekalert.org',
   'www.eurogamer.net',
+  'www.feekr.com',
+  'www.foodandwine.com',
+  'www.forbes.com',
+  'www.formula1.com',
+  'www.ft.com',
+  'www.futunn.com',
+  'www.gamelook.com.cn',
+  'www.gamersky.com',
+  'www.gamespot.com',
+  'www.gcores.com',
   'www.geekpark.net',
+  'www.guokr.com',
+  'www.haohaozhu.com',
+  'www.healthday.com',
+  'www.housebeautiful.com',
+  'www.houzz.com',
+  'www.hupu.com',
+  'www.huxiu.com',
+  'www.ifanr.com',
+  'www.imaginist.com.cn',
+  'www.infoq.cn',
+  'www.infzm.com',
+  'www.insidehighered.com',
+  'www.interconnects.ai',
+  'www.investing.com',
+  'www.iop.cas.cn',
+  'www.ithome.com',
+  'www.jazzyear.com',
+  'www.jianyuecar.com',
+  'www.jiemodui.com',
+  'www.jiqizhixin.com',
+  'www.jpl.nasa.gov',
+  'www.kepuchina.cn',
+  'www.kirkusreviews.com',
   'www.landiannews.com',
+  'www.leiphone.com',
+  'www.lifeweek.com.cn',
+  'www.lonelyplanet.com',
+  'www.mafengwo.cn',
+  'www.mayoclinic.org',
+  'www.medicalnewstoday.com',
+  'www.motor1.com',
+  'www.mundodeportivo.com',
+  'www.nasa.gov',
+  'www.nationalgeographic.com',
+  'www.nature.com',
+  'www.nba.com',
+  'www.nbd.com.cn',
+  'www.newscientist.com',
+  'www.nfl.com',
+  'www.nih.gov',
+  'www.nintendolife.com',
+  'www.nsf.gov',
+  'www.nytimes.com',
+  'www.oneusefulthing.org',
+  'www.oschina.net',
+  'www.owspace.com',
   'www.pcgamer.com',
+  'www.phocuswire.com',
+  'www.pnas.org',
+  'www.polygon.com',
+  'www.publishersweekly.com',
+  'www.pushsquare.com',
+  'www.qbitai.com',
+  'www.qyer.com',
+  'www.rishi-ji.com',
   'www.rockpapershotgun.com',
+  'www.ruanyifeng.com',
+  'www.saveur.com',
+  'www.science.org',
+  'www.sciencedaily.com',
+  'www.scientificamerican.com',
+  'www.seriouseats.com',
+  'www.skysports.com',
+  'www.smartedu.cn',
+  'www.smashingmagazine.com',
+  'www.solidot.org',
+  'www.statnews.com',
+  'www.stcn.com',
+  'www.teachthought.com',
+  'www.techmeme.com',
   'www.technologyreview.com',
+  'www.theguardian.com',
+  'www.thelancet.com',
+  'www.theverge.com',
+  'www.timeshighereducation.com',
+  'www.topgear.com',
+  'www.travelandleisure.com',
+  'www.trip.com',
+  'www.ufc.com',
+  'www.who.int',
+  'www.wired.com',
+  'www.xcar.com.cn',
+  'www.xiachufang.com',
+  'www.yicai.com',
+  'www.yidoutang.com',
+  'www.yxj.org.cn',
+  'www.zdnet.com',
+  'www.zgtrend.com',
+  'www.zhibo8.cc',
+  'xueqiu.com',
+  'zhidx.com',
 ];
 
 const CACHE_TTL = 600; // 秒
@@ -68,6 +271,17 @@ function isPrivateHost(host: string): boolean {
 // ── 聚合模式辅助（?aggregate=1）：服务端跨源聚簇，返回干净 JSON ──
 // 与 src/lib/feeds.ts 的 clusterItems 同一套算法，确保主站（服务端聚簇）与
 // 无 Functions 时（前端逐源聚簇）行为一致。仅用 Web 标准 API，无 DOM 依赖。
+//
+// 并发与限量（2026-10-15 板块扩容至 15 个/最多 32 源后启用）：
+//   旧实现为 specs 串行 for-await——32 源串行在 Workers 免费版
+//   （单请求 50 subrequest 上限）边缘，且最坏耗时远超前端 8s 超时，
+//   导致大板块聚合请求必然超时、白白走前端逐源降级。
+//   现改为：每源 3.5s 独立超时 + 10 路有界并发 + 软限量 20 源
+//   （2 批 × 3.5s ≈ 7s < 8s）。限量只影响「快速通道」覆盖，
+//   全量抓取由前端逐源回退通道保证，信源覆盖不降级。
+const SPEC_LIMIT = 20;
+const SPEC_CONCURRENCY = 10;
+const SPEC_TIMEOUT_MS = 3500;
 
 const TITLE_STOP = new Set([
   'the',
@@ -271,37 +485,51 @@ function parseFeedXml(xml: string): any[] {
   return out.slice(0, 30);
 }
 
+// 抓取单个源（label@url）。任何失败（超时/非白名单/重定向越权）都返回 []，
+// 由调用方合并——单源失败不阻断同批其它源（旧实现遇重定向越权会 403 整批，
+// 大板块下一个坏源连坐全部源；现改为跳过该源，安全性不变：越权内容仍不会
+// 进入响应，只是不再让整批陪葬）。
+async function fetchSpec(spec: string): Promise<any[]> {
+  const idx = spec.indexOf('@');
+  if (idx < 0) return [];
+  const label = spec.slice(0, idx);
+  let parsed: URL;
+  try {
+    parsed = new URL(spec.slice(idx + 1));
+  } catch {
+    return [];
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return [];
+  if (!ALLOWED_HOSTS.includes(parsed.hostname.toLowerCase()) || isPrivateHost(parsed.hostname))
+    return [];
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), SPEC_TIMEOUT_MS);
+    const upstream = await fetch(parsed.toString(), {
+      headers: { 'User-Agent': 'Jiuxi/1.0 (+https://jiuxi-bm1.pages.dev)' },
+      redirect: 'follow',
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    const blocked = assertFinalUrlAllowed(upstream);
+    if (blocked) return [];
+    const text = await upstream.text();
+    return parseFeedXml(text).map((it) => ({ ...it, source: it.source || label }));
+  } catch {
+    return [];
+  }
+}
+
 async function handleAggregate(here: URL, env: any): Promise<Response> {
   const section = here.searchParams.get('section');
-  const specs = here.searchParams.getAll('s').filter(Boolean);
+  const specs = here.searchParams.getAll('s').filter(Boolean).slice(0, SPEC_LIMIT);
   if (!specs.length) return new Response('missing s', { status: 400 });
   const collected: any[] = [];
-  for (const spec of specs) {
-    const idx = spec.indexOf('@');
-    if (idx < 0) continue;
-    const label = spec.slice(0, idx);
-    let parsed: URL;
-    try {
-      parsed = new URL(spec.slice(idx + 1));
-    } catch {
-      continue;
-    }
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') continue;
-    if (!ALLOWED_HOSTS.includes(parsed.hostname.toLowerCase()) || isPrivateHost(parsed.hostname))
-      continue;
-    try {
-      const upstream = await fetch(parsed.toString(), {
-        headers: { 'User-Agent': 'Jiuxi/1.0 (+https://jiuxi-bm1.pages.dev)' },
-        redirect: 'follow',
-      });
-      const blocked = assertFinalUrlAllowed(upstream);
-      if (blocked) return blocked;
-      const text = await upstream.text();
-      const items = parseFeedXml(text).map((it) => ({ ...it, source: it.source || label }));
-      collected.push(...items);
-    } catch {
-      /* 单源失败跳过，不阻断其它源 */
-    }
+  // 10 路有界并发分批抓取（旧串行版在大板块必超时，见文件头注释）
+  for (let i = 0; i < specs.length; i += SPEC_CONCURRENCY) {
+    const batch = specs.slice(i, i + SPEC_CONCURRENCY);
+    const results = await Promise.all(batch.map(fetchSpec));
+    for (const r of results) collected.push(...r);
   }
   const clustered = clusterFeed(collected);
   // 按独立信源数（热度）降序：被越多不同源报道的事件越重要

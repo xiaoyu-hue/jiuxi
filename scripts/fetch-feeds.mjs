@@ -82,20 +82,46 @@ function parseHn(body) {
 const FEEDS_JSON = resolve(ROOT, 'src/data/feeds.json');
 const { sections: SOURCES } = JSON.parse(readFileSync(FEEDS_JSON, 'utf8'));
 
-async function fetchSource(source) {
+// ── 有界并发池（2026-10-15 扩容至 299 源后启用）──────────────────────
+// 旧结构：15 个板块彼此并行 × 板块内源无上限并行 = 最坏 299 个 curl 进程
+// 同时起跑。GitHub Actions runner 只有 2 核，进程调度开销吃掉大部分时间，
+// 且瞬时 299 并发请求对上游媒体不礼貌（部分源会限流反踩）。
+// 改为全局任务池：抓取并发恒定 CONCURRENCY，与板块边界解耦；
+// 总耗时 ≈ ceil(总源数 / CONCURRENCY) × 单源耗时（最慢源决定，非总和）。
+const CONCURRENCY = 10;
+
+async function runPool(tasks, limit, worker) {
+  const results = new Array(tasks.length);
+  let next = 0;
+  const runners = Array.from({ length: Math.min(limit, tasks.length) }, async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= tasks.length) return;
+      try {
+        results[i] = await worker(tasks[i], i);
+      } catch {
+        results[i] = null; // 单任务异常按缺失处理，不拖垮整池
+      }
+    }
+  });
+  await Promise.all(runners);
+  return results;
+}
+
+async function fetchSource(section, source) {
   try {
     if (source.type === 'hn') {
       const r = await curlGet(source.url);
       if (r.ok) {
         const items = parseHn(r.body);
-        console.log(`  ✓ ${source.label}: ${items.length} 条`);
+        console.log(`  ✓ [${section}] ${source.label}: ${items.length} 条`);
         return items;
       }
     } else {
       const xml = await fetchWithProxy(source.url);
       if (xml) {
         const items = parseRss(xml).map((it) => ({ ...it, source: source.label }));
-        console.log(`  ✓ ${source.label}: ${items.length} 条`);
+        console.log(`  ✓ [${section}] ${source.label}: ${items.length} 条`);
         return items;
       }
     }
@@ -103,17 +129,14 @@ async function fetchSource(source) {
     /* 跳过失败源 */
   }
   // 单源失败不静默：打出来便于排查（板块总数不变，缺源时日志可定位是哪个源）
-  console.warn(`  ✗ ${source.label}: 抓取失败（${source.url}）`);
+  console.warn(`  ✗ [${section}] ${source.label}: 抓取失败（${source.url}）`);
   return [];
 }
 
 // 合并该板块下所有成功源的结果（而非只取第一个成功的源）：
 // 更符合“综合信息聚集地”的定位，且单源失效时其余源仍能补位。
-async function fetchSection(sources) {
-  // 板块内多源并行：fetchSource 内部已容错（失败返回 []），此处无需再 catch
-  const lists = await Promise.all(sources.map((s) => fetchSource(s)));
-  return lists.flat();
-}
+// （fetchSection 原为板块内 Promise.all；2026-10-15 起并入全局任务池 runPool，
+//  板块只作为归组维度，不再作为并发单位——见下方主流程。）
 
 // ── 注入数据到 HTML ────────────────────────────────────────────────
 // 导出以便单元测试；注入前把 < 转义为 \u003c，阻止外部 RSS 标题里的
@@ -177,27 +200,34 @@ async function main() {
 
   const result = { generatedAt: new Date().toISOString(), sections: {} };
 
-  // 各板块并行抓取，单板块失败不影响其余（Promise.allSettled 容错，不崩全站）
-  const settled = await Promise.allSettled(
-    Object.entries(SOURCES).map(async ([section, sources]) => {
-      const items = await fetchSection(sources);
-      const seen = new Set();
-      const unique = items.filter((it) => {
-        if (seen.has(it.link)) return false;
-        seen.add(it.link);
-        return true;
-      });
-      return { section, items: roundRobinBySource(unique, 24) };
-    }),
+  // 全局任务池抓取：板块 × 源拍平为任务队列，有界并发（见 runPool 注释）。
+  // 单源失败不阻断其它（fetchSource 内部容错返回 []），与旧 Promise.allSettled 语义一致。
+  const tasks = [];
+  for (const [section, sources] of Object.entries(SOURCES)) {
+    for (const source of sources) tasks.push({ section, source });
+  }
+  const t1 = Date.now();
+  const fetched = await runPool(tasks, CONCURRENCY, (t) => fetchSource(t.section, t.source));
+  const okCount = fetched.filter((r) => Array.isArray(r) && r.length > 0).length;
+  console.log(
+    `[九溪] 抓取完成：${okCount}/${tasks.length} 源有数据，池并发 ${CONCURRENCY}，耗时 ${Date.now() - t1}ms`,
   );
 
-  for (const s of settled) {
-    if (s.status === 'fulfilled') {
-      result.sections[s.value.section] = s.value.items;
-      console.log(`  → ${s.value.section}: ${s.value.items.length} 条`);
-    } else {
-      console.warn('  ⚠️ 某板块抓取失败:', s.reason);
-    }
+  // 按板块归组 → 去重 → 按源轮询限 24 条（round-robin，保低频源曝光）
+  for (const [i, task] of tasks.entries()) {
+    const items = fetched[i] || [];
+    if (!result.sections[task.section]) result.sections[task.section] = [];
+    result.sections[task.section].push(...items);
+  }
+  for (const [section, items] of Object.entries(result.sections)) {
+    const seen = new Set();
+    const unique = items.filter((it) => {
+      if (seen.has(it.link)) return false;
+      seen.add(it.link);
+      return true;
+    });
+    result.sections[section] = roundRobinBySource(unique, 24);
+    console.log(`  → ${section}: ${result.sections[section].length} 条`);
   }
 
   // 保存 JSON
@@ -212,7 +242,7 @@ async function main() {
     0,
   );
   if (totalItems === 0) {
-    console.error('❌ 四大板块全部抓取失败，产物为空——终止构建（退出码 1），避免空内容上线');
+    console.error('❌ 全部板块抓取失败，产物为空——终止构建（退出码 1），避免空内容上线');
     process.exit(1);
   }
 

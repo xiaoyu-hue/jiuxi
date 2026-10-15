@@ -7,10 +7,12 @@
 //
 // 优先读 D1 持久化的候选（/api/candidates，跨会话留痕）；D1 缺失/为空时回退
 // 实时聚合端点（refreshFeedOnline，会写穿回填 D1），保证永不白屏。
+// 板块列表从 feeds.json 派生（2026-10-15 扩容：4 → 15）。
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { SECTION_META, SECTION_ORDER } from '../lib/sections';
 
-const sections = ['ai', 'news', 'tech', 'gaming'] as const;
-const labels: Record<string, string> = { ai: 'AI', news: '新闻', tech: '科技', gaming: '游戏' };
+const sections = SECTION_ORDER;
+const labels = SECTION_META;
 ---
 
 <BaseLayout title="九溪 · 候选策展台" description="聚簇去重后的候选资讯，供作者筛选沉淀">
@@ -27,7 +29,7 @@ const labels: Record<string, string> = { ai: 'AI', news: '新闻', tech: '科技
     {
       sections.map((s) => (
         <section class="curate-section">
-          <h3>{labels[s]}</h3>
+          <h3>{labels[s].label}</h3>
           <div class="feed-grid" id={`curate-${s}`} data-section={s} />
         </section>
       ))
@@ -36,8 +38,9 @@ const labels: Record<string, string> = { ai: 'AI', news: '新闻', tech: '科技
 
   <script>
     import { refreshFeedOnline, renderItems, wireFavorites } from '../lib/feeds';
+    import { SECTION_ORDER, type Section } from '../lib/sections';
     const CANDIDATES_API = '/api/candidates';
-    const sections = ['ai', 'news', 'tech', 'gaming'] as const;
+    const sections = SECTION_ORDER;
 
     async function loadCandidates(s: string): Promise<any[] | null> {
       try {
@@ -53,7 +56,7 @@ const labels: Record<string, string> = { ai: 'AI', news: '新闻', tech: '科技
 
     async function fallback(s: string, el: HTMLElement) {
       try {
-        const items = await refreshFeedOnline(s as any);
+        const items = await refreshFeedOnline(s as Section);
         if (!items.length) {
           el.innerHTML = '<p class="feed-meta">暂无候选</p>';
           return;

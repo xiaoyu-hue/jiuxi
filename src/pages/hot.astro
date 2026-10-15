@@ -1,23 +1,19 @@
 ---
 // 九溪 · 全局热点榜（跨板块按独立信源数排序）
 //
-// 复用首页「今日热点」的合并排序逻辑，跨 AI/新闻/科技/游戏 四个板块，
-// 按「独立信源数（cluster_size）」降序展示全局热点；顶部 Filters 可按板块筛选。
-// D1（/api/candidates）为空时回退实时聚合（同 /curate），永不白屏。
+// 复用首页「今日热点」的合并排序逻辑，跨全部板块（2026-10-15 扩容：4 → 15，
+// 板块列表从 feeds.json 派生），按「独立信源数（cluster_size）」降序展示全局热点；
+// 顶部 Filters 可按板块筛选。D1（/api/candidates）为空时回退实时聚合，永不白屏。
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Filters from '../components/Filters.astro';
+import { SECTION_META, SECTION_ORDER } from '../lib/sections';
 
-const SECTIONS = [
-  { key: 'ai', label: 'AI' },
-  { key: 'news', label: '新闻' },
-  { key: 'tech', label: '科技' },
-  { key: 'gaming', label: '游戏' },
-];
+const SECTIONS = SECTION_ORDER.map((s) => ({ key: s, label: SECTION_META[s].label }));
 ---
 
 <BaseLayout
   title="九溪 · 全局热点榜"
-  description="跨 AI / 新闻 / 科技 / 游戏，按独立信源数排序的全局热点"
+  description={`跨 ${SECTIONS.length} 个板块，按独立信源数排序的全局热点`}
 >
   <header class="page-head">
     <h2>全局热点榜</h2>
@@ -33,8 +29,10 @@ const SECTIONS = [
 
 <script>
   import { refreshFeedOnline, renderItems, wireFavorites, rankByHeat } from '../lib/feeds';
+  import { SECTION_ORDER } from '../lib/sections';
 
-  const SECTIONS = ['ai', 'news', 'tech', 'gaming'] as const;
+  // 与前端 Filters 同一来源（feeds.json 派生），避免两处漂移
+  const SECTIONS = SECTION_ORDER;
   const grid = document.getElementById('hot-grid');
 
   // 渲染并给每张卡片写入 data-section（Filters 组件据此筛选）

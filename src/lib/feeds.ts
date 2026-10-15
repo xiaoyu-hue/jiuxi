@@ -15,8 +15,9 @@ import { sanitizeUrl, escapeHtml } from './security';
 import { readIndexedDB, writeIndexedDB } from './db';
 import { extractFromXml } from '@extractus/feed-extractor';
 import feedsData from '../data/feeds.json';
+import type { Section } from './sections';
 
-export type Section = 'ai' | 'news' | 'tech' | 'gaming';
+export type { Section };
 
 export interface FeedItem {
   title: string;
@@ -41,7 +42,9 @@ const FEED_PROXY_PATH = '/api/feed';
 
 const CACHE_TTL = 10 * 60 * 1000; // 10 分钟(自动刷新;「立即刷新」可强制实时)
 
-// 数据源外置到 src/data/feeds.json（运行端与构建端共用的唯一配置）
+// 数据源外置到 src/data/feeds.json（运行端与构建端共用的唯一配置）。
+// Section 联合类型由 sections.ts 从本文件的 sections 键动态派生（15 板块），
+// 新增板块无需改任何 TS 代码。
 const SOURCES = (feedsData as { sections: Record<Section, FeedSource[]> }).sections;
 
 function formatDate(d?: string): string {

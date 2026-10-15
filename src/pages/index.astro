@@ -4,12 +4,24 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import GlassCard from '../components/GlassCard.astro';
 import JiuxiMark from '../components/JiuxiMark.astro';
 import { withBase } from '../lib/site';
+import { SECTION_META, SECTION_ORDER } from '../lib/sections';
 
-const blocks = [
-  { href: '/ai', title: 'AI 板块', desc: 'AI 前沿资讯与动态聚合', span: 2 },
-  { href: '/news', title: '热点新闻', desc: '实时热点，全球视角' },
-  { href: '/tech', title: '科技', desc: '科技圈新进展' },
-  { href: '/gaming', title: '游戏娱乐', desc: '游戏与泛娱乐' },
+// 板块卡片：从 feeds.json 派生（15 个，AI 保持 span-2 大卡突出主打定位）
+interface Block {
+  href: string;
+  title: string;
+  desc: string;
+  /** 2 = 跨两列大卡；0/省略 = 普通卡 */
+  span?: number;
+}
+const sectionBlocks: Block[] = SECTION_ORDER.map((s) => ({
+  href: `/${s}`,
+  title: `${SECTION_META[s].label}板块`,
+  desc: SECTION_META[s].desc,
+  span: s === 'ai' ? 2 : 0,
+}));
+// 功能卡片：固定入口
+const featureBlocks: Block[] = [
   { href: '/timeline', title: 'AI 发展时间线', desc: '从起源到今天' },
   { href: '/tools', title: 'AI 工具箱', desc: '好用的 AI 工具推荐' },
   { href: '/reading', title: '读书推荐', desc: '值得一读的书' },
@@ -17,6 +29,7 @@ const blocks = [
   { href: '/settings', title: '设置与数据', desc: '主题、偏好与导出' },
   { href: '/about', title: '关于九溪', desc: '项目说明与致谢' },
 ];
+const blocks = [...sectionBlocks, ...featureBlocks];
 ---
 <BaseLayout title="九溪">
   <header class="masthead">
@@ -41,7 +54,7 @@ const blocks = [
 
   <header class="feed-head">
     <h2>今日热点<button id="refresh-hot" class="refresh-hot" type="button" title="绕过缓存，实时抓取最新一批">立即刷新</button></h2>
-    <p>聚合 AI · 新闻 · 科技 · 游戏 四板块热讯 · 多源交叉的同一事件置顶</p>
+    <p>聚合 {SECTION_ORDER.length} 个板块热讯 · 多源交叉的同一事件置顶</p>
   </header>
   <div class="feed-grid" id="home-hot">
     <p class="feed-meta">正在加载今日热点…</p>
@@ -61,8 +74,10 @@ const blocks = [
 
 <script>
   import { renderItems, wireFavorites, refreshFeedOnline, cleanFeedItems, rankByHeat } from '../lib/feeds';
+  import { SECTION_ORDER } from '../lib/sections';
 
-  const SECTIONS = ['ai', 'news', 'tech', 'gaming'] as const;
+  // 今日热点覆盖全部板块（2026-10-15 扩容：4 → 15，与 feeds.json 联动派生）
+  const SECTIONS = SECTION_ORDER;
   const el = document.getElementById('home-hot');
 
   async function loadHot(forceLive = false) {

@@ -1,6 +1,7 @@
 ---
 // 九溪 · 主导航（4 个高频页常驻 + 原生「更多 ▾」收纳其余；小屏隐藏，由底部 TabBar 承载）
 import { withBase } from '../lib/site';
+import { SECTION_META, SECTION_ORDER } from '../lib/sections';
 
 // 常驻高频（认知负荷最低的 4 个）
 const primary = [
@@ -9,10 +10,13 @@ const primary = [
   { href: '/hot', label: '热点' },
   { href: '/tech', label: '科技' },
 ];
-// 收纳进「更多」
-const more = [
-  { href: '/news', label: '新闻' },
-  { href: '/gaming', label: '游戏' },
+// 「更多」面板 · 板块组：从 feeds.json 派生（15 个，新增板块自动进导航）
+const sectionLinks = SECTION_ORDER.map((s) => ({
+  href: `/${s}`,
+  label: SECTION_META[s].label,
+}));
+// 「更多」面板 · 功能组：固定功能入口
+const featureLinks = [
   { href: '/history', label: '历史回顾' },
   { href: '/timeline', label: '时间线' },
   { href: '/tools', label: '工具箱' },
@@ -25,7 +29,7 @@ const more = [
 const path = Astro.url.pathname;
 const isActive = (href: string) =>
   href === '/' ? path === withBase('/') : path.startsWith(withBase(href));
-const moreActive = more.some((l) => isActive(l.href));
+const moreActive = [...sectionLinks, ...featureLinks].some((l) => isActive(l.href));
 ---
 
 <nav class="site-nav glass" aria-label="主导航">
@@ -48,15 +52,30 @@ const moreActive = more.some((l) => isActive(l.href));
         更多
       </summary>
       <div class="nav-more-panel">
-        {more.map((l) => (
-          <a
-            href={withBase(l.href)}
-            class:list={['nav-link', { active: isActive(l.href) }]}
-            aria-current={isActive(l.href) ? 'page' : undefined}
-          >
-            {l.label}
-          </a>
-        ))}
+        <div class="nav-group">
+          <span class="nav-group-title">板块</span>
+          {sectionLinks.map((l) => (
+            <a
+              href={withBase(l.href)}
+              class:list={['nav-link', { active: isActive(l.href) }]}
+              aria-current={isActive(l.href) ? 'page' : undefined}
+            >
+              {l.label}
+            </a>
+          ))}
+        </div>
+        <div class="nav-group">
+          <span class="nav-group-title">功能</span>
+          {featureLinks.map((l) => (
+            <a
+              href={withBase(l.href)}
+              class:list={['nav-link', { active: isActive(l.href) }]}
+              aria-current={isActive(l.href) ? 'page' : undefined}
+            >
+              {l.label}
+            </a>
+          ))}
+        </div>
       </div>
     </details>
   </div>
@@ -118,21 +137,36 @@ const moreActive = more.some((l) => isActive(l.href));
   .nav-more[open] .nav-more-summary::after {
     content: ' ▾';
   }
+  /* 面板内部分「板块 / 功能」两组（15 板块扩容后单组 22 条过长，分组降认知负荷） */
   .nav-more-panel {
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
     z-index: 30;
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    flex-direction: column;
+    gap: 10px;
     min-width: 240px;
-    max-width: min(420px, 80vw);
+    max-width: min(560px, 86vw);
+    max-height: min(70vh, 520px);
+    overflow-y: auto;
     padding: 10px;
     border-radius: 16px;
     background: var(--surface);
     border: 1px solid var(--rule);
     box-shadow: 0 12px 34px rgba(0, 0, 0, 0.14);
+  }
+  .nav-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .nav-group-title {
+    flex-basis: 100%;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 0 4px;
   }
   .nav-more-panel .nav-link {
     font-size: 0.9rem;

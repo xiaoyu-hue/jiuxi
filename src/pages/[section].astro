@@ -1,0 +1,31 @@
+---
+// 九溪 · 资讯板块动态路由（模板）
+//
+// 所有板块页由本模板 + src/data/feeds.json 派生：getStaticPaths 遍历 sections 键，
+// 每板块输出 dist/<section>/index.html——构建端 scripts/fetch-feeds.mjs 的注入
+// 路径（dist/${section}/index.html）随之自动匹配，新增板块零代码、零漏同步。
+// 取代原先 ai/news/tech/gaming 四个手写页（2026-10-15 扩容至 15 板块时模板化）。
+//
+// 「立即刷新」显式按钮按「渐进试点再铺开」决策：先开 ai / tech 两板块，
+// 线上验证无超时/限流问题后，删掉下方 showRefresh 判断即为全量开放。
+import FeedSection from '../components/FeedSection.astro';
+import { SECTION_META, SECTION_ORDER, type Section } from '../lib/sections';
+
+export function getStaticPaths() {
+  return SECTION_ORDER.map((section) => ({
+    params: { section },
+    props: { section },
+  }));
+}
+
+const { section } = Astro.props as { section: Section };
+const meta = SECTION_META[section];
+const showRefresh = section === 'ai' || section === 'tech';
+---
+
+<FeedSection
+  section={section}
+  title={`${meta.label}板块`}
+  description={meta.desc}
+  showRefresh={showRefresh}
+/>
