@@ -110,7 +110,7 @@ const blocks = [
 
   loadHot();
 
-  const refreshBtn = document.getElementById('refresh-hot');
+  const refreshBtn = document.getElementById('refresh-hot') as HTMLButtonElement | null;
   if (refreshBtn) {
     refreshBtn.addEventListener('click', async () => {
       refreshBtn.disabled = true;
