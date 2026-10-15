@@ -65,9 +65,19 @@ const blocks = [
   const SECTIONS = ['ai', 'news', 'tech', 'gaming'] as const;
   const el = document.getElementById('home-hot');
 
-  async function loadHot() {
+  async function loadHot(forceLive = false) {
     if (!el) return;
     const root = el;
+    if (forceLive) {
+      const live = cleanFeedItems((await Promise.all(SECTIONS.map((s) => refreshFeedOnline(s)))).flat());
+      if (live.length) {
+        renderItems(root, rankByHeat(live, 3).slice(0, 10));
+        wireFavorites(root);
+      } else {
+        root.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
+      }
+      return;
+    }
     const raw: unknown[] = [];
     await Promise.all(
       SECTIONS.map(async (s) => {
@@ -99,6 +109,17 @@ const blocks = [
   }
 
   loadHot();
+
+  const refreshBtn = document.getElementById('refresh-hot');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = '刷新中…';
+      await loadHot(true);
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = '立即刷新';
+    });
+  }
 
   const clk = document.getElementById('masthead-clock');
   function tickClock() {
