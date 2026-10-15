@@ -28,7 +28,7 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
 ---
 
 <!doctype html>
-<html lang="zh-CN" transition:animate={fade}>
+<html lang="zh-CN" transition:animate={fade()}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -78,7 +78,7 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
       })();
     </script>
     <!-- 视图过渡：换页时由 ClientRouter 做 DOM 交换（SPA 式导航，保留主题/滚动），
-         transition:animate={fade} 启用页面间淡入淡出（Astro 7 有该指令才注入
+         transition:animate={fade()} 启用页面间淡入淡出（Astro 7 有该指令才注入
          淡入 CSS，本站自 v1.6.1 起启用）；
          系统级 prefers-reduced-motion 由 Astro 内置守卫处理，
          应用级「降低动效」守卫见 src/styles/global.css（html:has(body.reduce-motion)）。 -->
