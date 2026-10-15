@@ -34,6 +34,9 @@ const blocks = [
         })
       }
     </p>
+    <p class="masthead-clock" id="masthead-clock" aria-label="当前时间">
+      <span>--</span><span class="c">:</span><span>--</span><span class="c">:</span><span>--</span>
+    </p>
   </header>
 
   <header class="feed-head">
@@ -96,9 +99,43 @@ const blocks = [
   }
 
   loadHot();
+
+  const clk = document.getElementById('masthead-clock');
+  function tickClock() {
+    if (!clk) return;
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const spans = clk.querySelectorAll('span:not(.c)');
+    if (spans.length === 3) {
+      spans[0].textContent = pad(d.getHours());
+      spans[1].textContent = pad(d.getMinutes());
+      spans[2].textContent = pad(d.getSeconds());
+    }
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
 </script>
 
 <style>
+  .masthead-clock {
+    margin-top: 6px;
+    font-family: var(--font-mono, monospace);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.2em;
+    color: var(--text-soft);
+    font-size: 1rem;
+  }
+  .masthead-clock .c {
+    margin: 0 2px;
+    animation: colon-breathe 2s ease-in-out infinite;
+  }
+  @keyframes colon-breathe {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .masthead-clock .c { animation: none; opacity: 0.8; }
+  }
   .bento {
     margin: 44px 0 8px;
     display: grid;
