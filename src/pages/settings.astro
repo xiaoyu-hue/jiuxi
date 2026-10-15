@@ -45,12 +45,6 @@ import GlassCard from '../components/GlassCard.astro';
     </div>
   </GlassCard>
 
-  <GlassCard class="set-card">
-    <h3>我的收藏</h3>
-    <ul id="fav-list" class="fav-list"></ul>
-    <p id="fav-empty" class="muted">暂无收藏。在资讯卡片右上角点 ♥ 即可收藏。</p>
-  </GlassCard>
-
   <p id="set-toast" class="set-toast"></p>
 </BaseLayout>
 
@@ -62,7 +56,6 @@ import GlassCard from '../components/GlassCard.astro';
     exportData,
     importData,
     clearCaches,
-    getFavorites,
   } from '../lib/settings';
   import { sanitizeUrl, escapeHtml } from '../lib/security';
 
@@ -124,7 +117,6 @@ import GlassCard from '../components/GlassCard.astro';
         if (blur) blur.value = String(s.glassBlur);
         if (blurVal) blurVal.textContent = s.glassBlur + 'px';
         applySettings(s);
-        renderFavs();
         showToast('导入成功');
       } else {
         showToast('导入失败：文件格式不正确');
@@ -145,17 +137,6 @@ import GlassCard from '../components/GlassCard.astro';
     showToast('资讯缓存已清除，下次访问将重新抓取');
   });
 
-  function renderFavs() {
-    const list = document.getElementById('fav-list');
-    const empty = document.getElementById('fav-empty');
-    if (!list) return;
-    const favs = getFavorites();
-    list.innerHTML = favs
-      .map((f) => `<li><a href="${escapeHtml(sanitizeUrl(f.link))}" target="_blank" rel="noopener">${escapeHtml(f.title || f.link)}</a></li>`)
-      .join('');
-    if (empty) empty.style.display = favs.length ? 'none' : 'block';
-  }
-  renderFavs();
 </script>
 
 <style>
@@ -182,22 +163,7 @@ import GlassCard from '../components/GlassCard.astro';
     color: var(--text-muted);
     font-size: 0.82rem;
   }
-  .fav-list {
-    margin: 0;
-    padding-left: 18px;
-  }
-  .fav-list li {
-    margin: 4px 0;
-    word-break: break-all;
-  }
-  .fav-list a {
-    color: var(--accent);
-    font-size: 0.85rem;
-  }
-  .muted {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-  }
+
   .set-toast {
     position: fixed;
     bottom: 24px;
