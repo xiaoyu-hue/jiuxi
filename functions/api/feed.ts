@@ -276,12 +276,15 @@ function isPrivateHost(host: string): boolean {
 //   旧实现为 specs 串行 for-await——32 源串行在 Workers 免费版
 //   （单请求 50 subrequest 上限）边缘，且最坏耗时远超前端 8s 超时，
 //   导致大板块聚合请求必然超时、白白走前端逐源降级。
-//   现改为：每源 3.5s 独立超时 + 全源并行（软限量 20 源，20 < Workers
+//   现改为：每源 3.5s 独立超时（覆盖 headers + body 全阶段，
+//   abort 信号中断 body 读取）+ 全源并行（软限量 20 源，20 < Workers
 //   免费版 50 subrequest/请求上限）+ 无任何批次/队列屏障。
-//   实测反思（线上 20 源）：分批屏障版 6.1s、10 worker 池化版仍 5-6s——
-//   慢源占比高时 worker 排队使总时间 ≈ 2×最慢源。全并行后总时间
-//   = 最慢单源（≤ 3.5s 独立超时），与源数基本无关。限量只影响
-//   「快速通道」覆盖，全量抓取由前端逐源回退通道保证，信源覆盖不降级。
+//   实测反思（线上 20 源）：分批屏障版 6.1s、10 worker 池化版仍 5-6s
+//   （慢源排队，总时间 ≈ 2×最慢源）；全并行后仍有 5s+，根因是超时
+//   只包了 fetch 不包 body 下载（有源「头 1s + 体 4s」）。超时全包
+//   后总时间 = 最慢单源 ≤ 3.5s，线上实测约 4s（含 D1 写穿与网络）。
+//   限量只影响「快速通道」覆盖，全量抓取由前端逐源回退通道保证，
+//   信源覆盖不降级。
 const SPEC_LIMIT = 20;
 const SPEC_TIMEOUT_MS = 3500;
 
@@ -507,16 +510,23 @@ async function fetchSpec(spec: string): Promise<any[]> {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), SPEC_TIMEOUT_MS);
-    const upstream = await fetch(parsed.toString(), {
-      headers: { 'User-Agent': 'Jiuxi/1.0 (+https://jiuxi-bm1.pages.dev)' },
-      redirect: 'follow',
-      signal: ctrl.signal,
-    });
-    clearTimeout(timer);
-    const blocked = assertFinalUrlAllowed(upstream);
-    if (blocked) return [];
-    const text = await upstream.text();
-    return parseFeedXml(text).map((it) => ({ ...it, source: it.source || label }));
+    try {
+      const upstream = await fetch(parsed.toString(), {
+        headers: { 'User-Agent': 'Jiuxi/1.0 (+https://jiuxi-bm1.pages.dev)' },
+        redirect: 'follow',
+        signal: ctrl.signal,
+      });
+      const blocked = assertFinalUrlAllowed(upstream);
+      if (blocked) return [];
+      // 注意：text() 也必须在超时保护内——旧版在 fetch resolve 后即
+      // clearTimeout，响应头到了但 body 慢下载（trickle）的源不受限，
+      // 实测有源「头 1s + 体 4s」把全并行总时间拖到 5-6s。
+      // abort 信号会同时中断 body 读取。
+      const text = await upstream.text();
+      return parseFeedXml(text).map((it) => ({ ...it, source: it.source || label }));
+    } finally {
+      clearTimeout(timer);
+    }
   } catch {
     return [];
   }
