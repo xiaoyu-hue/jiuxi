@@ -100,9 +100,9 @@ h4 {
  * 与 Astro 内置守卫同样使用 !important，且选择器优先级更高，双保险。
  *
  * 实测备注（2026-10-15）：Astro 7 仅在页面使用 transition:animate 指令时才注入
- * 淡入 CSS（astro/components/viewtransitions.css）；本站目前未使用该指令，
- * 换页过渡实际为瞬时切换、无淡入动画。本条守卫是防回归的前置防护：
- * 一旦将来启用 transition:animate（或 Astro 恢复默认注入），应用级开关即刻生效。 */
+ * 淡入 CSS（astro/components/viewtransitions.css）。v1.6.1 起 BaseLayout.astro 已
+ * 启用 transition:animate={fade}，换页淡入真实存在，本条守卫随之实际生效：
+ * 系统级降动态由 Astro 内置守卫处理，应用级「降低动效」由本规则处理。 */
 html:has(body.reduce-motion)::view-transition-group(*),
 html:has(body.reduce-motion)::view-transition-old(*),
 html:has(body.reduce-motion)::view-transition-new(*) {
