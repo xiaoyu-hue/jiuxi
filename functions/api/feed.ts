@@ -30,6 +30,15 @@ const ALLOWED_HOSTS: string[] = [
   'www.solidot.org',
   'www.gcores.com',
   'www.chuapp.com',
+  'feeds.theguardian.com',
+  'huggingface.co',
+  'the-decoder.com',
+  'www.eurogamer.net',
+  'www.geekpark.net',
+  'www.landiannews.com',
+  'www.pcgamer.com',
+  'www.rockpapershotgun.com',
+  'www.technologyreview.com',
 ];
 
 const CACHE_TTL = 600; // 秒
