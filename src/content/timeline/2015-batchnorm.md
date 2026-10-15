@@ -1,8 +1,8 @@
 ---
 year: 2015
-title: "批归一化（BatchNorm）：让深层网络可训练"
+title: '批归一化（BatchNorm）：让深层网络可训练'
 category: 理论
-source: "Batch Normalization: Accelerating Deep Network Training"
+source: 'Batch Normalization: Accelerating Deep Network Training'
 sourceUrl: https://arxiv.org/abs/1502.03167
 ---
 

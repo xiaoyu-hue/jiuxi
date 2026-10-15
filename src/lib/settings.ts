@@ -3,7 +3,6 @@
 // 收藏逻辑统一由 ./favorites 提供（单一数据源），本文件仅 re-export。
 
 const SETTINGS_KEY = 'jiuxi-settings';
-const FAV_KEY = 'jiuxi-favorites';
 export const FEED_PREFIX = 'jiuxi-feed-';
 
 export interface JiuxiSettings {
@@ -51,7 +50,7 @@ export function applySettings(s: JiuxiSettings): void {
 }
 
 // 收藏逻辑统一由 ./favorites 提供（单一数据源，避免两份实现漂移）
-import { getFavorites, isFavorite, toggleFavorite } from './favorites';
+import { getFavorites, isFavorite, toggleFavorite, setFavorites } from './favorites';
 export { getFavorites, isFavorite, toggleFavorite };
 export type { Favorite } from './favorites';
 
@@ -63,7 +62,9 @@ export function exportData(): string {
 export function importData(json: string): boolean {
   try {
     const o = JSON.parse(json) as Record<string, unknown>;
-    if (typeof o !== 'object' || o === null) return false;
+    // 数组也拒绝：JSON 数组不是合法备份（2026-10-15 审查 M23 发现：
+    // 原先数组能通过 typeof 检查，导入后返回 true 提示"导入成功"却什么都没写）。
+    if (typeof o !== 'object' || o === null || Array.isArray(o)) return false;
     const s = o.settings as Record<string, unknown> | undefined;
     const f = o.favorites;
     if (s && typeof s.reduceMotion === 'boolean' && typeof s.glassBlur === 'number') {
@@ -73,21 +74,9 @@ export function importData(json: string): boolean {
       });
     }
     if (Array.isArray(f)) {
-      const norm = f
-        .map((x: unknown): any =>
-          typeof x === 'string'
-            ? { link: x, title: x, ts: 0 }
-            : x && typeof (x as any).link === 'string'
-              ? {
-                  link: (x as any).link,
-                  title: (x as any).title || (x as any).link,
-                  source: (x as any).source,
-                  ts: (x as any).ts || 0,
-                }
-              : null,
-        )
-        .filter(Boolean);
-      localStorage.setItem(FAV_KEY, JSON.stringify(norm));
+      // 归一化与存储键均在 favorites 模块内完成（2026-10-15 审查 M2：
+      // 原先本文件复制了一份 normalize、又重复定义 FAV_KEY，两份实现会漂移）。
+      setFavorites(f);
     }
     return true;
   } catch {

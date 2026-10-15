@@ -1,7 +1,7 @@
 ---
 year: 2025
 title: DeepSeek 引发 NVIDIA 市值单日蒸发近 6000 亿美元
-category: "算力"
+category: '算力'
 source: 路透社 / 公开市场数据
 sourceUrl: https://www.reuters.com/technology/
 ---

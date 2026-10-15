@@ -17,6 +17,7 @@ function escapeHtml(s) {
 function sanitizeUrl(url) {
   const u = String(url == null ? '' : url).trim();
   if (u === '') return '#';
+  // eslint-disable-next-line no-control-regex -- 故意匹配控制字符以拦截构造型 URL（与 src/lib/security.ts 行为对齐）
   if (/[\u0000-\u001f\u007f]/.test(u)) return '#'; // 含控制字符视为构造型输入，拦截
   if (u.startsWith('//')) return '#'; // 协议相对 URL 按危险处理（开放重定向/钓鱼）
   if (u.startsWith('#')) return u;
@@ -24,7 +25,9 @@ function sanitizeUrl(url) {
   try {
     const parsed = new URL(u);
     if (/^(https?:|mailto:)$/i.test(parsed.protocol)) return u;
-  } catch { /* 非合法绝对 URL */ }
+  } catch {
+    /* 非合法绝对 URL */
+  }
   return '#';
 }
 
@@ -52,68 +55,82 @@ function openDatabase() {
   });
 }
 
-function saveHistorySnapshot(snapshot) {
-  return openDatabase().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(snapshot);
-    tx.oncomplete = () => { db.close(); resolve(); };
-    tx.onerror = () => { db.close(); reject(tx.error); };
-  }));
-}
-
 /* 批量写入（一个事务多条 put）：云端数据一次性缓存到本地时使用 */
 function saveHistorySnapshots(snapshots) {
   if (!snapshots || snapshots.length === 0) return Promise.resolve();
-  return openDatabase().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    for (const s of snapshots) store.put(s);
-    tx.oncomplete = () => { db.close(); resolve(); };
-    tx.onerror = () => { db.close(); reject(tx.error); };
-  }));
+  return openDatabase().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        for (const s of snapshots) store.put(s);
+        tx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        tx.onerror = () => {
+          db.close();
+          reject(tx.error);
+        };
+      }),
+  );
 }
 
 function getHistoryList(section, limit) {
-  return openDatabase().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const request = section
-      ? store.index('by_section').getAll(section)
-      : store.getAll();
-    request.onsuccess = () => {
-      const results = request.result;
-      results.sort((a, b) => b.timestamp - a.timestamp);
-      resolve(limit ? results.slice(0, limit) : results);
-    };
-    request.onerror = () => reject(request.error);
-    tx.oncomplete = () => db.close();
-  }));
+  return openDatabase().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const request = section ? store.index('by_section').getAll(section) : store.getAll();
+        request.onsuccess = () => {
+          const results = request.result;
+          results.sort((a, b) => b.timestamp - a.timestamp);
+          resolve(limit ? results.slice(0, limit) : results);
+        };
+        request.onerror = () => reject(request.error);
+        tx.oncomplete = () => db.close();
+      }),
+  );
 }
 
 function cleanupExpiredData() {
   const cutoff = Date.now() - EXPIRY_DAYS * 24 * 60 * 60 * 1000;
-  return openDatabase().then(db => new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const idx = store.index('by_date');
-    const req = idx.openCursor();
-    req.onsuccess = () => {
-      const cursor = req.result;
-      if (cursor) {
-        if (cursor.value.timestamp < cutoff) {
-          cursor.delete();
-        }
-        cursor.continue();
-      } else {
-        tx.oncomplete = () => { db.close(); resolve(); };
-        tx.onerror = () => { db.close(); reject(tx.error); };
-      }
-    };
-  }));
+  return openDatabase().then(
+    (db) =>
+      new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const idx = store.index('by_date');
+        const req = idx.openCursor();
+        req.onsuccess = () => {
+          const cursor = req.result;
+          if (cursor) {
+            if (cursor.value.timestamp < cutoff) {
+              cursor.delete();
+            }
+            cursor.continue();
+          } else {
+            tx.oncomplete = () => {
+              db.close();
+              resolve();
+            };
+            tx.onerror = () => {
+              db.close();
+              reject(tx.error);
+            };
+          }
+        };
+      }),
+  );
 }
 
 function isIndexedDBAvailable() {
-  try { return !!window.indexedDB; } catch { return false; }
+  try {
+    return !!window.indexedDB;
+  } catch {
+    return false;
+  }
 }
 
 /* ── 云端数据源（阶段 2 新增）─────────────────────────────────────
@@ -159,7 +176,9 @@ async function loadStaticHistory() {
     if (!r.ok) return [];
     const data = await r.json();
     return Array.isArray(data) ? data : [data];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 /* 三源合并（阶段 2 起云端为权威源）：
@@ -173,13 +192,13 @@ async function mergeHistoryData() {
   const map = new Map();
 
   const staticData = await loadStaticHistory();
-  staticData.forEach(s => map.set(s.id, s));
+  staticData.forEach((s) => map.set(s.id, s));
 
   const db = await getHistoryList(undefined, 50);
-  db.forEach(s => map.set(s.id, s));
+  db.forEach((s) => map.set(s.id, s));
 
   const cloud = await loadCloudHistory();
-  cloud.forEach(s => map.set(s.id, s));
+  cloud.forEach((s) => map.set(s.id, s));
 
   if (cloud.length > 0) {
     // 缓存失败仅影响离线兜底，不阻断渲染
@@ -192,27 +211,41 @@ async function mergeHistoryData() {
 async function loadStats() {
   try {
     const all = await mergeHistoryData();
-    const dates = new Set(all.map(s => s.date));
+    const dates = new Set(all.map((s) => s.date));
     const sections = {};
-    all.forEach(s => { sections[s.section] = (sections[s.section] || 0) + s.itemCount; });
-    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = String(val); };
+    all.forEach((s) => {
+      sections[s.section] = (sections[s.section] || 0) + s.itemCount;
+    });
+    const set = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = String(val);
+    };
     set('stat-days', dates.size);
-    set('stat-items', all.reduce((s, x) => s + x.itemCount, 0));
+    set(
+      'stat-items',
+      all.reduce((s, x) => s + x.itemCount, 0),
+    );
     set('stat-ai', sections['ai'] || 0);
     set('stat-news', sections['news'] || 0);
-  } catch (e) { console.error('加载统计失败:', e); }
+  } catch (e) {
+    console.error('加载统计失败:', e);
+  }
 }
 
 function fmtDate(d) {
   if (!d) return '';
   const dt = new Date(d);
-  return isNaN(dt.getTime()) ? '' : dt.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+  return isNaN(dt.getTime())
+    ? ''
+    : dt.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
 }
 
 function renderSectionGroup(snap) {
   const labels = { ai: 'AI 前沿', news: '热点新闻', tech: '科技动态', gaming: '游戏资讯' };
   const label = labels[snap.section] || escapeHtml(snap.section);
-  const itemsHtml = snap.items.map((item, i) => `
+  const itemsHtml = snap.items
+    .map(
+      (item, i) => `
     <div class="history-item">
       <span class="item-number">${String(i + 1).padStart(2, '0')}</span>
       <div class="item-content">
@@ -222,7 +255,9 @@ function renderSectionGroup(snap) {
           ${item.pubDate ? `<span>${fmtDate(item.pubDate)}</span>` : ''}
         </div>
       </div>
-    </div>`).join('');
+    </div>`,
+    )
+    .join('');
   return `<div class="section-group"><h4 class="section-title">${label}</h4><div class="item-list">${itemsHtml}</div></div>`;
 }
 
@@ -237,43 +272,56 @@ async function renderHistoryList(filterSection = 'all', dateFrom = '', dateTo = 
     }
     historyList.style.display = 'flex';
     emptyState.style.display = 'none';
-    let filtered = filterSection !== 'all' ? all.filter(s => s.section === filterSection) : all;
+    let filtered = filterSection !== 'all' ? all.filter((s) => s.section === filterSection) : all;
     if (dateFrom || dateTo) {
-      filtered = filtered.filter(s => {
+      filtered = filtered.filter((s) => {
         if (dateFrom && s.date < dateFrom) return false;
         if (dateTo && s.date > dateTo) return false;
         return true;
       });
     }
     if (filtered.length === 0) {
-      historyList.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><h3>该时间段内无记录</h3><p>请尝试调整日期范围或清除筛选条件</p></div>';
+      historyList.innerHTML =
+        '<div class="empty-state"><div class="empty-icon">🔍</div><h3>该时间段内无记录</h3><p>请尝试调整日期范围或清除筛选条件</p></div>';
       return;
     }
     // 修复：原版写成 (grouped[s.date] || []).push(s)，临时数组从未赋值回 grouped，分组全部丢失
     const grouped = {};
-    filtered.forEach(s => { (grouped[s.date] = grouped[s.date] || []).push(s); });
+    filtered.forEach((s) => {
+      (grouped[s.date] = grouped[s.date] || []).push(s);
+    });
     const sorted = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
     historyList.innerHTML = '';
-    sorted.forEach(date => {
+    sorted.forEach((date) => {
       const items = grouped[date];
       const total = items.reduce((s, x) => s + x.itemCount, 0);
-      const weekday = ['周日','周一','周二','周三','周四','周五','周六'][new Date(date).getDay()];
+      const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][
+        new Date(date).getDay()
+      ];
       const div = document.createElement('div');
       div.className = 'history-date-group';
+      // 键盘可达：分组头用 <button> 而非 <div>+click（2026-10-15 审查修复 H2），
+      // 初始展开态 aria-expanded="true"；date 来自 D1 外部数据，必须转义（H5）。
       div.innerHTML = `
-        <div class="date-header">
-          <span class="date-title">${date} <span class="date-badge">${weekday}</span></span>
+        <button type="button" class="date-header" aria-expanded="true">
+          <span class="date-title">${escapeHtml(date)} <span class="date-badge">${escapeHtml(weekday)}</span></span>
           <span class="date-meta">${total} 条资讯</span>
-          <span class="toggle-icon">▼</span>
-        </div>
+          <span class="toggle-icon" aria-hidden="true">▼</span>
+        </button>
         <div class="history-items">${items.map(renderSectionGroup).join('')}</div>`;
       const header = div.querySelector('.date-header');
-      if (header) header.addEventListener('click', () => div.classList.toggle('collapsed'));
+      if (header)
+        header.addEventListener('click', () => {
+          const collapsed = div.classList.toggle('collapsed');
+          header.setAttribute('aria-expanded', String(!collapsed));
+        });
       historyList.appendChild(div);
     });
   } catch (e) {
     console.error('渲染失败:', e);
-    if (historyList) historyList.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div><h3>加载失败</h3><p>请稍后重试</p></div>';
+    if (historyList)
+      historyList.innerHTML =
+        '<div class="empty-state"><div class="empty-icon">❌</div><h3>加载失败</h3><p>请稍后重试</p></div>';
   }
 }
 
@@ -281,7 +329,9 @@ if (refreshBtn) {
   refreshBtn.addEventListener('click', async () => {
     refreshBtn.disabled = true;
     refreshBtn.textContent = '刷新中...';
-    if (historyList) historyList.innerHTML = '<div class="loading-state"><span class="spinner"></span><p>正在刷新...</p></div>';
+    if (historyList)
+      historyList.innerHTML =
+        '<div class="loading-state"><span class="spinner"></span><p>正在刷新...</p></div>';
     await Promise.all([loadStats(), renderHistoryData()]);
     refreshBtn.disabled = false;
     refreshBtn.textContent = '刷新历史';
@@ -292,7 +342,7 @@ function renderHistoryData() {
   return renderHistoryList(
     sectionFilter ? sectionFilter.value : 'all',
     dateFromInput ? dateFromInput.value : '',
-    dateToInput ? dateToInput.value : ''
+    dateToInput ? dateToInput.value : '',
   );
 }
 

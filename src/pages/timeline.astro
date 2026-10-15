@@ -46,10 +46,10 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
       placeholder="搜索事件…"
     />
     <div class="tl-filters" id="tl-filters">
-      <button class="tl-chip active" data-cat="all">全部</button>
+      <button class="tl-chip active" data-cat="all" aria-pressed="true">全部</button>
       {
         categories.map((c) => (
-          <button class="tl-chip" data-cat={c}>
+          <button class="tl-chip" data-cat={c} aria-pressed="false">
             {c}
           </button>
         ))
@@ -95,21 +95,30 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
       </section>
     ))
   }
+  {/* 筛选/搜索零结果空状态（2026-10-15 审查 M16：原先只剩留白，用户无从
+      判断是「没有内容」还是「页面坏了」） */}
+  <p class="tl-empty" id="tl-empty" hidden>
+    没有匹配的事件。试试更换关键词或选择「全部」分类。
+  </p>
 </BaseLayout>
 
 <script>
   const search = document.getElementById('tl-search') as HTMLInputElement | null;
   const filters = document.getElementById('tl-filters');
+  const empty = document.getElementById('tl-empty');
   let activeCat = 'all';
 
   function apply() {
     const q = (search?.value || '').trim().toLowerCase();
+    let visibleCount = 0;
     document.querySelectorAll<HTMLElement>('.tl-item').forEach((el) => {
       const cat = el.dataset.category || '';
       const text = el.dataset.search || '';
       const okCat = activeCat === 'all' || cat === activeCat;
       const okText = !q || text.toLowerCase().includes(q);
-      el.style.display = okCat && okText ? '' : 'none';
+      const show = okCat && okText;
+      el.style.display = show ? '' : 'none';
+      if (show) visibleCount++;
     });
     document.querySelectorAll<HTMLElement>('.tl-year').forEach((sec) => {
       const visible = sec.querySelectorAll(
@@ -117,6 +126,8 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
       ).length;
       sec.style.display = visible ? '' : 'none';
     });
+    // 零结果空状态（M16）
+    if (empty) empty.hidden = visibleCount > 0;
   }
 
   search?.addEventListener('input', apply);
@@ -125,8 +136,12 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
     if (!btn) return;
     filters
       .querySelectorAll('.tl-chip')
-      .forEach((b) => b.classList.remove('active'));
+      .forEach((b) => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
     btn.classList.add('active');
+    btn.setAttribute('aria-pressed', 'true');
     activeCat = btn.getAttribute('data-cat') || 'all';
     apply();
   });
@@ -142,7 +157,11 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
     border: 1px solid var(--glass-border);
     background: var(--glass-bg);
     color: var(--text-strong);
-    outline: none;
+  }
+  /* outline:none 会吞掉键盘焦点环（M7 同款问题），改为焦点可见时用强调色描边 */
+  .tl-search:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
   .tl-filters {
     display: flex;
@@ -150,8 +169,13 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
     gap: 8px;
   }
   .tl-chip {
-    padding: 6px 14px;
-    border-radius: 14px;
+    /* 2026-10-15 审查 M15：触控目标 ≥44px（原约 32px）。
+       纵向高度由 min-height 保证，横向内距略增保持胶囊比例 */
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 22px;
     border: 1px solid var(--glass-border);
     background: var(--glass-bg);
     color: var(--text-muted);
@@ -162,6 +186,19 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
     color: var(--text-strong);
     background: var(--accent-soft);
     font-weight: 600;
+  }
+  .tl-chip:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .tl-empty {
+    margin: 32px 0;
+    padding: 24px;
+    text-align: center;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    border: 1px dashed var(--rule);
+    border-radius: 12px;
   }
   .tl-year-title {
     font-size: 1.5rem;

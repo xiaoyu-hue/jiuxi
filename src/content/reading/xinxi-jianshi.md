@@ -1,10 +1,10 @@
 ---
 {
-  "title": "信息简史",
-  "author": "詹姆斯·格雷克",
-  "rating": 4.5,
-  "tag": "科学",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E4%BF%A1%E6%81%AF%E7%AE%80%E5%8F%B2"
+  'title': '信息简史',
+  'author': '詹姆斯·格雷克',
+  'rating': 4.5,
+  'tag': '科学',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E4%BF%A1%E6%81%AF%E7%AE%80%E5%8F%B2',
 }
 ---
 

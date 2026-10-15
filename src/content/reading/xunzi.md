@@ -1,10 +1,10 @@
 ---
 {
-  "title": "荀子",
-  "author": "荀子及其弟子",
-  "rating": 4.5,
-  "tag": "哲学",
-  "link": "https://ctext.org/xunzi"
+  'title': '荀子',
+  'author': '荀子及其弟子',
+  'rating': 4.5,
+  'tag': '哲学',
+  'link': 'https://ctext.org/xunzi',
 }
 ---
 

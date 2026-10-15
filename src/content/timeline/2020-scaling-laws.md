@@ -1,8 +1,8 @@
 ---
 year: 2020
-title: "缩放定律（Scaling Laws）：大模型时代的「物理规律」"
+title: '缩放定律（Scaling Laws）：大模型时代的「物理规律」'
 category: 理论
-source: "Scaling Laws for Neural Language Models"
+source: 'Scaling Laws for Neural Language Models'
 sourceUrl: https://arxiv.org/abs/2001.08361
 ---
 

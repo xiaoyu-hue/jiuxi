@@ -1,10 +1,10 @@
 ---
 {
-  "year": 1971,
-  "title": "STRIPS：自动规划成为独立方向",
-  "category": "模型",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/STRIPS"
+  'year': 1971,
+  'title': 'STRIPS：自动规划成为独立方向',
+  'category': '模型',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/STRIPS',
 }
 ---
 

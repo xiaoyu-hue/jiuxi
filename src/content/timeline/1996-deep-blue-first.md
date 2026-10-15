@@ -1,11 +1,11 @@
 ---
 {
-  "year": 1996,
-  "title": "深蓝首次对阵卡斯帕罗夫，赢下一局",
-  "category": "里程碑",
-  "month": 2,
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Deep_Blue_(chess_computer)"
+  'year': 1996,
+  'title': '深蓝首次对阵卡斯帕罗夫，赢下一局',
+  'category': '里程碑',
+  'month': 2,
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Deep_Blue_(chess_computer)',
 }
 ---
 

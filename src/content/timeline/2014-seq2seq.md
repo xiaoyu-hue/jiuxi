@@ -1,8 +1,8 @@
 ---
 year: 2014
-title: "Seq2Seq：编码器—解码器框架"
+title: 'Seq2Seq：编码器—解码器框架'
 category: 理论
-source: "Learning Phrase Representations using RNN Encoder–Decoder"
+source: 'Learning Phrase Representations using RNN Encoder–Decoder'
 sourceUrl: https://arxiv.org/abs/1406.1078
 ---
 

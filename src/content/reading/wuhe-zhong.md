@@ -1,10 +1,10 @@
 ---
 {
-  "title": "乌合之众",
-  "author": "古斯塔夫·勒庞",
-  "rating": 4,
-  "tag": "社会学",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E4%B9%8C%E5%90%88%E4%B9%8B%E4%BC%97"
+  'title': '乌合之众',
+  'author': '古斯塔夫·勒庞',
+  'rating': 4,
+  'tag': '社会学',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E4%B9%8C%E5%90%88%E4%B9%8B%E4%BC%97',
 }
 ---
 

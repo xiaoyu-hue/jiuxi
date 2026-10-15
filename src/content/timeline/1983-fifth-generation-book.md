@@ -1,10 +1,10 @@
 ---
 {
-  "year": 1983,
-  "title": "《第五代》出版，专家系统热潮顶点",
-  "category": "生态",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Fifth_generation_computer"
+  'year': 1983,
+  'title': '《第五代》出版，专家系统热潮顶点',
+  'category': '生态',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Fifth_generation_computer',
 }
 ---
 

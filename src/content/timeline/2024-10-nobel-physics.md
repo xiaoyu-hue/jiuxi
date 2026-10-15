@@ -1,9 +1,9 @@
 ---
 year: 2024
-title: "诺贝尔物理学奖首次授予神经网络——Hopfield 与 Hinton"
-category: "里程碑"
-source: "Nobel Prize"
-sourceUrl: "https://www.nobelprize.org/prizes/physics/2024/summary/"
+title: '诺贝尔物理学奖首次授予神经网络——Hopfield 与 Hinton'
+category: '里程碑'
+source: 'Nobel Prize'
+sourceUrl: 'https://www.nobelprize.org/prizes/physics/2024/summary/'
 ---
 
 2024 年 10 月，诺贝尔物理学奖授予 John Hopfield（普林斯顿）与 Geoffrey Hinton（多伦多大学，深度学习之父之一），表彰他们基于人工神经网络实现机器学习的基础性发现与发明。这是 AI 领域的神经网络研究首次获得诺贝尔奖，意味着主流科学界对深度学习范式的正式认可。

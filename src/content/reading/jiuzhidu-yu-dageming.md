@@ -1,10 +1,10 @@
 ---
 {
-  "title": "旧制度与大革命",
-  "author": "托克维尔",
-  "rating": 4.5,
-  "tag": "政治学",
-  "link": "https://www.gutenberg.org/ebooks/24633"
+  'title': '旧制度与大革命',
+  'author': '托克维尔',
+  'rating': 4.5,
+  'tag': '政治学',
+  'link': 'https://www.gutenberg.org/ebooks/24633',
 }
 ---
 

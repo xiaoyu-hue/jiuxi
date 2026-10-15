@@ -1,10 +1,10 @@
 ---
 {
-  "title": "国富论",
-  "author": "亚当·斯密",
-  "rating": 4.5,
-  "tag": "经济学",
-  "link": "https://www.gutenberg.org/ebooks/3300"
+  'title': '国富论',
+  'author': '亚当·斯密',
+  'rating': 4.5,
+  'tag': '经济学',
+  'link': 'https://www.gutenberg.org/ebooks/3300',
 }
 ---
 

@@ -1,8 +1,8 @@
 ---
 year: 2021
-title: "Anthropic 成立（聚焦 AI 安全与对齐）"
+title: 'Anthropic 成立（聚焦 AI 安全与对齐）'
 category: 生态
-source: "Anthropic"
+source: 'Anthropic'
 sourceUrl: https://en.wikipedia.org/wiki/Anthropic
 ---
 

@@ -1,7 +1,7 @@
 ---
 year: 2025
 title: OpenAI / SoftBank / Oracle 启动 Stargate 巨型 AI 基建
-category: "算力"
+category: '算力'
 source: OpenAI 公告（White House 背书）
 sourceUrl: https://openai.com/index/announcing-the-stargate-project/
 ---

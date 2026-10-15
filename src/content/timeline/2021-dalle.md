@@ -1,8 +1,8 @@
 ---
 year: 2021
-title: "DALL·E：文本生成图像的破圈"
+title: 'DALL·E：文本生成图像的破圈'
 category: 生成
-source: "DALL-E"
+source: 'DALL-E'
 sourceUrl: https://en.wikipedia.org/wiki/DALL-E
 ---
 

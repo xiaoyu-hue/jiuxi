@@ -1,10 +1,10 @@
 ---
 {
-  "title": "一课经济学",
-  "author": "亨利·黑兹利特",
-  "rating": 4.5,
-  "tag": "经济学",
-  "link": "https://mises.org/library/book/economics-one-lesson"
+  'title': '一课经济学',
+  'author': '亨利·黑兹利特',
+  'rating': 4.5,
+  'tag': '经济学',
+  'link': 'https://mises.org/library/book/economics-one-lesson',
 }
 ---
 

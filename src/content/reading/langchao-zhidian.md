@@ -1,10 +1,10 @@
 ---
 {
-  "title": "浪潮之巅",
-  "author": "吴军",
-  "rating": 4.5,
-  "tag": "AI入门",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E6%B5%AA%E6%BD%AE%E4%B9%8B%E5%B7%85"
+  'title': '浪潮之巅',
+  'author': '吴军',
+  'rating': 4.5,
+  'tag': 'AI入门',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E6%B5%AA%E6%BD%AE%E4%B9%8B%E5%B7%85',
 }
 ---
 

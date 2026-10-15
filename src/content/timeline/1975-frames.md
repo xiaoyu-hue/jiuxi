@@ -1,10 +1,10 @@
 ---
 {
-  "year": 1975,
-  "title": "明斯基提出「框架」知识表示理论",
-  "category": "理论",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Frame_(artificial_intelligence)"
+  'year': 1975,
+  'title': '明斯基提出「框架」知识表示理论',
+  'category': '理论',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Frame_(artificial_intelligence)',
 }
 ---
 

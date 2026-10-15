@@ -1,8 +1,8 @@
 ---
 year: 2019
-title: "分数匹配扩散模型（扩散理论的数学内核）"
+title: '分数匹配扩散模型（扩散理论的数学内核）'
 category: 理论
-source: "Generative Modeling by Estimating Gradients of the Data Distribution"
+source: 'Generative Modeling by Estimating Gradients of the Data Distribution'
 sourceUrl: https://arxiv.org/abs/1907.05600
 ---
 

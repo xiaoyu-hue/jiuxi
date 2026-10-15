@@ -1,8 +1,8 @@
 ---
 year: 2024
-title: "Kimi 把上下文长度推到 200 万字"
+title: 'Kimi 把上下文长度推到 200 万字'
 category: 模型
-source: "Kimi 智能助手（月之暗面）"
+source: 'Kimi 智能助手（月之暗面）'
 sourceUrl: https://kimi.moonshot.cn
 ---
 

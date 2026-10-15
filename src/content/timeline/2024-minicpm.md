@@ -1,8 +1,8 @@
 ---
 year: 2024
-title: "面壁 MiniCPM：端侧小模型的「以小博大」"
+title: '面壁 MiniCPM：端侧小模型的「以小博大」'
 category: 开源
-source: "MiniCPM (OpenBMB)"
+source: 'MiniCPM (OpenBMB)'
 sourceUrl: https://github.com/OpenBMB/MiniCPM
 ---
 

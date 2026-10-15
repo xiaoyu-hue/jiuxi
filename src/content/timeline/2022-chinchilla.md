@@ -1,8 +1,8 @@
 ---
 year: 2022
-title: "Chinchilla 缩放定律：数据比参数更重要"
+title: 'Chinchilla 缩放定律：数据比参数更重要'
 category: 理论
-source: "Training Compute-Optimal Large Language Models"
+source: 'Training Compute-Optimal Large Language Models'
 sourceUrl: https://arxiv.org/abs/2203.15556
 ---
 

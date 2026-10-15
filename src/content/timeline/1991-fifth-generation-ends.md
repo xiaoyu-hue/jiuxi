@@ -1,10 +1,10 @@
 ---
 {
-  "year": 1991,
-  "title": "日本第五代计算机计划无果收场",
-  "category": "里程碑",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Fifth_generation_computer"
+  'year': 1991,
+  'title': '日本第五代计算机计划无果收场',
+  'category': '里程碑',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Fifth_generation_computer',
 }
 ---
 

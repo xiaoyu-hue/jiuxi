@@ -1,10 +1,10 @@
 ---
 {
-  "title": "老人与海",
-  "author": "欧内斯特·海明威",
-  "rating": 4.5,
-  "tag": "文学",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E8%80%81%E4%BA%BA%E4%B8%8E%E6%B5%B7"
+  'title': '老人与海',
+  'author': '欧内斯特·海明威',
+  'rating': 4.5,
+  'tag': '文学',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E8%80%81%E4%BA%BA%E4%B8%8E%E6%B5%B7',
 }
 ---
 

@@ -1,10 +1,10 @@
 ---
 {
-  "title": "心流",
-  "author": "米哈里·契克森米哈伊",
-  "rating": 4.5,
-  "tag": "心理学",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E5%BF%83%E6%B5%81"
+  'title': '心流',
+  'author': '米哈里·契克森米哈伊',
+  'rating': 4.5,
+  'tag': '心理学',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E5%BF%83%E6%B5%81',
 }
 ---
 

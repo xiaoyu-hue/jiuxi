@@ -1,10 +1,10 @@
 ---
 {
-  "title": "社会契约论",
-  "author": "卢梭",
-  "rating": 4.5,
-  "tag": "政治学",
-  "link": "https://www.gutenberg.org/ebooks/46333"
+  'title': '社会契约论',
+  'author': '卢梭',
+  'rating': 4.5,
+  'tag': '政治学',
+  'link': 'https://www.gutenberg.org/ebooks/46333',
 }
 ---
 

@@ -1,7 +1,7 @@
 {
   "name": "jiuxi",
   "type": "module",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "private": true,
   "description": "九溪 · 综合信息聚集地（AI 为主，热点新闻为辅）。本地优先的静态信息站。",
   "scripts": {
@@ -12,6 +12,7 @@
     "astro": "astro",
     "check": "astro check",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -37,6 +38,7 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-astro": "^3.2.1",
     "eslint-plugin-jsx-a11y-x": "^0.2.0",
+    "fake-indexeddb": "^6.2.5",
     "globals": "^15.14.0",
     "happy-dom": "^20.14.6",
     "prettier": "^3.4.2",

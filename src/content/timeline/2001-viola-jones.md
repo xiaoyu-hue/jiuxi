@@ -1,10 +1,10 @@
 ---
 {
-  "year": 2001,
-  "title": "Viola-Jones 实时人脸检测算法问世",
-  "category": "模型",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Viola%E2%80%93Jones_object_detection_framework"
+  'year': 2001,
+  'title': 'Viola-Jones 实时人脸检测算法问世',
+  'category': '模型',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Viola%E2%80%93Jones_object_detection_framework',
 }
 ---
 

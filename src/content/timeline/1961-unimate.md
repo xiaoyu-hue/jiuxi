@@ -1,10 +1,10 @@
 ---
 {
-  "year": 1961,
-  "title": "Unimate：第一个工业机器人上岗通用汽车",
-  "category": "具身",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Unimate"
+  'year': 1961,
+  'title': 'Unimate：第一个工业机器人上岗通用汽车',
+  'category': '具身',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Unimate',
 }
 ---
 

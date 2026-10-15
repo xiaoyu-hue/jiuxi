@@ -1,8 +1,8 @@
 ---
 year: 2022
-title: "大模型的「涌现能力」"
+title: '大模型的「涌现能力」'
 category: 理论
-source: "Emergent Abilities of Large Language Models"
+source: 'Emergent Abilities of Large Language Models'
 sourceUrl: https://arxiv.org/abs/2206.07682
 ---
 

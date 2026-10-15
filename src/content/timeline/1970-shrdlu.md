@@ -1,10 +1,10 @@
 ---
 {
-  "year": 1970,
-  "title": "SHRDLU：机器第一次「听懂」人话",
-  "category": "模型",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/SHRDLU"
+  'year': 1970,
+  'title': 'SHRDLU：机器第一次「听懂」人话',
+  'category': '模型',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/SHRDLU',
 }
 ---
 

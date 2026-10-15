@@ -1,7 +1,7 @@
 ---
 year: 2022
 title: OpenAI 发布 Whisper 大规模语音识别
-category: "模型"
+category: '模型'
 source: Radford et al., OpenAI（arXiv:2212.04356）
 sourceUrl: https://arxiv.org/abs/2212.04356
 ---

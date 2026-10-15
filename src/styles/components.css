@@ -113,6 +113,18 @@
     color 0.2s,
     border-color 0.2s;
 }
+/* 2026-10-15 审查 M15：视觉尺寸保持 28px（卡片版式），触控目标用透明
+   ::before 扩展到 44×44（WCAG 2.5.5），兼顾版式与可达性 */
+.fav-btn::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
 .fav-btn:hover {
   border-color: var(--accent);
 }

@@ -1,10 +1,10 @@
 ---
 {
-  "title": "论美国的民主",
-  "author": "托克维尔",
-  "rating": 4.5,
-  "tag": "政治学",
-  "link": "https://www.gutenberg.org/ebooks/815"
+  'title': '论美国的民主',
+  'author': '托克维尔',
+  'rating': 4.5,
+  'tag': '政治学',
+  'link': 'https://www.gutenberg.org/ebooks/815',
 }
 ---
 

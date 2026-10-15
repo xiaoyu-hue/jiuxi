@@ -1,10 +1,10 @@
 ---
 {
-  "title": "资治通鉴",
-  "author": "司马光",
-  "rating": 4.5,
-  "tag": "历史",
-  "link": "https://ctext.org/zizhi-tongjian"
+  'title': '资治通鉴',
+  'author': '司马光',
+  'rating': 4.5,
+  'tag': '历史',
+  'link': 'https://ctext.org/zizhi-tongjian',
 }
 ---
 

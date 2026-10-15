@@ -1,10 +1,10 @@
 ---
 {
-  "title": "大学 · 中庸",
-  "author": "曾子 · 子思",
-  "rating": 4.5,
-  "tag": "哲学",
-  "link": "https://www.gushiwen.cn/guwen/daxue.aspx"
+  'title': '大学 · 中庸',
+  'author': '曾子 · 子思',
+  'rating': 4.5,
+  'tag': '哲学',
+  'link': 'https://www.gushiwen.cn/guwen/daxue.aspx',
 }
 ---
 

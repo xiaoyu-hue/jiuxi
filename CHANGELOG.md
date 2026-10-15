@@ -4,6 +4,61 @@
 
 ## [Unreleased]
 
+## [v1.6.1] — 2026-10-15
+
+> 全维度代码审查修复批次（P0 止血）+ 补录 v1.5.1 后未入档变更。审查报告见仓库外交付文档。
+
+### Added（补录：以下变更早于本文实施，此前未入档）
+
+- **资讯源扩容 21 → 31**（AI 8 / 新闻 6 / 科技 10 / 游戏 7）：AI +The Decoder、+Hugging Face；新闻 +蓝点网、+极客公园；科技 +MIT Technology Review、+Ars Technica·AI、+The Guardian·Tech；游戏 +Eurogamer、+PC Gamer、+Rock Paper Shotgun。代理白名单同步扩容，与 `src/data/feeds.json` 的 25 个主机逐一对应。
+- **候选策展台 `/curate` + 资讯策展标准 `/feed-policy` 两个页面**：候选经 `functions/api/feed.ts` 聚合端点写穿 D1 `candidates` 表（B-2 持久化），`/curate` 供作者跨会话筛选沉淀；`/feed-policy` 公开精选标准（来源可信度分档 / 重要性维度 / 聚簇规则）。两页为直链页（llms.txt 收录、导航未收录）。
+- **`.github/workflows/weekly-timeline-proposal.yml`**：Issue 型时间线补充提醒（与 timeline-digest.yml 的 PR 型提案并存）。
+
+### Fixed
+
+- **IDB 写入 rejection 逃逸导致「立即刷新」按钮永久卡死**：`src/lib/db.ts` 的 `writeIndexedDB` / `clearIndexedDB` 原先 `return new Promise(...)` 位于 try 块内，Promise 内部 reject 不被捕获；IndexedDB 配额满等异常经 `feeds.ts` → `index.astro` 的 `Promise.all` 传播，点击处理无 finally，按钮停在「刷新中…」禁用态。改为 `await new Promise<void>(...)` 让 catch 生效，并给 `index.astro` 的 `loadHot` 调用补 try/catch/finally（失败时复位按钮 + 页面提示）。
+- **历史回顾页键盘完全不可达**：`public/history-client.js` 日期分组头由 `<div>`+click 改为 `<button type="button">` + `aria-expanded` 同步；`history.astro` 补 button 样式重置与 `:focus-visible` 焦点环。顺带给云端 `date` 补 `escapeHtml`（纵深防御）。
+- **构建脚本全源失败仍绿灯上线**：`scripts/fetch-feeds.mjs` 四大板块全部抓取失败时，原先仍写空 JSON 且退出码恒 0。现总条目为 0 时 `console.error` + `process.exit(1)`，CI 红、不部署；注入板块列表由硬编码改为从 `feeds.json` 派生。
+- **「磨砂强度」死控件**：设置页滑杆写入 `--glass-blur`，但全站无 CSS 消费（报刊版式已去玻璃模糊），拖动无任何效果，属误导性 UI。已移除该控件，设置项仅保留「降低动效」。
+- **设置页 toast 移动端被底部 TabBar 遮挡**：`position:fixed; bottom:24px` 在小屏被 TabBar（z-index:30）压住，导出/导入/清缓存的反馈不可见。toast 改为 TabBar 上方避让 + `role="status" aria-live="polite"` 播报。
+- **两个 aria-modal 浮层无焦点圈定**：`SearchOverlay` 与 `MobileTabBar` sheet 声明 `aria-modal="true"` 但 Tab 可穿出。新增 `trapFocus(container)` 工具（打开时记录 lastFocus、关闭时归还）；搜索框 `outline:none` 吞掉 `:focus-visible` 焦点环的问题一并修复。
+- **ThemeSwitcher 圆点违反 DESIGN.md**：蓝粉渐变圆点（明令禁用渐变）且不代表各主题真实配色，改为各主题 `--bg` 底 + `--accent` 中心点，与 JiuxiMark 母题同构；补 `aria-pressed` 选中语义；触控目标 22px → 44px。
+- **about 页样式断裂**：`class="card prose"` 引用的 `.card` / `.prose` 均定义在其它组件的作用域内，不作用于 about 页。改用 `<GlassCard>` 包裹。
+- **feed-policy 表格硬编码浅色**：`#ddd`/`#f5f5f5` 在暗主题下刺眼，改主题令牌。
+- **历史页按钮对比度**：白字压 `--accent` 在 midnight ≈2.6:1、aurora ≈2.7:1（低于 AA 4.5:1），新增 `--on-accent` 令牌；sakura `--text-muted` 由 4.3:1 加深至达标。
+- **筛选零结果无空状态**：`Filters` / timeline / tools 筛选后卡片 `display:none` 只剩留白，补空状态文案；筛选按钮补 `aria-pressed`。
+- **starred 页取消收藏后 UI 不更新**：取消收藏卡片残留，仅剩一条时呈空白网格。改为取消后重渲染列表。
+- **timeline-digest 周报 PR 从未生效**：`gh pr create` 前未建分支/提交，"No commits between main and main" 必然失败并被 `|| echo` 吞掉常绿。改为与 weekly-timeline-proposal 同构的 Issue 型提醒（`timeline-reminder` label 不存在时先创建，防 422）。
+- **543 行死代码**：`src/lib/history-client.ts`（230 行）与 `src/lib/archive-history.ts`（313 行）零引用（实际运行为 `public/history-client.js`，功能多一倍），删除；`.gitignore` 补 `coverage/` 防覆盖率报告误提交；`public/history-client.js` 补 `eslint-disable` 说明与未用函数清理。
+- **settings.importData 第三份收藏归一化**：v1.5.0「单一数据源」重构漏改此处，改为复用 `favorites.ts` 导出的 `normalize`。
+- **index.astro 未定义 CSS 变量**：`--bg-soft` / `--line` / `--text-soft` 全站无定义，刷新按钮样式回退初始值，改已定义令牌；`setInterval` 时钟在 astro:transitions 换页后不清理，补 `astro:before-swap` 清理。
+- **src/lib/feeds.ts / functions/api/feed.ts 正则含不可见 NBSP 字面字符**：触发 eslint `no-irregular-whitespace`，改显式 `\u00a0` + disable 注释。
+- **MobileTabBar 三元表达式当语句**：触发 `no-unused-expressions`，改 if/else；`moreActive` 死路径 `/search` 移除。
+- **settings.astro 未使用导入**：删除 `sanitizeUrl` / `escapeHtml` 死导入。
+
+### Security
+
+- **第一方代理重定向跟随绕过白名单**：`functions/api/feed.ts` 白名单校验在 fetch 之前，`redirect: 'follow'` 会跟随源站 302 抓取非白名单目标。现跟随后校验 `response.url` 主机仍在白名单，否则丢弃响应。
+- **refresh-feeds.yml 补 harden-runner**：该工作流是唯一持 Cloudflare D1 密钥的定时工作流，此前无出口审计，两个 job 补齐。
+- **跨工作流部署竞态**：deploy.yml 与 refresh-feeds.yml 各自 concurrency group 却都 `wrangler pages deploy` 同一项目，定时重建与 push 部署可能交错上传。统一为同一 concurrency group。
+- **trufflehog 密钥扫描转强制**：`--only-verified` 误报极低，泄露密钥必须阻断合并。
+
+### Changed
+
+- **缓存口径统一为 10 分钟**：此前 README / CHANGELOG / 四份 docs / 代码注释全写 30 分钟，而 `src/lib/feeds.ts` 实为 10 分钟（v1.2.0 的「文档对齐代码」条目没核对代码）。现全部统一为 10 分钟。
+- **README 门面数字对齐代码**：页面数 13 → 15（补 curate / feed-policy）；资讯源 21 → 31 及分布；目录结构树补 JiuxiMark / motion / site / ensure-candidates 等模块。
+- **质量门禁转强制**：`deploy.yml` 的 prettier / eslint 去掉 `continue-on-error`——本次已全仓清零（439 个格式问题 + 4 error + 3 warning），advisory 状态兑现清零承诺。
+- **触控目标达标**：theme-dot / fav-btn / filter-chip / header-search / refresh 等 8 类交互元素由 22–36px 统一至 ≥44px（fav-btn 用 `::before` 扩展命中区兼顾版式）。
+- **reduce-motion 运行中生效**：设置页勾选「降低动效」后立即停止 Lenis 平滑滚动（`src/lib/motion.ts` 新增 `stopMotion()`：销毁 Lenis 实例、停 autoAnimate 卡片流过渡——其内置守卫只认系统 media query、不认应用级 class、把未触发的 `.reveal` 元素补为可见防止停在不可见状态），不再需刷新页面；取消勾选可重新初始化。`astro:transitions` 换页淡入补 `.reduce-motion` 应用级守卫（Astro 内置守卫只认系统 media query；`::view-transition-*` 伪元素挂在文档根上，故用 `html:has(body.reduce-motion)` 选择器）。**实测澄清**：Astro 7 仅在页面使用 `transition:animate` 指令时才注入淡入 CSS，本站未使用该指令，换页过渡当前实为瞬时切换、无淡入动画——该守卫是防回归的前置防护（一旦启用 `transition:animate` 即生效）；`BaseLayout.astro` 中原「页面间淡入」的失实注释已改正。
+- **构建脚本健壮性**：`save-history.mjs` 的 D1 fetch 加 15s 超时（旧版无超时，D1 挂起会卡死整条构建链）；fetch-feeds 子进程 stdin 补 EPIPE 处理（同步 write + 异步流错误双通道）+ 60s 看守超时（超时强杀子进程，历史保存失败不阻断构建）；`ensure-candidates` 与 `save-history` 的 D1 客户端抽至 `scripts/lib/d1.mjs` 共用（原两份相同拷贝必然漂移）；快照文件名 section / date 白名单校验（stdin JSON 的键直接拼文件名，含 `../` 可路径穿越写到历史目录之外）；cleanupExpired 改纯 epoch 毫秒比较。**实测澄清**：时区一项在 UTC+8 等固定偏移时区下新旧实现 epoch 完全等价（本地减 N 天恰为 N×24h），原差异仅出现在有夏令时的时区（±1h 边界漂移），改为 epoch 比较后无条件免疫。
+- **「备站」残留措辞清理**：v1.5.1 已移除 GitHub Pages 备站（现为 Cloudflare Pages 单站），但代码注释 / README / 架构文档 / feed-policy 页仍描述「备站」为现存部署。12 处当前状态表述改为「无 Functions 的环境（纯静态托管/本地预览）」等准确口径；CHANGELOG 历史条目与架构文档中明确标注「仅作历史参考」的段落不动。
+- **search-index.json 移出仓库**：改纯构建产物（本地忘跑构建不再发布陈旧索引）。
+- **测试补齐 35 → 118 例**（7 个文件 → 13 个）：P1 补 57 例——trap-focus（焦点圈定 11）、settings（导入导出往返 12）、cluster-consistency（跨端算法一致性锁 8）、db（fake-indexeddb 往返 +7）、favorites（归一化/单数据源 +6）、feeds（clusterItems/rankByHeat +13）；P2 补 26 例——save-history（白名单与路径穿越防护/清理保留期边界 10）、D1 客户端（15s 超时与失败语义/required 双模式 9）、motion（`stopMotion` 行为锁 7）。`save-history.mjs` 补 CLI 入口守卫（与 fetch-feeds.mjs 同模式），脚本从「不可测」变为可单测。
+
+### Removed
+
+- 设置页「磨砂强度」滑杆（见 Fixed）。
+
 ## [v1.6.0] — 2026-10-14
 
 > 报刊版式体验升级 v2：今日热点「多源交叉信任」排序修复 + 品牌签名母题「九点汇聚」+ 导航收敛 + 流式排版与留白节奏 + 克制动效编排。承续 v1.5.1 的 Cloudflare Pages 单站部署。

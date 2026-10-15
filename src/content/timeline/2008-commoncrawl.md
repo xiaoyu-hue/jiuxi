@@ -1,8 +1,8 @@
 ---
 year: 2008
-title: "Common Crawl：开放网页语料的源头"
+title: 'Common Crawl：开放网页语料的源头'
 category: 数据
-source: "Common Crawl"
+source: 'Common Crawl'
 sourceUrl: https://en.wikipedia.org/wiki/Common_Crawl
 ---
 

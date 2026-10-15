@@ -1,10 +1,10 @@
 ---
 {
-  "title": "资本论",
-  "author": "马克思",
-  "rating": 4.5,
-  "tag": "经济学",
-  "link": "https://www.marxists.org/chinese/marx/capital/index.htm"
+  'title': '资本论',
+  'author': '马克思',
+  'rating': 4.5,
+  'tag': '经济学',
+  'link': 'https://www.marxists.org/chinese/marx/capital/index.htm',
 }
 ---
 

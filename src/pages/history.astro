@@ -88,12 +88,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .date-input { padding: 8px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--bg-2); color: var(--text-strong); font-size: 0.875rem; }
   .date-separator { color: var(--text-muted); font-size: 0.875rem; }
   .filter-select { padding: 8px 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--bg-2); color: var(--text-strong); font-size: 0.875rem; cursor: pointer; }
-  .btn-refresh { margin-left: auto; padding: 8px 16px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 0.875rem; cursor: pointer; transition: opacity 0.2s; }
+  .btn-refresh { margin-left: auto; padding: 8px 16px; background: var(--accent); color: var(--on-accent); border: none; border-radius: 8px; font-size: 0.875rem; cursor: pointer; transition: opacity 0.2s; }
   .btn-refresh:hover { opacity: 0.9; }
   .history-list { display: flex; flex-direction: column; gap: 20px; }
   .history-date-group { background: var(--surface); border-radius: 12px; border: 1px solid var(--rule); overflow: hidden; }
-  .date-header { padding: 16px 20px; background: var(--surface-2); border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+  /* 分组头为 <button>（键盘可达，2026-10-15 修复）：重置浏览器默认样式，保留版式 */
+  .date-header { padding: 16px 20px; background: var(--surface-2); border: none; border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; width: 100%; font: inherit; color: inherit; text-align: left; -webkit-appearance: none; appearance: none; }
   .date-header:hover { opacity: 0.8; }
+  .date-header:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .date-title { font-size: 1.1rem; font-weight: 600; color: var(--text-strong); display: flex; align-items: center; gap: 10px; }
   .date-badge { background: var(--accent-soft); color: var(--accent); padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; }
   .date-meta { font-size: 0.875rem; color: var(--text-muted); }
@@ -120,7 +122,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .empty-state h3 { font-size: 1.25rem; color: var(--text-strong); margin-bottom: 8px; }
   .empty-state p { color: var(--text-muted); margin-bottom: 20px; }
   .btn-clear { padding: 10px 20px; background: var(--accent-soft); color: var(--accent); border: none; border-radius: 8px; font-size: 0.9rem; cursor: pointer; transition: background 0.2s; }
-  .btn-clear:hover { background: var(--accent); color: white; }
+  .btn-clear:hover { background: var(--accent); color: var(--on-accent); }
   .toggle-icon { transition: transform 0.3s; }
   .history-date-group.collapsed .toggle-icon { transform: rotate(-90deg); }
   .history-items { max-height: 2000px; overflow: hidden; transition: max-height 0.3s ease-out; }

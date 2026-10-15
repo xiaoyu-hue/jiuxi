@@ -77,7 +77,11 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
         }
       })();
     </script>
-    <!-- 视图过渡：页面间淡入（尊重 prefers-reduced-motion） -->
+    <!-- 视图过渡：换页时由 ClientRouter 做 DOM 交换（SPA 式导航，保留主题/滚动）。
+         注意：Astro 7 仅在页面使用 transition:animate 指令时才注入淡入 CSS，
+         本站未使用该指令，故实际为瞬时切换、无淡入动画；
+         系统级 prefers-reduced-motion 由 Astro 内置守卫处理，
+         应用级「降低动效」守卫见 src/styles/global.css。 -->
     <ClientRouter />
   </head>
   <body>
@@ -173,8 +177,9 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
     gap: 8px;
   }
   .header-search {
-    width: 36px;
-    height: 36px;
+    /* 2026-10-15 审查 M15：36px → 44px（WCAG 2.5.5 触控目标下限） */
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     border: 1px solid var(--glass-border);
     background: var(--glass-bg);

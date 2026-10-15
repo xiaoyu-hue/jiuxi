@@ -1,10 +1,10 @@
 ---
 {
-  "title": "利维坦",
-  "author": "霍布斯",
-  "rating": 4.5,
-  "tag": "政治学",
-  "link": "https://www.gutenberg.org/ebooks/3207"
+  'title': '利维坦',
+  'author': '霍布斯',
+  'rating': 4.5,
+  'tag': '政治学',
+  'link': 'https://www.gutenberg.org/ebooks/3207',
 }
 ---
 

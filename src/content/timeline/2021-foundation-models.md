@@ -1,8 +1,8 @@
 ---
 year: 2021
-title: "「基础模型」概念的提出"
+title: '「基础模型」概念的提出'
 category: 理论
-source: "On the Opportunities and Risks of Foundation Models"
+source: 'On the Opportunities and Risks of Foundation Models'
 sourceUrl: https://arxiv.org/abs/2108.07258
 ---
 

@@ -1,11 +1,11 @@
 ---
 {
-  "year": 1955,
-  "title": "达特茅斯提案：「人工智能」一词正式诞生",
-  "category": "里程碑",
-  "month": 8,
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Dartmouth_workshop"
+  'year': 1955,
+  'title': '达特茅斯提案：「人工智能」一词正式诞生',
+  'category': '里程碑',
+  'month': 8,
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Dartmouth_workshop',
 }
 ---
 

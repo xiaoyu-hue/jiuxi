@@ -1,10 +1,10 @@
 ---
 {
-  "title": "富兰克林自传",
-  "author": "本杰明·富兰克林",
-  "rating": 4.5,
-  "tag": "传记",
-  "link": "https://www.gutenberg.org/ebooks/148"
+  'title': '富兰克林自传',
+  'author': '本杰明·富兰克林',
+  'rating': 4.5,
+  'tag': '传记',
+  'link': 'https://www.gutenberg.org/ebooks/148',
 }
 ---
 

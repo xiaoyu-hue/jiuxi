@@ -1,10 +1,10 @@
 ---
 {
-  "title": "史记",
-  "author": "司马迁",
-  "rating": 5,
-  "tag": "历史",
-  "link": "https://ctext.org/shiji"
+  'title': '史记',
+  'author': '司马迁',
+  'rating': 5,
+  'tag': '历史',
+  'link': 'https://ctext.org/shiji',
 }
 ---
 

@@ -1,7 +1,7 @@
 ---
 year: 2024
 title: 1X NEO 与 Apptronik Apollo：家用与工业人形机器人落地
-category: "具身"
+category: '具身'
 source: 1X Technologies / Apptronik
 sourceUrl: https://www.1x.tech/
 ---

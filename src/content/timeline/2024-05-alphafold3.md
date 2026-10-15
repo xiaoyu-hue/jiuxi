@@ -1,9 +1,9 @@
 ---
 year: 2024
-title: "AlphaFold 3 预测所有生命分子的相互作用"
-category: "科学"
-source: "Google DeepMind"
-sourceUrl: "https://www.nature.com/articles/s41586-024-07487-w"
+title: 'AlphaFold 3 预测所有生命分子的相互作用'
+category: '科学'
+source: 'Google DeepMind'
+sourceUrl: 'https://www.nature.com/articles/s41586-024-07487-w'
 ---
 
 2024 年 5 月 8 日，Google DeepMind 与 Isomorphic Labs 发布 AlphaFold 3，将结构预测从单一蛋白质链扩展到蛋白质、DNA、RNA、配体、离子等所有生命分子复合物。其 Pairformer 架构取代了 AlphaFold 2 的 Evoformer，直接建模成对氨基酸相互作用。

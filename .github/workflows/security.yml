@@ -6,14 +6,20 @@
 # DAST 动态扫描(ZAP，见 dast-scan.yml 可复用工作流，每周+部署后由本文件与 deploy.yml 调用)。
 # 每个 job 第一步均装 harden-runner（出口审计模式）。
 #
-# 门禁强度：osv-scanner 自 2026-10-13 起为**强制**（已去掉 continue-on-error，
-# 发现依赖漏洞即红灯，需先升级依赖再合并）；其余门禁仍为 advisory：
-# continue-on-error 写在 **job 级别**（不是 step 级别）。
-# 原因：step 级别的 continue-on-error 无法覆盖 action 引用解析失败
-# （失败发生在 “Set up job” 阶段，不属于任何 step），一旦某个门禁挂掉整条
-# 工作流就会变红，advisory 语义形同虚设。写在 job 级别才能真正做到
-# “单个门禁失败不影响流水线结论”，同时在 job 行仍保留红叉便于排查。
-# 待新门禁连续转绿后，可逐个去掉 continue-on-error 转为强制门禁。
+# 门禁强度（2026-10-15 审查后）：
+#   **强制**（无 continue-on-error，发现即红灯阻断合并）：
+#     osv-scanner（依赖漏洞，2026-10-13 起强制）；
+#     trufflehog（历史密钥扫描，2026-10-15 起强制，见 trufflehog job 内说明）。
+#   **advisory**（job 级 continue-on-error，失败只标红本 job 不阻断）：
+#     gitleaks / codeql / trivy / nuclei / lychee / dependency-review /
+#     zizmor / scorecard / sbom。
+# 为什么 advisory 的 continue-on-error 必须写在 **job 级别**（不是 step 级别）：
+#   step 级别的 continue-on-error 无法覆盖 action 引用解析失败
+#   （失败发生在 "Set up job" 阶段，不属于任何 step），一旦某个门禁挂掉整条
+#   工作流就会变红，advisory 语义形同虚设。写在 job 级别才能真正做到
+#   "单个门禁失败不影响流水线结论"，同时在 job 行仍保留红叉便于排查。
+# 转强制的判据：门禁误报率已被实际运行验证可接受（osv-scanner 与 trufflehog
+#   均只报"实测有效/确定命中"，误报空间小），故敢于阻断。
 #
 # ⚠️ Action 引用约定（本文件已逐个实测，勿凭印象写版本号）：
 #   1. 不是所有 Action 都提供大版本移动标签。
@@ -90,7 +96,7 @@ jobs:
           # （经 GitHub API 列 PR 提交、在 PR 上评论发现项），缺失即 job 失败
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ── 密钥扫描 · 第二引擎（TruffleHog，全量历史 + 已验证）──
+  # ── 密钥扫描 · 第二引擎（TruffleHog，全量历史 + 已验证，强制门禁）──
   # 为什么在 gitleaks 之外再上一道：
   #   1. gitleaks 扫的是当前文件与近期提交；TruffleHog 的 git 模式遍历**全部**
   #      提交历史，能发现「早已删除但仍在历史里」的密钥；
@@ -101,9 +107,15 @@ jobs:
   #   两许可证互不影响（README「致谢与开源声明」已注明）。
   # 形态与 osv-scanner job 同构：官方 CLI + pin 版本 + SHA256 校验，
   #   不用第三方 action（供应链面更小，且不受 action.yml 损坏影响）。
+  # 2026-10-15 审查 M22：由 advisory 转**强制**——只报已验证密钥意味着
+  # 误报率足够低，发现真实泄露的密钥必须阻断合并、立即轮换。
+  # ⚠️ 转强制风险提示：本 job 扫完整历史，若历史提交里存在已验证密钥，
+  #    首次运行即红灯。届时须人工清理历史（git filter-repo / BFG）并轮换
+  #    该密钥，或在 run 步骤补 --exclude-paths 精确排除（排除项须在注释中
+  #    说明理由，禁止无理由大面积排除）。
   trufflehog:
     runs-on: ubuntu-24.04
-    continue-on-error: true # advisory：与其它门禁一致，发现只告警不阻断
+    # 强制门禁：不再写 continue-on-error，发现已验证密钥直接红灯阻断合并。
     steps:
       - name: Harden-Runner（出口审计）
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
@@ -135,18 +147,15 @@ jobs:
           trufflehog --version || true # 仅用于留痕，不参与判定
         env:
           TRUFFLEHOG_VERSION: v3.99.2 # 升级时同步核对 releases 资产名与 checksums 文件名
-      - name: TruffleHog（历史密钥扫描，仅已验证）
+      - name: TruffleHog（历史密钥扫描，仅已验证，强制门禁）
         # git file:// 模式遍历全部提交历史（checkout 已 fetch-depth: 0）；
-        # --fail 让发现项以非零退出码暴露，由下方 if 捕获转 ::warning:
-        # （advisory：不阻断流水线，但在运行摘要可见）。
+        # --only-verified 只报实测有效的密钥（误报率足够低，故敢转强制）；
+        # --fail 让发现项以非零退出码使 job 置红、阻断合并（run 步骤默认
+        # bash -e 语义，不需要再包 if 捕获——2026-10-15 审查 M22 转强制）。
         # 路径用 shell 环境变量 $GITHUB_WORKSPACE 而非 ${{ }} 插值：避免 zizmor
         # 模板注入检查误报（run 脚本内直接插值上下文表达式是其重点审查对象）。
         run: |
-          if trufflehog git "file://$GITHUB_WORKSPACE" --only-verified --fail; then
-            echo "✅ TruffleHog 未发现已验证密钥"
-          else
-            echo "::warning::TruffleHog 发现已验证密钥或运行异常（advisory 阶段不阻断），详见上方日志"
-          fi
+          trufflehog git "file://$GITHUB_WORKSPACE" --only-verified --fail
 
   # ── SAST：CodeQL（公开库免费，无需 token）──
   codeql:
@@ -463,8 +472,8 @@ jobs:
   # ── DAST：每周定时扫描生产主站（调用可复用工作流，避免与部署后扫描配置漂移）──
   zap-baseline:
     # ⚠️ 调用可复用工作流的 job 只允许 name/uses/with/secrets/needs/if/permissions/strategy
-  # 这几个键——runs-on 与 continue-on-error 写在这里会导致工作流解析失败（红叉）。
-  # advisory 语义由被调用工作流 dast-scan.yml 内部的 job 级 continue-on-error 承载。
+    # 这几个键——runs-on 与 continue-on-error 写在这里会导致工作流解析失败（红叉）。
+    # advisory 语义由被调用工作流 dast-scan.yml 内部的 job 级 continue-on-error 承载。
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     # 自引用语法（GitHub 2026-07 起官方支持）：$/ 解析到当前运行的提交，
     # 比 ./ 更安全（zizmor self-repository 告警的修复）。

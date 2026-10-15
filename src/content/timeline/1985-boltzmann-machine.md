@@ -1,10 +1,10 @@
 ---
 {
-  "year": 1985,
-  "title": "玻尔兹曼机：神经网络有了生成式学习理论",
-  "category": "模型",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Boltzmann_machine"
+  'year': 1985,
+  'title': '玻尔兹曼机：神经网络有了生成式学习理论',
+  'category': '模型',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Boltzmann_machine',
 }
 ---
 

@@ -92,6 +92,23 @@ h4 {
   scroll-behavior: auto !important;
 }
 
+/* ── astro:transitions 页面淡入的应用级守卫（2026-10-15 审查 L14）──
+ * Astro 内置守卫（其 viewtransitions.css 中的 @media (prefers-reduced-motion) 块）
+ * 只认系统级 media query，不认应用级 .reduce-motion，故在此显式关闭视图过渡动画。
+ * ::view-transition-* 伪元素挂在整个文档根上，而 .reduce-motion 在 <body> 上，
+ * 因此用 :has() 从 html 侧匹配（Chrome 105+/Safari 15.4+/Firefox 121+ 起可用）。
+ * 与 Astro 内置守卫同样使用 !important，且选择器优先级更高，双保险。
+ *
+ * 实测备注（2026-10-15）：Astro 7 仅在页面使用 transition:animate 指令时才注入
+ * 淡入 CSS（astro/components/viewtransitions.css）；本站目前未使用该指令，
+ * 换页过渡实际为瞬时切换、无淡入动画。本条守卫是防回归的前置防护：
+ * 一旦将来启用 transition:animate（或 Astro 恢复默认注入），应用级开关即刻生效。 */
+html:has(body.reduce-motion)::view-transition-group(*),
+html:has(body.reduce-motion)::view-transition-old(*),
+html:has(body.reduce-motion)::view-transition-new(*) {
+  animation: none !important;
+}
+
 /* ── 无障碍：键盘焦点可见 ── */
 :focus-visible {
   outline: 2px solid var(--accent);

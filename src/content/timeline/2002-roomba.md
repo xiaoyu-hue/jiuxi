@@ -1,10 +1,10 @@
 ---
 {
-  "year": 2002,
-  "title": "iRobot Roomba 扫地机器人上市",
-  "category": "具身",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Roomba"
+  'year': 2002,
+  'title': 'iRobot Roomba 扫地机器人上市',
+  'category': '具身',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Roomba',
 }
 ---
 

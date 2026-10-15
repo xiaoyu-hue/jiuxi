@@ -23,10 +23,9 @@ import GlassCard from '../components/GlassCard.astro';
       <span>降低动效</span>
       <input type="checkbox" id="reduce-motion" />
     </label>
-    <label class="set-row">
-      <span>磨砂强度 <em id="blur-val">16px</em></span>
-      <input type="range" id="glass-blur" min="4" max="30" step="1" value="16" />
-    </label>
+    {/* 「磨砂强度」滑杆已移除（2026-10-15 审查 M8）：全站无 CSS 消费
+        --glass-blur（报刊版式已去玻璃模糊），拖动无任何效果，属误导性 UI。
+        settings.ts 的 glassBlur 字段暂时保留仅为兼容旧版导出 JSON 的导入。 */}
   </GlassCard>
 
   <GlassCard class="set-card">
@@ -45,7 +44,7 @@ import GlassCard from '../components/GlassCard.astro';
     </div>
   </GlassCard>
 
-  <p id="set-toast" class="set-toast"></p>
+  <p id="set-toast" class="set-toast" role="status" aria-live="polite"></p>
 </BaseLayout>
 
 <script>
@@ -57,18 +56,24 @@ import GlassCard from '../components/GlassCard.astro';
     importData,
     clearCaches,
   } from '../lib/settings';
-  import { sanitizeUrl, escapeHtml } from '../lib/security';
+  import { initMotion, stopMotion } from '../lib/motion';
 
   const settings = getSettings();
   const reduce = document.getElementById('reduce-motion') as HTMLInputElement | null;
-  const blur = document.getElementById('glass-blur') as HTMLInputElement | null;
-  const blurVal = document.getElementById('blur-val');
   const toast = document.getElementById('set-toast');
 
   if (reduce) reduce.checked = settings.reduceMotion;
-  if (blur) blur.value = String(settings.glassBlur);
-  if (blurVal) blurVal.textContent = settings.glassBlur + 'px';
   applySettings(settings);
+
+  // 动效状态与设置同步（2026-10-15 审查 L14）：
+  // 勾选「降低动效」立即停掉在途动效，无需刷新页面；取消勾选重新初始化。
+  function syncMotion(reduceMotion: boolean) {
+    if (reduceMotion) stopMotion();
+    else initMotion();
+  }
+  // 兜底：若进页面时设置就是「降低动效」，而之前某处已初始化过动效
+  // （本页脚本与 BaseLayout 的初始化脚本同帧执行，顺序不定），此处再停一次保证生效。
+  if (settings.reduceMotion) stopMotion();
 
   function showToast(msg: string) {
     if (!toast) return;
@@ -84,14 +89,7 @@ import GlassCard from '../components/GlassCard.astro';
     s.reduceMotion = !!reduce.checked;
     saveSettings(s);
     applySettings(s);
-  });
-  blur?.addEventListener('input', () => {
-    const v = Number(blur.value);
-    if (blurVal) blurVal.textContent = v + 'px';
-    const s = getSettings();
-    s.glassBlur = v;
-    saveSettings(s);
-    applySettings(s);
+    syncMotion(s.reduceMotion);
   });
 
   document.getElementById('export-btn')?.addEventListener('click', () => {
@@ -114,9 +112,8 @@ import GlassCard from '../components/GlassCard.astro';
       if (ok) {
         const s = getSettings();
         if (reduce) reduce.checked = s.reduceMotion;
-        if (blur) blur.value = String(s.glassBlur);
-        if (blurVal) blurVal.textContent = s.glassBlur + 'px';
         applySettings(s);
+        syncMotion(s.reduceMotion);
         showToast('导入成功');
       } else {
         showToast('导入失败：文件格式不正确');
@@ -158,12 +155,13 @@ import GlassCard from '../components/GlassCard.astro';
   .set-row span {
     font-size: 0.95rem;
   }
-  #blur-val {
-    font-style: normal;
-    color: var(--text-muted);
-    font-size: 0.82rem;
-  }
 
+  /* 2026-10-15 审查 M9：
+     1) role=status + aria-live=polite（标记上已加）：导出/导入/清缓存的
+        结果对读屏软件可感知；
+     2) 移动端避让：小屏底部有 TabBar（z-index 30），toast 原先 bottom:24px
+        被压住完全不可见——抬到 TabBar 之上并加 safe-area 内边距；
+     3) z-index 高于 TabBar，保证反馈不被遮挡。 */
   .set-toast {
     position: fixed;
     bottom: 24px;
@@ -178,5 +176,12 @@ import GlassCard from '../components/GlassCard.astro';
     transition: opacity 0.3s;
     border: 1px solid var(--glass-border);
     font-size: 0.9rem;
+    z-index: 60;
+    pointer-events: none;
+  }
+  @media (max-width: 768px) {
+    .set-toast {
+      bottom: calc(76px + env(safe-area-inset-bottom));
+    }
   }
 </style>

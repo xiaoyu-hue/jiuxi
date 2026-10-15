@@ -1,10 +1,10 @@
 ---
 {
-  "year": 1976,
-  "title": "MYCIN：医疗诊断专家系统达到专家水平",
-  "category": "专家系统",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Mycin"
+  'year': 1976,
+  'title': 'MYCIN：医疗诊断专家系统达到专家水平',
+  'category': '专家系统',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Mycin',
 }
 ---
 

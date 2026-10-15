@@ -1,10 +1,10 @@
 ---
 {
-  "title": "叫魂",
-  "author": "孔飞力",
-  "rating": 4.5,
-  "tag": "历史",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E5%8F%AB%E9%AD%82"
+  'title': '叫魂',
+  'author': '孔飞力',
+  'rating': 4.5,
+  'tag': '历史',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E5%8F%AB%E9%AD%82',
 }
 ---
 

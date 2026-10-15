@@ -1,10 +1,10 @@
 ---
 {
-  "title": "反脆弱",
-  "author": "纳西姆·塔勒布",
-  "rating": 4.5,
-  "tag": "思维",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E5%8F%8D%E8%84%86%E5%BC%B1"
+  'title': '反脆弱',
+  'author': '纳西姆·塔勒布',
+  'rating': 4.5,
+  'tag': '思维',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E5%8F%8D%E8%84%86%E5%BC%B1',
 }
 ---
 

@@ -1,8 +1,8 @@
 ---
 year: 2019
-title: "大规模预训练语料：C4 / WebText / The Pile"
+title: '大规模预训练语料：C4 / WebText / The Pile'
 category: 数据
-source: "C4 (T5) / WebText (GPT-2) / The Pile (EleutherAI)"
+source: 'C4 (T5) / WebText (GPT-2) / The Pile (EleutherAI)'
 sourceUrl: https://arxiv.org/abs/1910.10683
 ---
 

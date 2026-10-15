@@ -1,10 +1,10 @@
 ---
 {
-  "title": "原则",
-  "author": "瑞·达利欧",
-  "rating": 4.5,
-  "tag": "商业",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E5%8E%9F%E5%88%99"
+  'title': '原则',
+  'author': '瑞·达利欧',
+  'rating': 4.5,
+  'tag': '商业',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E5%8E%9F%E5%88%99',
 }
 ---
 

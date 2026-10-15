@@ -1,5 +1,10 @@
 ---
+// 九溪 · 关于页
+// 2026-10-15 审查 M12：原先 <div class="card prose"> 引用的 .card / .prose
+// 都定义在其它组件的作用域样式里（Astro 默认样式作用域），对本页零效果，
+// 页面实际是「无样式裸奔」。改用全局组件 GlassCard（.glass.card 有真实定义）。
 import BaseLayout from '../layouts/BaseLayout.astro';
+import GlassCard from '../components/GlassCard.astro';
 ---
 
 <BaseLayout
@@ -10,7 +15,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <h2>关于九溪</h2>
   </header>
 
-  <div class="card prose">
+  <GlassCard>
     <p>
       九溪是一个以 <strong>AI</strong> 为主、热点新闻为辅的综合信息聚集地，覆盖
       AI、新闻、科技、游戏四大板块，聚合多源交叉的今日热点，并附带历史回顾、时间线、工具箱与读书推荐。
@@ -18,5 +23,5 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <p class="masthead-date">
       更新于 {new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}。
     </p>
-  </div>
+  </GlassCard>
 </BaseLayout>

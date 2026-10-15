@@ -11,7 +11,7 @@ describe('withBase', () => {
     expect(withBase('news')).toBe('/news');
   });
 
-  it('子路径 base（GitHub Pages /jiuxi/）下拼接正确，修复备站 404', () => {
+  it('子路径 base（如 /jiuxi/）下拼接正确，修复子路径部署 404', () => {
     vi.stubEnv('BASE_URL', '/jiuxi/');
     expect(withBase('/')).toBe('/jiuxi/');
     expect(withBase('/ai')).toBe('/jiuxi/ai');

@@ -44,17 +44,18 @@ jobs:
       - run: npm ci
       - name: 类型检查（astro check）
         run: npm run check
-      - name: 单元测试（vitest）
-        run: npm run test
+      - name: 单元测试（vitest + 覆盖率阈值）
+        # 2026-10-15 审查 M23：改跑 test:coverage，覆盖率低于
+        # vitest.config.ts 阈值（行 75%/语句 75%/函数 70%/分支 60%）即红灯，
+        # 防止测试被越改越少。
+        run: npm run test:coverage
       # 规范检查：prettier 格式 + eslint 规则。
-      # 当前为 advisory（continue-on-error），避免一次性引入工具链即阻断既有绿流水线；
-      # 待本地 `npm run format && npm run lint` 清零后，可去掉 continue-on-error 转为强制门禁。
+      # 2026-10-15：全仓清零（439 个格式问题 + 4 error + 3 warning 全部修复）后，
+      # 按 v1.1.0 既定计划去掉 continue-on-error，转为强制门禁。
       - name: 格式检查（prettier）
         run: npm run format:check
-        continue-on-error: true
       - name: 代码规范检查（eslint）
         run: npm run lint
-        continue-on-error: true
 
   # ── Cloudflare 构建（base=/）──
   build-cloudflare:
@@ -91,6 +92,13 @@ jobs:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     needs: build-cloudflare
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
+    timeout-minutes: 15
+    # 部署互斥（2026-10-15 审查修复 M20）：与 refresh-feeds.yml 的 deploy-cloudflare
+    # 共用同一组，防止定时重建与 push 部署交错上传 dist 不一致。
+    # 仅部署 job 互斥；build/quality job 不受影响，PR 门禁不被阻塞。
+    concurrency:
+      group: jiuxi-deploy
+      cancel-in-progress: false
     steps:
       - name: Harden-Runner（出口审计）
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1

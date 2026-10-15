@@ -80,10 +80,7 @@ for (const { dir, type, page } of TYPES) {
     const raw = fs.readFileSync(file, 'utf8');
     const { fm, body } = parseFrontmatter(raw);
     // glob loader 的 id = 相对 base 的路径去掉 .md 后缀；用作页面锚点，保证可深链。
-    const id = path
-      .relative(base, file)
-      .replace(/\\/g, '/')
-      .replace(/\.md$/, '');
+    const id = path.relative(base, file).replace(/\\/g, '/').replace(/\.md$/, '');
     const title = fm.title || fm.name || id;
     if (!title) continue;
     items.push({
@@ -97,14 +94,9 @@ for (const { dir, type, page } of TYPES) {
 }
 
 // 按类型、标题稳定排序，便于审阅与缓存命中
-items.sort(
-  (a, b) =>
-    a.type.localeCompare(b.type, 'zh') || a.title.localeCompare(b.title, 'zh'),
-);
+items.sort((a, b) => a.type.localeCompare(b.type, 'zh') || a.title.localeCompare(b.title, 'zh'));
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
 fs.writeFileSync(OUT_FILE, JSON.stringify({ items }));
 
-console.log(
-  `[九溪] 搜索索引已生成：${items.length} 条 → ${path.relative(ROOT, OUT_FILE)}`,
-);
+console.log(`[九溪] 搜索索引已生成：${items.length} 条 → ${path.relative(ROOT, OUT_FILE)}`);

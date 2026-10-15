@@ -1,7 +1,7 @@
 ---
 year: 2021
 title: 特斯拉公布 Optimus 人形机器人概念
-category: "具身"
+category: '具身'
 source: Tesla AI Day / Tesla
 sourceUrl: https://www.tesla.com/we-robot
 ---

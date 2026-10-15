@@ -13,10 +13,10 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
     <h2>AI 工具箱</h2>
     <p>精选 AI 工具，点击直达。星数为公开数据约值（截至 2026 年），会随时间变动。</p>
     <div class="tool-filters" id="tool-filters">
-      <button class="tool-chip active" data-cat="all">全部</button>
+      <button class="tool-chip active" data-cat="all" aria-pressed="true">全部</button>
       {
         categories.map((c) => (
-          <button class="tool-chip" data-cat={c}>
+          <button class="tool-chip" data-cat={c} aria-pressed="false">
             {c}
           </button>
         ))
@@ -42,24 +42,37 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
       ))
     }
   </div>
+  {/* 筛选零结果空状态（2026-10-15 审查 M16） */}
+  <p class="tool-empty" id="tool-empty" hidden>
+    没有匹配的工具。试试选择「全部」分类。
+  </p>
 </BaseLayout>
 
 <script>
   const filters = document.getElementById('tool-filters');
+  const empty = document.getElementById('tool-empty');
   let activeCat = 'all';
   function apply() {
+    let visibleCount = 0;
     document.querySelectorAll<HTMLElement>('.tool-card').forEach((el) => {
       const cat = el.dataset.category || '';
-      el.style.display = activeCat === 'all' || cat === activeCat ? '' : 'none';
+      const show = activeCat === 'all' || cat === activeCat;
+      el.style.display = show ? '' : 'none';
+      if (show) visibleCount++;
     });
+    if (empty) empty.hidden = visibleCount > 0;
   }
   filters?.addEventListener('click', (e) => {
     const btn = (e.target as HTMLElement).closest('.tool-chip');
     if (!btn) return;
     filters
       .querySelectorAll('.tool-chip')
-      .forEach((b) => b.classList.remove('active'));
+      .forEach((b) => {
+        b.classList.remove('active');
+        b.setAttribute('aria-pressed', 'false');
+      });
     btn.classList.add('active');
+    btn.setAttribute('aria-pressed', 'true');
     activeCat = btn.getAttribute('data-cat') || 'all';
     apply();
   });
@@ -73,8 +86,12 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
     margin-top: 12px;
   }
   .tool-chip {
-    padding: 6px 14px;
-    border-radius: 14px;
+    /* 2026-10-15 审查 M15：触控目标 ≥44px（原约 32px） */
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 22px;
     border: 1px solid var(--glass-border);
     background: var(--glass-bg);
     color: var(--text-muted);
@@ -85,6 +102,19 @@ const categories = [...new Set(entries.map((e) => e.data.category))].sort();
     color: var(--text-strong);
     background: var(--accent-soft);
     font-weight: 600;
+  }
+  .tool-chip:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .tool-empty {
+    margin: 32px 0;
+    padding: 24px;
+    text-align: center;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    border: 1px dashed var(--rule);
+    border-radius: 12px;
   }
   .tool-grid {
     display: grid;

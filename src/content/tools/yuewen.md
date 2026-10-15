@@ -1,9 +1,9 @@
 ---
 {
-  "name": "跃问",
-  "url": "https://yuewen.cn",
-  "category": "对话",
-  "tagline": "阶跃星辰出品，多模态推理见长，支持图文混合提问。"
+  'name': '跃问',
+  'url': 'https://yuewen.cn',
+  'category': '对话',
+  'tagline': '阶跃星辰出品，多模态推理见长，支持图文混合提问。',
 }
 ---
 

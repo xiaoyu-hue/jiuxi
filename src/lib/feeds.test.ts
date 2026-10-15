@@ -1,5 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { parseHn, parseRss, renderItems, loadFeed, refreshFeedOnline, mergeFeedItems } from './feeds';
+import {
+  parseHn,
+  parseRss,
+  renderItems,
+  loadFeed,
+  refreshFeedOnline,
+  mergeFeedItems,
+  clusterItems,
+  rankByHeat,
+  cleanFeedItems,
+  type FeedItem,
+} from './feeds';
 
 describe('parseHn', () => {
   it('解析 Hacker News 命中，缺失 url 时回退 item 链接', () => {
@@ -92,7 +103,7 @@ describe('loadFeed（刷新回流）', () => {
   it('有旧缓存时仍返回在线刷新拿到的最新数据，不返回旧快照', async () => {
     localStorage.setItem(
       'jiuxi-feed-ai',
-      JSON.stringify({ t: Date.now(), items: [{ title: '旧快照', link: 'https://old.com' }] })
+      JSON.stringify({ t: Date.now(), items: [{ title: '旧快照', link: 'https://old.com' }] }),
     );
     vi.stubGlobal(
       'fetch',
@@ -103,9 +114,9 @@ describe('loadFeed（刷新回流）', () => {
         }
         return new Response(
           '<?xml version="1.0"?><rss version="2.0"><channel><item><title>最新资讯</title><link>https://new.com</link></item></channel></rss>',
-          { status: 200, headers: { 'Content-Type': 'application/rss+xml' } }
+          { status: 200, headers: { 'Content-Type': 'application/rss+xml' } },
         );
-      })
+      }),
     );
     const items = await loadFeed('ai');
     expect(items).toHaveLength(1);
@@ -115,13 +126,13 @@ describe('loadFeed（刷新回流）', () => {
   it('在线刷新全部失败时退到旧缓存，不返回空', async () => {
     localStorage.setItem(
       'jiuxi-feed-ai',
-      JSON.stringify({ t: Date.now(), items: [{ title: '兜底旧数据', link: 'https://old.com' }] })
+      JSON.stringify({ t: Date.now(), items: [{ title: '兜底旧数据', link: 'https://old.com' }] }),
     );
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => {
         throw new Error('network down');
-      })
+      }),
     );
     const items = await loadFeed('ai');
     expect(items).toHaveLength(1);
@@ -151,11 +162,23 @@ describe('mergeFeedItems（按源轮询，多元化成份）', () => {
   // 2026-10-12 实测复现：AI 板块 6 源 24 条被 ArXiv×15 + 量子位×9 占满，
   // OpenAI / Google AI / HN / Google News 零曝光。轮询保证每源都有曝光位。
   it('均衡场景：名额在源间均分（6 源各 15 条取 24 → 每源 4 条）', () => {
-    const sources = ['ArXiv · cs.AI', '量子位 · AI', 'OpenAI 新闻', 'Google AI 博客', 'Hacker News', 'Google 新闻'];
+    const sources = [
+      'ArXiv · cs.AI',
+      '量子位 · AI',
+      'OpenAI 新闻',
+      'Google AI 博客',
+      'Hacker News',
+      'Google 新闻',
+    ];
     const base: any[] = [];
     for (const s of sources) {
       for (let i = 0; i < 15; i++) {
-        base.push({ title: `${s}-${i}`, link: `https://x/${encodeURIComponent(s)}/${i}`, source: s, pubDate: '2024-05-02' });
+        base.push({
+          title: `${s}-${i}`,
+          link: `https://x/${encodeURIComponent(s)}/${i}`,
+          source: s,
+          pubDate: '2024-05-02',
+        });
       }
     }
     const merged = mergeFeedItems(base, []);
@@ -169,12 +192,27 @@ describe('mergeFeedItems（按源轮询，多元化成份）', () => {
     // 模拟 ArXiv 日更 15 条 + 量子位 9 条 + 周更源 1 条（纯时间排序下阮一峰零曝光）
     const base: any[] = [];
     for (let i = 0; i < 15; i++) {
-      base.push({ title: `ArXiv-${i}`, link: `https://arxiv/${i}`, source: 'ArXiv · cs.AI', pubDate: '2024-05-02' });
+      base.push({
+        title: `ArXiv-${i}`,
+        link: `https://arxiv/${i}`,
+        source: 'ArXiv · cs.AI',
+        pubDate: '2024-05-02',
+      });
     }
     for (let i = 0; i < 9; i++) {
-      base.push({ title: `量子位-${i}`, link: `https://qbitai/${i}`, source: '量子位 · AI', pubDate: '2024-05-01' });
+      base.push({
+        title: `量子位-${i}`,
+        link: `https://qbitai/${i}`,
+        source: '量子位 · AI',
+        pubDate: '2024-05-01',
+      });
     }
-    base.push({ title: '阮一峰周刊', link: 'https://ruanyifeng/1', source: '阮一峰的网络日志', pubDate: '2024-04-01' });
+    base.push({
+      title: '阮一峰周刊',
+      link: 'https://ruanyifeng/1',
+      source: '阮一峰的网络日志',
+      pubDate: '2024-04-01',
+    });
     const merged = mergeFeedItems(base, []);
     expect(merged).toHaveLength(24);
     const from = (s: string) => merged.filter((i) => i.source === s).length;
@@ -189,7 +227,7 @@ describe('mergeFeedItems（按源轮询，多元化成份）', () => {
         { title: '旧', link: 'https://a.com', pubDate: '2024-01-01' },
         { title: '新', link: 'https://b.com', pubDate: '2024-03-01' },
       ],
-      []
+      [],
     );
     expect(merged.map((i) => i.title)).toEqual(['新', '旧']);
   });
@@ -204,11 +242,14 @@ describe('refreshFeedOnline（后台刷新不回退缓存）', () => {
   it('全部源失败时返回空数组，不回退旧缓存（避免覆盖内嵌内容）', async () => {
     localStorage.setItem(
       'jiuxi-feed-ai',
-      JSON.stringify({ t: Date.now(), items: [{ title: '内嵌兜底', link: 'https://old.com' }] })
+      JSON.stringify({ t: Date.now(), items: [{ title: '内嵌兜底', link: 'https://old.com' }] }),
     );
-    vi.stubGlobal('fetch', vi.fn(async () => {
-      throw new Error('network down');
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('network down');
+      }),
+    );
     const items = await refreshFeedOnline('ai');
     expect(items).toHaveLength(0);
   });
@@ -220,8 +261,12 @@ describe('refreshFeedOnline（后台刷新不回退缓存）', () => {
         const url = String(u);
         if (url.includes('hn.algolia')) {
           return new Response(
-            JSON.stringify({ hits: [{ title: 'HN-A', url: 'https://hn.com/1', objectID: '1', created_at: '2024-05-01' }] }),
-            { status: 200 }
+            JSON.stringify({
+              hits: [
+                { title: 'HN-A', url: 'https://hn.com/1', objectID: '1', created_at: '2024-05-01' },
+              ],
+            }),
+            { status: 200 },
           );
         }
         // 各 RSS 源返回不同 link，避免被并集去重合并成一条
@@ -236,9 +281,9 @@ describe('refreshFeedOnline（后台刷新不回退缓存）', () => {
                 : 'googlenews';
         return new Response(
           `<?xml version="1.0"?><rss version="2.0"><channel><item><title>RSS-${tag}</title><link>https://rss.com/${tag}</link></item></channel></rss>`,
-          { status: 200, headers: { 'Content-Type': 'application/rss+xml' } }
+          { status: 200, headers: { 'Content-Type': 'application/rss+xml' } },
         );
-      })
+      }),
     );
     // AI 板块 6 个源（量子位/OpenAI/Google AI/HN/ArXiv/Google News）全部成功 → 合并去重后 6 条
     const items = await refreshFeedOnline('ai');
@@ -249,5 +294,153 @@ describe('refreshFeedOnline（后台刷新不回退缓存）', () => {
     expect(items.some((i) => i.title === 'RSS-googleai')).toBe(true);
     expect(items.some((i) => i.title === 'RSS-arxiv')).toBe(true);
     expect(items.some((i) => i.title === 'RSS-googlenews')).toBe(true);
+  });
+});
+
+// ── 以下为 2026-10-15 审查 M23 补齐的算法单测 ──
+
+describe('clusterItems（跨源聚簇边界）', () => {
+  it('过滤空 title 条目，其余不受影响', () => {
+    const items: FeedItem[] = [
+      { title: '', link: 'https://a.com/0', source: 'X' },
+      { title: 'Unique title alpha', link: 'https://a.com/1', source: 'X' },
+    ];
+    const out = clusterItems(items);
+    expect(out).toHaveLength(1);
+    expect(out[0].title).toBe('Unique title alpha');
+  });
+
+  it('无 source 条目：sources 为空数组，source 保持 undefined', () => {
+    const out = clusterItems([{ title: 'No source here', link: 'https://a.com/1' }]);
+    expect(out[0].sources).toEqual([]);
+    expect(out[0].source).toBeUndefined();
+  });
+
+  it('null / undefined 输入不抛错，返回空数组', () => {
+    expect(clusterItems(null as unknown as FeedItem[])).toEqual([]);
+    expect(clusterItems(undefined as unknown as FeedItem[])).toEqual([]);
+  });
+
+  it('不同来源的相同事件合并后，代表条目取较新 pubDate', () => {
+    const out = clusterItems([
+      {
+        title: 'Apple launches M5 chip',
+        link: 'https://a.com/1',
+        source: 'A',
+        pubDate: '2026-10-10T00:00:00Z',
+      },
+      {
+        title: 'Apple launches M5 chip today',
+        link: 'https://b.com/2',
+        source: 'B',
+        pubDate: '2026-10-15T00:00:00Z',
+      },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].link).toBe('https://b.com/2');
+    expect(out[0].sources).toEqual(['A', 'B']);
+    expect(out[0].source).toBe('A · B');
+  });
+});
+
+describe('rankByHeat（多源优先 + 同源限流）', () => {
+  const base = { pubDate: '2026-10-15T00:00:00Z' };
+
+  it('按独立信源数降序，多源报道排前', () => {
+    const out = rankByHeat([
+      { ...base, link: '1', source: 'A' },
+      { ...base, link: '2', sources: ['A', 'B', 'C'] },
+      { ...base, link: '3', sources: ['A', 'B'] },
+    ]);
+    expect(out.map((i) => i.link)).toEqual(['2', '3', '1']);
+  });
+
+  it('信源数平局时按发布时间降序打破', () => {
+    const out = rankByHeat([
+      { link: 'old', sources: ['A'], pubDate: '2026-10-01T00:00:00Z' },
+      { link: 'new', sources: ['B'], pubDate: '2026-10-14T00:00:00Z' },
+    ]);
+    expect(out.map((i) => i.link)).toEqual(['new', 'old']);
+  });
+
+  it('maxPerSource 限流：同一来源最多保留 N 条', () => {
+    const out = rankByHeat(
+      [
+        { ...base, link: '1', source: 'A' },
+        { ...base, link: '2', source: 'A' },
+        { ...base, link: '3', source: 'A' },
+        { ...base, link: '4', source: 'B' },
+      ],
+      2,
+    );
+    expect(out.map((i) => i.link)).toEqual(['1', '2', '4']);
+  });
+
+  it('限流键取 source，缺失时回退 sources[0]，再缺失为 unknown', () => {
+    const out = rankByHeat(
+      [
+        { ...base, link: '1', sources: ['A', 'B'] },
+        { ...base, link: '2', sources: ['A'] },
+        { ...base, link: '3' },
+        { ...base, link: '4' },
+      ],
+      1,
+    );
+    // 1 与 2 同键 A（sources[0]）只保留 1 条；3 与 4 同键 unknown 只保留 1 条
+    expect(out.map((i) => i.link)).toEqual(['1', '3']);
+  });
+
+  it('maxPerSource 传 0 表示不限流', () => {
+    const items = [
+      { ...base, link: '1', source: 'A' },
+      { ...base, link: '2', source: 'A' },
+    ];
+    expect(rankByHeat(items, 0)).toHaveLength(2);
+  });
+
+  it('不修改入参数组（内部拷贝后排序）', () => {
+    const items = [
+      { ...base, link: '1', source: 'A' },
+      { ...base, link: '2', sources: ['A', 'B'] },
+    ];
+    const snapshot = items.map((i) => i.link);
+    rankByHeat(items);
+    expect(items.map((i) => i.link)).toEqual(snapshot);
+  });
+});
+
+describe('cleanFeedItems（Zod 运行时校验）', () => {
+  it('非数组输入返回空数组', () => {
+    expect(cleanFeedItems(null)).toEqual([]);
+    expect(cleanFeedItems(undefined)).toEqual([]);
+    expect(cleanFeedItems('nope')).toEqual([]);
+    expect(cleanFeedItems({})).toEqual([]);
+  });
+
+  it('过滤缺 title / link 或类型非法的条目', () => {
+    const raw = [
+      { title: 'ok', link: 'https://a.com' },
+      { link: 'https://b.com' }, // 缺 title
+      { title: 'no link' }, // 缺 link
+      { title: 123, link: 'https://c.com' }, // title 类型错
+      { title: 'bad sources', link: 'https://d.com', sources: 'A' }, // sources 类型错
+      null,
+      'string item',
+    ];
+    const out = cleanFeedItems(raw);
+    expect(out).toHaveLength(1);
+    expect(out[0].title).toBe('ok');
+  });
+
+  it('合法条目连可选字段一并通过', () => {
+    const item = {
+      title: '完整条目',
+      link: 'https://a.com',
+      source: '量子位',
+      pubDate: '2026-10-15T00:00:00Z',
+      snippet: '摘要',
+      sources: ['量子位', 'HN'],
+    };
+    expect(cleanFeedItems([item])).toEqual([item]);
   });
 });

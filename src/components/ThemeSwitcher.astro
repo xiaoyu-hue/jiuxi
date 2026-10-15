@@ -1,5 +1,13 @@
 ---
 // 九溪 · 主题切换器（4 套主题圆点）
+//
+// 2026-10-15 审查 M10/M15：圆点原先用蓝粉渐变（DESIGN.md 明令禁用渐变），
+// 且不代表各主题真实配色。改为「该主题 --bg 底 + --accent 中心点」——
+// 与 JiuxiMark 母题（外环 currentColor、中心 var(--accent)）同构，预览即所得。
+// 配色引用 themes.css 的 --t-<name>-bg / --t-<name>-accent 基准色（单一真相源，
+// 切主题时圆点不变——圆点是「预览」，展示各主题自己的配色）。
+// 视觉尺寸保持 22px 的版式比例，触控目标用透明 ::before 扩展到 44px
+// （WCAG 2.5.5），兼顾版式与可达性。
 import { THEMES } from '../lib/theme';
 ---
 
@@ -30,11 +38,17 @@ import { THEMES } from '../lib/theme';
 
     dots.forEach((btn) => {
       const name = btn.dataset.themeName as (typeof THEMES)[number]['name'];
+      // aria-pressed 反映「当前选中」，比仅靠 .active 类更利于读屏软件（M10）
+      btn.setAttribute('aria-pressed', name === stored ? 'true' : 'false');
       if (name === stored) btn.classList.add('active');
       btn.addEventListener('click', () => {
         applyTheme(name);
-        dots.forEach((b) => b.classList.remove('active'));
+        dots.forEach((b) => {
+          b.classList.remove('active');
+          b.setAttribute('aria-pressed', 'false');
+        });
         btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
       });
     });
   }
@@ -49,6 +63,7 @@ import { THEMES } from '../lib/theme';
     align-items: center;
   }
   .theme-dot {
+    position: relative;
     width: 22px;
     height: 22px;
     border-radius: 50%;
@@ -57,20 +72,42 @@ import { THEMES } from '../lib/theme';
     padding: 0;
     transition: transform 0.2s, box-shadow 0.2s;
   }
+  /* 触控目标扩展到 44×44（WCAG 2.5.5）：透明 ::before 撑大命中区，视觉尺寸不变 */
+  .theme-dot::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+  }
   .theme-dot.active {
     transform: scale(1.18);
     box-shadow: 0 0 0 3px var(--accent-soft);
   }
+  .theme-dot:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* 各主题真实配色预览（径向渐变仅用于「圆点中心」这一处功能性图形，
+     非 DESIGN.md 禁用的装饰性多色渐变） */
   .theme-dot[data-theme-name='chenxi'] {
-    background: linear-gradient(135deg, #a5c8ff, #ffd6e8);
+    background: radial-gradient(circle at center, var(--t-chenxi-accent) 0 4.5px, transparent 4.5px),
+      var(--t-chenxi-bg);
   }
   .theme-dot[data-theme-name='midnight'] {
-    background: linear-gradient(135deg, #0b1026, #5ad1ff);
+    background: radial-gradient(circle at center, var(--t-midnight-accent) 0 4.5px, transparent 4.5px),
+      var(--t-midnight-bg);
   }
   .theme-dot[data-theme-name='aurora'] {
-    background: linear-gradient(135deg, #04231f, #38f5b0);
+    background: radial-gradient(circle at center, var(--t-aurora-accent) 0 4.5px, transparent 4.5px),
+      var(--t-aurora-bg);
   }
   .theme-dot[data-theme-name='sakura'] {
-    background: linear-gradient(135deg, #ffd9e8, #ff6fae);
+    background: radial-gradient(circle at center, var(--t-sakura-accent) 0 4.5px, transparent 4.5px),
+      var(--t-sakura-bg);
   }
 </style>

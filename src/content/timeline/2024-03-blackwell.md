@@ -1,7 +1,7 @@
 ---
 year: 2024
 title: NVIDIA 发布 Blackwell 架构（GB200）
-category: "算力"
+category: '算力'
 source: NVIDIA GTC 2024
 sourceUrl: https://www.nvidia.com/en-us/data-center/technologies/blackwell-architecture/
 ---

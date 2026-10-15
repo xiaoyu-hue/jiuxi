@@ -11,7 +11,7 @@ on:
   schedule:
     # 每周一 09:00 UTC（北京时间 17:00）
     - cron: '0 9 * * 1'
-  workflow_dispatch:  # 支持手动触发
+  workflow_dispatch: # 支持手动触发
 
 permissions:
   contents: read
@@ -95,6 +95,31 @@ jobs:
               '---',
               '*本提醒由九溪自动周报生成，可忽略或关闭。*',
             ].join('\n');
+
+            // 确保 label 存在（不存在则创建）。
+            // 修复（2026-10-15 审查 M21）：issues.create 携带不存在的 label 会
+            // 直接 422（Validation Failed），而"新 fork / 从未手动建过 label"
+            // 的仓库首跑必然缺这个 label，导致周报 job 每次必红。
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'timeline-reminder'
+              });
+            } catch (e) {
+              if (e.status === 404) {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: 'timeline-reminder',
+                  color: '1d76db',
+                  description: '九溪时间线补充提醒（自动周报创建）'
+                });
+                console.log('Created label: timeline-reminder');
+              } else {
+                throw e;
+              }
+            }
 
             // 检查是否已有同年份 issue（避免重复创建）
             const existing = await github.rest.issues.listForRepo({

@@ -1,10 +1,10 @@
 ---
 {
-  "title": "君主论",
-  "author": "马基雅维利",
-  "rating": 4.5,
-  "tag": "政治学",
-  "link": "https://www.gutenberg.org/ebooks/1232"
+  'title': '君主论',
+  'author': '马基雅维利',
+  'rating': 4.5,
+  'tag': '政治学',
+  'link': 'https://www.gutenberg.org/ebooks/1232',
 }
 ---
 

@@ -1,10 +1,10 @@
 ---
 {
-  "title": "费曼物理学讲义",
-  "author": "费曼 等",
-  "rating": 5,
-  "tag": "科学",
-  "link": "https://www.feynmanlectures.caltech.edu"
+  'title': '费曼物理学讲义',
+  'author': '费曼 等',
+  'rating': 5,
+  'tag': '科学',
+  'link': 'https://www.feynmanlectures.caltech.edu',
 }
 ---
 

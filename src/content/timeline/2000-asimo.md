@@ -1,10 +1,10 @@
 ---
 {
-  "year": 2000,
-  "title": "本田发布 ASIMO 人形机器人",
-  "category": "具身",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/ASIMO"
+  'year': 2000,
+  'title': '本田发布 ASIMO 人形机器人',
+  'category': '具身',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/ASIMO',
 }
 ---
 

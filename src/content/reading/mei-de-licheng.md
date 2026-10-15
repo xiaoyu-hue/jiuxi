@@ -1,10 +1,10 @@
 ---
 {
-  "title": "美的历程",
-  "author": "李泽厚",
-  "rating": 4.5,
-  "tag": "艺术",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E7%BE%8E%E7%9A%84%E5%8E%86%E7%A8%8B"
+  'title': '美的历程',
+  'author': '李泽厚',
+  'rating': 4.5,
+  'tag': '艺术',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E7%BE%8E%E7%9A%84%E5%8E%86%E7%A8%8B',
 }
 ---
 

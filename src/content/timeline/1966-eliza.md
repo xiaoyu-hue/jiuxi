@@ -1,8 +1,8 @@
 ---
 year: 1966
-title: "ELIZA：第一个聊天机器人"
+title: 'ELIZA：第一个聊天机器人'
 category: 里程碑
-source: "ELIZA"
+source: 'ELIZA'
 sourceUrl: https://en.wikipedia.org/wiki/ELIZA
 ---
 

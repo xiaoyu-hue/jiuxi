@@ -1,7 +1,7 @@
 ---
 year: 2024
 title: Figure 联手 OpenAI 推进通用人形机器人
-category: "具身"
+category: '具身'
 source: Figure AI / OpenAI
 sourceUrl: https://www.figure.ai/
 ---

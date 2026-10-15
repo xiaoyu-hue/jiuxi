@@ -1,10 +1,10 @@
 ---
 {
-  "year": 1967,
-  "title": "SRI 启动 Shakey：第一个会「看、想、动」的机器人",
-  "category": "具身",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Shakey_the_robot"
+  'year': 1967,
+  'title': 'SRI 启动 Shakey：第一个会「看、想、动」的机器人',
+  'category': '具身',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Shakey_the_robot',
 }
 ---
 

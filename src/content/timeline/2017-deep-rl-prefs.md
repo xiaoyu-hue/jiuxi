@@ -1,8 +1,8 @@
 ---
 year: 2017
-title: "从人类偏好做深度强化学习（RLHF 的理论根基）"
+title: '从人类偏好做深度强化学习（RLHF 的理论根基）'
 category: 理论
-source: "Deep Reinforcement Learning from Human Preferences"
+source: 'Deep Reinforcement Learning from Human Preferences'
 sourceUrl: https://arxiv.org/abs/1706.03741
 ---
 

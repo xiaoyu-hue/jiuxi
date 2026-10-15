@@ -1,10 +1,10 @@
 ---
 {
-  "title": "政治学",
-  "author": "亚里士多德",
-  "rating": 4.5,
-  "tag": "政治学",
-  "link": "https://www.gutenberg.org/ebooks/6762"
+  'title': '政治学',
+  'author': '亚里士多德',
+  'rating': 4.5,
+  'tag': '政治学',
+  'link': 'https://www.gutenberg.org/ebooks/6762',
 }
 ---
 

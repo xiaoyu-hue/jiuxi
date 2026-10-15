@@ -43,6 +43,22 @@ const ALLOWED_HOSTS: string[] = [
 
 const CACHE_TTL = 600; // 秒
 
+// 重定向后校验（2026-10-15 审查修复 H5）：白名单校验发生在 fetch 之前，
+// redirect:'follow' 会跟随源站 302 抓到非白名单目标——跟随后必须复核最终 URL。
+function assertFinalUrlAllowed(response: Response): Response | null {
+  if (!response.redirected) return null;
+  let host: string | null = null;
+  try {
+    host = new URL(response.url).hostname.toLowerCase();
+  } catch {
+    host = null;
+  }
+  if (!host || !ALLOWED_HOSTS.includes(host) || isPrivateHost(host)) {
+    return new Response('redirect target not allowed', { status: 403 });
+  }
+  return null;
+}
+
 function isPrivateHost(host: string): boolean {
   const h = host.toLowerCase();
   if (h === 'localhost' || h.endsWith('.internal') || h.endsWith('.local')) return true;
@@ -51,23 +67,56 @@ function isPrivateHost(host: string): boolean {
 
 // ── 聚合模式辅助（?aggregate=1）：服务端跨源聚簇，返回干净 JSON ──
 // 与 src/lib/feeds.ts 的 clusterItems 同一套算法，确保主站（服务端聚簇）与
-// 备站（前端逐源聚簇）行为一致。仅用 Web 标准 API，无 DOM 依赖。
+// 无 Functions 时（前端逐源聚簇）行为一致。仅用 Web 标准 API，无 DOM 依赖。
 
 const TITLE_STOP = new Set([
-  'the', 'a', 'an', 'of', 'to', 'in', 'on', 'for', 'and', 'with', 'is', 'are', 'via',
-  'how', 'why', 'this', 'that', 'what',
-  '的', '了', '与', '和', '及', '在', '是', '等', '如何', '什么', '为什么', '怎么', '一款', '一个',
+  'the',
+  'a',
+  'an',
+  'of',
+  'to',
+  'in',
+  'on',
+  'for',
+  'and',
+  'with',
+  'is',
+  'are',
+  'via',
+  'how',
+  'why',
+  'this',
+  'that',
+  'what',
+  '的',
+  '了',
+  '与',
+  '和',
+  '及',
+  '在',
+  '是',
+  '等',
+  '如何',
+  '什么',
+  '为什么',
+  '怎么',
+  '一款',
+  '一个',
 ]);
 function normalizeTitle(t: string): string {
   return (t || '')
     .toLowerCase()
-    .replace(/[\s ]+/g, ' ')
+    .replace(/[\s\u00a0]+/g, ' ')
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 function titleTokens(t: string): Set<string> {
-  return new Set(normalizeTitle(t).split(' ').filter((w) => w.length > 1 && !TITLE_STOP.has(w)));
+  return new Set(
+    normalizeTitle(t)
+      .split(' ')
+      .filter((w) => w.length > 1 && !TITLE_STOP.has(w)),
+  );
 }
 function jaccard(a: Set<string>, b: Set<string>): number {
   if (!a.size || !b.size) return 0;
@@ -75,15 +124,27 @@ function jaccard(a: Set<string>, b: Set<string>): number {
   for (const w of a) if (b.has(w)) inter++;
   return inter / (a.size + b.size - inter);
 }
+// 导出仅供「算法一致性测试」（src/lib/cluster-consistency.test.ts 断言
+// clusterFeed 与 feeds.ts 的 clusterItems 输出一致）——两份实现是刻意保留的
+// 跨端同构副本（无 Functions 时前端聚簇），没有共享模块可抽（feeds.ts 含
+// DOM 依赖，不能进 Function 运行时），只能用测试锁死漂移。生产入口仍只有 onRequest。
+export { clusterFeed };
+
 function clusterFeed(items: any[]): any[] {
-  const prepared = (items || []).filter((it) => it && it.title).map((it) => ({ it, tk: titleTokens(it.title) }));
+  const prepared = (items || [])
+    .filter((it) => it && it.title)
+    .map((it) => ({ it, tk: titleTokens(it.title) }));
   const clusters: { rep: any; tk: Set<string>; sources: string[] }[] = [];
   for (const { it, tk } of prepared) {
     let merged = false;
     for (const c of clusters) {
       if (jaccard(tk, c.tk) >= 0.5) {
-        const src = it.source || '';
-        if (src && !c.sources.includes(src)) c.sources.push(src);
+        // 与 src/lib/feeds.ts clusterItems 逐行同构：入参自带 sources 时
+        // 累加其数组而非只认 it.source（2026-10-15 审查 M23 同步修复）。
+        const incoming = it.sources?.length ? it.sources : it.source ? [it.source] : [];
+        for (const s of incoming) {
+          if (s && !c.sources.includes(s)) c.sources.push(s);
+        }
         const da = it.pubDate ? new Date(it.pubDate).getTime() : 0;
         const db = c.rep.pubDate ? new Date(c.rep.pubDate).getTime() : 0;
         if (da > db) c.rep = { ...c.rep, ...it, sources: c.sources };
@@ -92,7 +153,13 @@ function clusterFeed(items: any[]): any[] {
         break;
       }
     }
-    if (!merged) clusters.push({ rep: { ...it }, tk, sources: it.source ? [it.source] : [] });
+    if (!merged) {
+      clusters.push({
+        rep: { ...it },
+        tk,
+        sources: it.sources?.length ? [...it.sources] : it.source ? [it.source] : [],
+      });
+    }
   }
   return clusters.map((c) => ({
     ...c.rep,
@@ -195,8 +262,10 @@ function parseFeedXml(xml: string): any[] {
     out.push({
       title,
       link,
-      pubDate: tagText(b, 'pubDate') || tagText(b, 'updated') || tagText(b, 'published') || undefined,
-      snippet: (tagText(b, 'description') || tagText(b, 'summary') || '').slice(0, 140) || undefined,
+      pubDate:
+        tagText(b, 'pubDate') || tagText(b, 'updated') || tagText(b, 'published') || undefined,
+      snippet:
+        (tagText(b, 'description') || tagText(b, 'summary') || '').slice(0, 140) || undefined,
     });
   }
   return out.slice(0, 30);
@@ -218,12 +287,15 @@ async function handleAggregate(here: URL, env: any): Promise<Response> {
       continue;
     }
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') continue;
-    if (!ALLOWED_HOSTS.includes(parsed.hostname.toLowerCase()) || isPrivateHost(parsed.hostname)) continue;
+    if (!ALLOWED_HOSTS.includes(parsed.hostname.toLowerCase()) || isPrivateHost(parsed.hostname))
+      continue;
     try {
       const upstream = await fetch(parsed.toString(), {
         headers: { 'User-Agent': 'Jiuxi/1.0 (+https://jiuxi-bm1.pages.dev)' },
         redirect: 'follow',
       });
+      const blocked = assertFinalUrlAllowed(upstream);
+      if (blocked) return blocked;
       const text = await upstream.text();
       const items = parseFeedXml(text).map((it) => ({ ...it, source: it.source || label }));
       collected.push(...items);
@@ -251,11 +323,12 @@ export const onRequest = async (context: any) => {
   const request: Request = context.request;
   const here: URL = new URL(request.url);
   // 聚合模式：?aggregate=1&s=<label>@<enc_url>&s=... ——跨源拉取→聚簇→按独立信源数排热度。
-  // 主站（有 Functions）走此分支，前端一次请求拿到理好的候选；备站无 Functions 时
+  // 有 Functions 时走此分支，前端一次请求拿到理好的候选；无 Functions 时
   // 该请求失败，前端自动降级为逐源拉取 + 前端聚簇（效果一致）。仅放行同源调用。
   if (here.searchParams.get('aggregate') === '1') {
     const origin = request.headers.get('origin');
-    if (origin && origin !== here.origin) return new Response('origin not allowed', { status: 403 });
+    if (origin && origin !== here.origin)
+      return new Response('origin not allowed', { status: 403 });
     return handleAggregate(here, context.env);
   }
 
@@ -291,6 +364,8 @@ export const onRequest = async (context: any) => {
       headers: { 'User-Agent': 'Jiuxi/1.0 (+https://jiuxi-bm1.pages.dev)' },
       redirect: 'follow',
     });
+    const blocked = assertFinalUrlAllowed(upstream);
+    if (blocked) return blocked;
     const text = await upstream.text();
     return new Response(text, {
       status: upstream.status,

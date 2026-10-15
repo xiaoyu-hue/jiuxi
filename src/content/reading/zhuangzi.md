@@ -1,10 +1,10 @@
 ---
 {
-  "title": "庄子",
-  "author": "庄子及其后学",
-  "rating": 4.5,
-  "tag": "哲学",
-  "link": "https://www.gushiwen.cn/guwen/zhuangzi.aspx"
+  'title': '庄子',
+  'author': '庄子及其后学',
+  'rating': 4.5,
+  'tag': '哲学',
+  'link': 'https://www.gushiwen.cn/guwen/zhuangzi.aspx',
 }
 ---
 

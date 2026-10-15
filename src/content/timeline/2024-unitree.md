@@ -1,7 +1,7 @@
 ---
 year: 2024
 title: 宇树 Unitree G1 把通用人形机器人拉入消费级视野
-category: "具身"
+category: '具身'
 source: Unitree（宇树科技）
 sourceUrl: https://www.unitree.com/g1
 ---

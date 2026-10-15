@@ -1,7 +1,7 @@
 // 九溪 · IndexedDB 离线持久化
 //
 // 纯浏览器端轻量 IndexedDB 封装，用于跨会话保存动态资讯。
-// 优先级：实时抓取 > IndexedDB 旧缓存 > localStorage 临时缓存（30分钟）
+// 优先级：实时抓取 > IndexedDB 旧缓存 > localStorage 临时缓存（10分钟）
 // 全部操作异步，失败静默降级为本地缓存或直接空数组。
 
 const DB_NAME = 'jiuxi-feed-db';
@@ -56,11 +56,14 @@ export async function readIndexedDB(section: string): Promise<any[] | null> {
   }
 }
 
-/** 写入某板块的 IndexedDB 缓存 */
+/** 写入某板块的 IndexedDB 缓存（任何失败静默降级，绝不向上抛） */
 export async function writeIndexedDB(section: string, items: any[]): Promise<void> {
   try {
     const db = await openDB();
-    return new Promise((resolve, reject) => {
+    // 注意：必须 await 而不能 return——return 会让 Promise 内部 reject 逃逸出
+    // try/catch（try 块已同步返回），调用方（feeds.ts refreshOnline）无保护时
+    // 会因 IDB 配额满等异常整体抛错，把已抓到的数据丢弃（2026-10-15 审查修复）。
+    await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       const store = tx.objectStore(STORE_NAME);
       store.put({ section, items, fetchedAt: Date.now() });
@@ -78,11 +81,12 @@ export async function writeIndexedDB(section: string, items: any[]): Promise<voi
   }
 }
 
-/** 清除某板块的 IndexedDB 缓存 */
+/** 清除某板块的 IndexedDB 缓存（任何失败静默降级） */
 export async function clearIndexedDB(section: string): Promise<void> {
   try {
     const db = await openDB();
-    return new Promise((resolve, reject) => {
+    // 同 writeIndexedDB：await 而非 return，防 reject 逃逸 try/catch
+    await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, 'readwrite');
       tx.objectStore(STORE_NAME).delete(section);
       tx.oncomplete = () => {

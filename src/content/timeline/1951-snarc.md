@@ -1,10 +1,10 @@
 ---
 {
-  "year": 1951,
-  "title": "SNARC：第一台神经网络计算机",
-  "category": "里程碑",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/SNARC"
+  'year': 1951,
+  'title': 'SNARC：第一台神经网络计算机',
+  'category': '里程碑',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/SNARC',
 }
 ---
 

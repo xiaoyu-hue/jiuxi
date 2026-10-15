@@ -4,22 +4,41 @@
  *   - 纸感底 + 墨色字 + 单一强调色，禁用紫蓝多色渐变与大面积玻璃。
  *   - 颜色令牌集中在此；共享令牌（字体/圆角/阴影刻度/阅读宽度）在 global.css 的 :root。
  *
+ * 主题基准色（--t-<name>-bg / --t-<name>-accent）是各主题 --bg/--accent 的
+ * 单一真相源：下方 [data-theme] 块引用它们生效，ThemeSwitcher 的圆点预览
+ * 也引用它们——改一处即全局同步，避免圆点配色与主题实际配色漂移。
+ *
  * 兼容性：保留 --glass-* / --surface / --border 别名，供 .glass / .glass-btn 等旧引用，
  * 其值已指向新的实色面板，不再使用 backdrop-filter 玻璃。
  */
 
+/* ── 主题基准色（恒定，不随当前主题切换；供主题块与圆点预览共用）── */
+:root {
+  --t-chenxi-bg: #faf7f2;
+  --t-chenxi-accent: #b3341f;
+  --t-midnight-bg: #16140f;
+  --t-midnight-accent: #d8923c;
+  --t-aurora-bg: #0f1717;
+  --t-aurora-accent: #4fae8e;
+  --t-sakura-bg: #fbf3f1;
+  --t-sakura-accent: #b14a63;
+}
+
 /* 晨曦（明）默认 —— 暖白纸 + 报纸朱红 */
 :root,
 [data-theme='chenxi'] {
-  --bg: #faf7f2;
+  --bg: var(--t-chenxi-bg);
   --bg-2: #f3ede3;
   --surface: #fffdf9;
   --surface-2: #fbf6ec;
   --text-strong: #211d18;
   --text-muted: #6b6258;
   --rule: rgba(33, 29, 24, 0.12);
-  --accent: #b3341f;
+  --accent: var(--t-chenxi-accent);
   --accent-soft: rgba(179, 52, 31, 0.1);
+  /* 压在 --accent 上的文字/图标色（2026-10-15 审查 M11：白字压朱红在
+     midnight/aurora 主题下对比度不足 AA，按主题分别取达标色） */
+  --on-accent: #fffdf9;
   --shadow-1: 0 1px 2px rgba(33, 29, 24, 0.05), 0 6px 20px rgba(33, 29, 24, 0.06);
   --shadow-2: 0 2px 4px rgba(33, 29, 24, 0.06), 0 12px 32px rgba(33, 29, 24, 0.1);
 
@@ -31,15 +50,17 @@
 
 /* 午夜（暗） —— 深暖墨 + 夜读琥珀 */
 [data-theme='midnight'] {
-  --bg: #16140f;
+  --bg: var(--t-midnight-bg);
   --bg-2: #1d1a13;
   --surface: #1f1c15;
   --surface-2: #262218;
   --text-strong: #ece6da;
   --text-muted: rgba(236, 230, 218, 0.62);
   --rule: rgba(236, 230, 218, 0.14);
-  --accent: #d8923c;
+  --accent: var(--t-midnight-accent);
   --accent-soft: rgba(216, 146, 60, 0.14);
+  /* 琥珀底配深墨字（≈7:1），白字仅 ≈2.4:1 不可用 */
+  --on-accent: #16140f;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.34);
   --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.34), 0 12px 32px rgba(0, 0, 0, 0.42);
 
@@ -51,15 +72,17 @@
 
 /* 极光（暗） —— 青墨 + 静谧玉色 */
 [data-theme='aurora'] {
-  --bg: #0f1717;
+  --bg: var(--t-aurora-bg);
   --bg-2: #14201f;
   --surface: #15201f;
   --surface-2: #1b2927;
   --text-strong: #e3efea;
   --text-muted: rgba(227, 239, 234, 0.62);
   --rule: rgba(227, 239, 234, 0.14);
-  --accent: #4fae8e;
+  --accent: var(--t-aurora-accent);
   --accent-soft: rgba(79, 174, 142, 0.14);
+  /* 玉色底配青墨字（≈6.7:1） */
+  --on-accent: #0f1717;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.34);
   --shadow-2: 0 2px 4px rgba(0, 0, 0, 0.34), 0 12px 32px rgba(0, 0, 0, 0.42);
 
@@ -71,15 +94,18 @@
 
 /* 樱粉（明） —— 暖粉纸 + 柔和茜红 */
 [data-theme='sakura'] {
-  --bg: #fbf3f1;
+  --bg: var(--t-sakura-bg);
   --bg-2: #f5e7e4;
   --surface: #fffaf8;
   --surface-2: #fbf0ed;
   --text-strong: #3a2329;
-  --text-muted: #8a6b72;
+  /* 2026-10-15 审查 M11：原 #8a6b72 对 --bg 仅 4.34:1（低于 AA 4.5:1），
+     加深至 #84626a（4.88:1，实测脚本核算） */
+  --text-muted: #84626a;
   --rule: rgba(58, 35, 41, 0.14);
-  --accent: #b14a63;
+  --accent: var(--t-sakura-accent);
   --accent-soft: rgba(177, 74, 99, 0.12);
+  --on-accent: #fffaf8;
   --shadow-1: 0 1px 2px rgba(58, 35, 41, 0.05), 0 6px 20px rgba(58, 35, 41, 0.07);
   --shadow-2: 0 2px 4px rgba(58, 35, 41, 0.06), 0 12px 32px rgba(58, 35, 41, 0.11);
 

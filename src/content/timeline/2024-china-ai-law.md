@@ -1,8 +1,8 @@
 ---
 year: 2024
-title: "中国《人工智能法（征求意见稿）》"
+title: '中国《人工智能法（征求意见稿）》'
 category: 治理
-source: "人工智能法（草案）"
+source: '人工智能法（草案）'
 sourceUrl: https://en.wikipedia.org/wiki/Regulation_of_artificial_intelligence_in_China
 ---
 

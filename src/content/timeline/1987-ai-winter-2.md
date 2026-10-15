@@ -1,8 +1,8 @@
 ---
 year: 1987
-title: "第二次 AI 寒冬（1987–1993）"
+title: '第二次 AI 寒冬（1987–1993）'
 category: 里程碑
-source: "AI winter"
+source: 'AI winter'
 sourceUrl: https://en.wikipedia.org/wiki/AI_winter
 ---
 

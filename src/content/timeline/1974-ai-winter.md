@@ -1,8 +1,8 @@
 ---
 year: 1974
-title: "第一次 AI 寒冬（1974–1980）"
+title: '第一次 AI 寒冬（1974–1980）'
 category: 里程碑
-source: "AI winter"
+source: 'AI winter'
 sourceUrl: https://en.wikipedia.org/wiki/AI_winter
 ---
 

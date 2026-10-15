@@ -1,9 +1,5 @@
 ---
-{
-  "year": 1962,
-  "title": "Unimation 公司成立，机器人产业起点",
-  "category": "生态"
-}
+{ 'year': 1962, 'title': 'Unimation 公司成立，机器人产业起点', 'category': '生态' }
 ---
 
 1962 年，德沃尔与恩格尔伯格成立 Unimation 公司，把 Unimate 推向市场——世界上第一家机器人公司由此诞生。

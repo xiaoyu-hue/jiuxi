@@ -1,10 +1,10 @@
 ---
 {
-  "year": 1994,
-  "title": "MIT 启动 Cog 人形机器人项目",
-  "category": "具身",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Cog_(project)"
+  'year': 1994,
+  'title': 'MIT 启动 Cog 人形机器人项目',
+  'category': '具身',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Cog_(project)',
 }
 ---
 

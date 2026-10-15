@@ -1,11 +1,11 @@
 ---
 {
-  "year": 2005,
-  "title": "斯坦福 Stanley 赢得 DARPA 无人车挑战赛",
-  "category": "里程碑",
-  "month": 10,
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Stanley_(vehicle)"
+  'year': 2005,
+  'title': '斯坦福 Stanley 赢得 DARPA 无人车挑战赛',
+  'category': '里程碑',
+  'month': 10,
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Stanley_(vehicle)',
 }
 ---
 

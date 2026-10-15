@@ -1,10 +1,10 @@
 ---
 {
-  "title": "梦的解析",
-  "author": "西格蒙德·弗洛伊德",
-  "rating": 4,
-  "tag": "心理学",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E6%A2%A6%E7%9A%84%E8%A7%A3%E6%9E%90"
+  'title': '梦的解析',
+  'author': '西格蒙德·弗洛伊德',
+  'rating': 4,
+  'tag': '心理学',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E6%A2%A6%E7%9A%84%E8%A7%A3%E6%9E%90',
 }
 ---
 

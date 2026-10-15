@@ -1,8 +1,8 @@
 ---
 year: 2011
-title: "IBM Watson 赢得《危险边缘》问答"
+title: 'IBM Watson 赢得《危险边缘》问答'
 category: 里程碑
-source: "Watson (computer)"
+source: 'Watson (computer)'
 sourceUrl: https://en.wikipedia.org/wiki/Watson_(computer)
 ---
 

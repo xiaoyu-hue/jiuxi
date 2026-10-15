@@ -1,10 +1,10 @@
 ---
 {
-  "title": "经济学原理（开放教材）",
-  "author": "OpenStax",
-  "rating": 4,
-  "tag": "经济学",
-  "link": "https://openstax.org/details/books/principles-of-economics-3e"
+  'title': '经济学原理（开放教材）',
+  'author': 'OpenStax',
+  'rating': 4,
+  'tag': '经济学',
+  'link': 'https://openstax.org/details/books/principles-of-economics-3e',
 }
 ---
 

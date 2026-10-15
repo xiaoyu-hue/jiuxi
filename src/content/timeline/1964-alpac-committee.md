@@ -1,10 +1,10 @@
 ---
 {
-  "year": 1964,
-  "title": "美国政府成立 ALPAC 委员会审查机器翻译",
-  "category": "里程碑",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/ALPAC"
+  'year': 1964,
+  'title': '美国政府成立 ALPAC 委员会审查机器翻译',
+  'category': '里程碑',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/ALPAC',
 }
 ---
 

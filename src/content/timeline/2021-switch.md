@@ -1,8 +1,8 @@
 ---
 year: 2021
-title: "Switch Transformer：把 MoE 推到万亿参数"
+title: 'Switch Transformer：把 MoE 推到万亿参数'
 category: 理论
-source: "Switch Transformers: Scaling to Trillion Parameter Models"
+source: 'Switch Transformers: Scaling to Trillion Parameter Models'
 sourceUrl: https://arxiv.org/abs/2101.03961
 ---
 

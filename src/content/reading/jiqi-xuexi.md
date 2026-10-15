@@ -1,10 +1,10 @@
 ---
 {
-  "title": "机器学习",
-  "author": "Tom Mitchell",
-  "rating": 4.5,
-  "tag": "教材",
-  "link": "https://www.cs.cmu.edu/~tom/mlbook.html"
+  'title': '机器学习',
+  'author': 'Tom Mitchell',
+  'rating': 4.5,
+  'tag': '教材',
+  'link': 'https://www.cs.cmu.edu/~tom/mlbook.html',
 }
 ---
 

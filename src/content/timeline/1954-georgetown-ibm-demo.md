@@ -1,11 +1,11 @@
 ---
 {
-  "year": 1954,
-  "title": "首次公开机器翻译演示：54 句俄译英",
-  "category": "里程碑",
-  "month": 1,
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Georgetown%E2%80%93IBM_experiment"
+  'year': 1954,
+  'title': '首次公开机器翻译演示：54 句俄译英',
+  'category': '里程碑',
+  'month': 1,
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Georgetown%E2%80%93IBM_experiment',
 }
 ---
 

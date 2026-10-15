@@ -3,7 +3,7 @@
 // 部署在 Cloudflare Pages 时，本文件自动挂载为 /api/history，与站点同域。
 // 数据源：D1 snapshots 表（由 scripts/save-history.mjs 在定时重建时写入）。
 // 页面侧（public/history-client.js）优先读本接口，失败自动降级 IndexedDB，
-// 因此在 GitHub Pages 备用站（无 Functions）上本接口 404，功能不受影响。
+// 因此在无 Functions 的环境（如纯静态托管）上本接口 404，功能不受影响。
 //
 // 前置条件：D1 绑定声明在仓库根目录 wrangler.toml 的 [[d1_databases]]（binding = DB）。
 // 该文件是 Pages 项目配置的唯一来源（source of truth），每次部署自动同步到

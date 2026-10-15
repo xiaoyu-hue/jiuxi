@@ -1,10 +1,10 @@
 ---
 {
-  "title": "呼兰河传",
-  "author": "萧红",
-  "rating": 4.5,
-  "tag": "文学",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E5%91%BC%E5%85%B0%E6%B2%B3%E4%BC%A0"
+  'title': '呼兰河传',
+  'author': '萧红',
+  'rating': 4.5,
+  'tag': '文学',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E5%91%BC%E5%85%B0%E6%B2%B3%E4%BC%A0',
 }
 ---
 

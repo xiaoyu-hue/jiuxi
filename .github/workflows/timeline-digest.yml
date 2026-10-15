@@ -14,7 +14,7 @@ name: 时间线里程碑周报（提案 PR）
 
 on:
   schedule:
-    - cron: '0 1 * * 1'   # 每周一 01:00 UTC
+    - cron: '0 1 * * 1' # 每周一 01:00 UTC
   workflow_dispatch:
 
 permissions:
@@ -42,6 +42,15 @@ jobs:
             echo "已有开放的时间线提案 PR，跳过。"
             exit 0
           fi
+          # 修复（2026-10-15 审查 M19）：原先直接 gh pr create（head 默认=main），
+          # 必然因 "No commits between main and main" 失败并被 || echo 吞掉常绿。
+          # 现从 main 建空提交分支再开 PR；checkout 关了凭据持久化，
+          # 故用 GH_TOKEN 显式 URL 推送（git 会对 URL 中的凭据打码，不进日志）。
+          BRANCH="chore/timeline-reminder-$MONTH"
+          git checkout -b "$BRANCH"
+          git -c user.name="jiuxi-bot" -c user.email="jiuxi-bot@users.noreply.github.com" \
+            commit --allow-empty -m "chore(timeline): 周报补充提醒 $MONTH（模板）"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "$BRANCH"
           BODY=$(cat <<EOF
           ## 时间线补充提醒（$MONTH）
 
@@ -55,6 +64,6 @@ jobs:
           > 自动提案、人工裁决：避免机器人直接污染策展时间线。
           EOF
           )
-          gh pr create --repo "$REPO" \
+          gh pr create --repo "$REPO" --base main --head "$BRANCH" \
             --title "chore(timeline): 周报补充提醒 $MONTH" \
-            --body "$BODY" || echo "PR 创建失败，跳过"
+            --body "$BODY"

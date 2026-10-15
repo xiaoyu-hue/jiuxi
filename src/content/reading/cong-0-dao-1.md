@@ -1,10 +1,10 @@
 ---
 {
-  "title": "从0到1",
-  "author": "彼得·蒂尔",
-  "rating": 4.5,
-  "tag": "商业",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E4%BB%8E0%E5%88%B01"
+  'title': '从0到1',
+  'author': '彼得·蒂尔',
+  'rating': 4.5,
+  'tag': '商业',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E4%BB%8E0%E5%88%B01',
 }
 ---
 

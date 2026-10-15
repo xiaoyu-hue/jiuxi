@@ -1,8 +1,8 @@
 ---
 year: 2023
-title: "RedPajama：开源复刻 LLaMA 训练数据"
+title: 'RedPajama：开源复刻 LLaMA 训练数据'
 category: 数据
-source: "RedPajama"
+source: 'RedPajama'
 sourceUrl: https://www.together.ai/blog/redpajama
 ---
 

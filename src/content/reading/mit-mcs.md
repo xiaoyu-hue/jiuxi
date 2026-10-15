@@ -1,10 +1,10 @@
 ---
 {
-  "title": "计算机科学的数学",
-  "author": "Lehman / Leighton / Rounds",
-  "rating": 4.5,
-  "tag": "数学",
-  "link": "https://courses.csail.mit.edu/6.042/spring18/mcs.pdf"
+  'title': '计算机科学的数学',
+  'author': 'Lehman / Leighton / Rounds',
+  'rating': 4.5,
+  'tag': '数学',
+  'link': 'https://courses.csail.mit.edu/6.042/spring18/mcs.pdf',
 }
 ---
 

@@ -1,9 +1,9 @@
 ---
 year: 2023
-title: "华为昇腾 910B——国产 AI 训练芯片主线"
-category: "算力"
-source: "华为 / 公开供应链报道"
-sourceUrl: "https://e.huawei.com/cn/products/computing/ascend"
+title: '华为昇腾 910B——国产 AI 训练芯片主线'
+category: '算力'
+source: '华为 / 公开供应链报道'
+sourceUrl: 'https://e.huawei.com/cn/products/computing/ascend'
 ---
 
 2023 年下半年，华为昇腾 910B 开始规模出货，成为美国出口管制（2022-10 起禁售 NVIDIA A100/H100 给中国）后国内最主力的国产训练加速器。其基于华为自研达芬奇架构、由中芯国际 7nm 级工艺制造，配备 64GB HBM2e 显存，FP16 算力约为 H100 的一半，软件栈为 CANN（Compute Architecture for Neural Networks）。

@@ -1,7 +1,7 @@
 # 九溪 · 定时重建（让静态站内容保持新鲜，无需访客触发抓取）
-# 每 2 小时重建并部署主站；也可手动 workflow_dispatch 或 repository_dispatch 触发。
+# 每小时重建并部署主站；也可手动 workflow_dispatch 或 repository_dispatch 触发。
 # 注：早先每 30 分钟（cron */30）线上一次都没被调度——GitHub 对高频
-# schedule 不可靠（官方仅说明“可能延迟”）。降到每 2 小时（12 次/天）后
+# schedule 不可靠（官方仅说明"可能延迟"）。降到每小时（24 次/天）后
 # 调度可靠性显著提升，且内容新鲜度本就有前端 refreshInBackground 兜底。
 # 缺 Cloudflare 密钥时自动跳过部署。
 #
@@ -13,7 +13,7 @@ name: 定时重建（刷新资讯）
 
 on:
   schedule:
-    - cron: '0 * * * *'   # 每小时重建(1h,比 2h 更新鲜)
+    - cron: '0 * * * *' # 每小时重建(1h,比 2h 更新鲜)
   workflow_dispatch:
   repository_dispatch:
     types: [refresh-feeds]
@@ -29,7 +29,12 @@ concurrency:
 jobs:
   build-cloudflare:
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
+    timeout-minutes: 30
     steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
@@ -58,7 +63,17 @@ jobs:
   deploy-cloudflare:
     needs: build-cloudflare
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
+    timeout-minutes: 15
+    # 部署互斥（2026-10-15 审查修复 M20）：与 deploy.yml 的 deploy-cloudflare
+    # 共用同一组，防止定时重建与 push 部署交错上传 dist 不一致。
+    concurrency:
+      group: jiuxi-deploy
+      cancel-in-progress: false
     steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
       - id: check
         name: 检查 Cloudflare 密钥是否已配置
         run: echo "has-token=${{ secrets.CLOUDFLARE_API_TOKEN != '' }}" >> "$GITHUB_OUTPUT"

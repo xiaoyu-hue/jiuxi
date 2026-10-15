@@ -1,10 +1,10 @@
 ---
 {
-  "title": "卧底经济学",
-  "author": "蒂姆·哈福德",
-  "rating": 4.5,
-  "tag": "经济学",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E5%8D%A7%E5%BA%95%E7%BB%8F%E6%B5%8E%E5%AD%A6"
+  'title': '卧底经济学',
+  'author': '蒂姆·哈福德',
+  'rating': 4.5,
+  'tag': '经济学',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E5%8D%A7%E5%BA%95%E7%BB%8F%E6%B5%8E%E5%AD%A6',
 }
 ---
 

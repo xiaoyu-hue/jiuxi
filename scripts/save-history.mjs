@@ -26,29 +26,58 @@
  *   node scripts/save-history.mjs list       # 列出本地历史
  *   node scripts/save-history.mjs cleanup 30 # 清理 30 天前的本地文件
  */
-import { writeFileSync, mkdirSync, readdirSync, existsSync, unlinkSync } from 'node:fs';
+import {
+  writeFileSync,
+  mkdirSync,
+  readdirSync,
+  existsSync,
+  unlinkSync,
+  readFileSync,
+} from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { getD1Config, d1Query, ensureSchema } from './lib/d1.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const HISTORY_DIR = resolve(ROOT, 'src/data/history');
 
+// ── 输入校验（2026-10-15 审查 P2）─────────────────────────────────
+// section/date 会直接拼进快照文件名。stdin JSON 的键来自抓取产物，
+// 但损坏或恶意输入若含 "../"、"/" 即可写到 HISTORY_DIR 之外（路径穿越）。
+// 两道白名单：板块名只允许小写字母开头的 [a-z0-9-]（≤32 字符），
+// 日期只允许 YYYY-MM-DD（内部生成，此处为纵深防御）。
+const SECTION_PATTERN = /^[a-z][a-z0-9-]{0,31}$/;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isValidSection(section) {
+  return SECTION_PATTERN.test(section);
+}
+
 /**
  * 保存历史快照
- * @param {string} section - 板块名称 (ai/news/tech/gaming)
+ * @param {string} section - 板块名称（须过 SECTION_PATTERN 白名单）
  * @param {Array} items - 资讯条目列表
- * @param {string} date - 日期字符串 YYYY-MM-DD
+ * @param {string} date - 日期字符串 YYYY-MM-DD（UTC）
+ * @param {string} [dir] - 历史目录（默认 src/data/history；测试可传临时目录）
  */
-function saveSnapshot(section, items, date) {
+export function saveSnapshot(section, items, date, dir = HISTORY_DIR) {
+  if (!isValidSection(section)) {
+    console.warn(`  ⚠️  非法板块名「${section}」，跳过保存（白名单校验，防止路径穿越）`);
+    return null;
+  }
+  if (!DATE_PATTERN.test(date)) {
+    console.warn(`  ⚠️  非法日期「${date}」，跳过保存（白名单校验）`);
+    return null;
+  }
   if (!items || items.length === 0) {
     console.log(`  ⚠️  ${section} 无数据，跳过保存`);
     return null;
   }
 
   // 确保历史目录存在
-  if (!existsSync(HISTORY_DIR)) {
-    mkdirSync(HISTORY_DIR, { recursive: true });
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
   }
 
   // 构建快照数据
@@ -63,7 +92,7 @@ function saveSnapshot(section, items, date) {
 
   // 保存为 JSON 文件
   const filename = `${section}-${date}.json`;
-  const filepath = resolve(HISTORY_DIR, filename);
+  const filepath = resolve(dir, filename);
   writeFileSync(filepath, JSON.stringify(snapshot, null, 2), 'utf8');
 
   console.log(`  ✅ 已保存 ${section} 历史快照 (${items.length} 条) → ${filepath}`);
@@ -73,17 +102,23 @@ function saveSnapshot(section, items, date) {
 /**
  * 清理过期数据（保留最近 N 天）
  * @param {number} retentionDays - 保留天数
+ * @param {string} [dir] - 历史目录（默认 src/data/history；测试可传临时目录）
  */
-function cleanupExpired(retentionDays = 30) {
-  if (!existsSync(HISTORY_DIR)) {
+export function cleanupExpired(retentionDays = 30, dir = HISTORY_DIR) {
+  if (!existsSync(dir)) {
     return;
   }
 
-  const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
-  const cutoffTimestamp = cutoffDate.getTime();
+  // 时区统一 UTC（2026-10-15 审查 P2）：
+  // 旧实现用「本地时间 now 减 N 个日历日」算 cutoff、用 UTC 解析文件名日期，
+  // 两条路径时区基准不一致。实测澄清：在 UTC+8 这类固定偏移时区两者
+  // epoch 完全等价（本地减 N 天恰好 = N×24h），差异出现在有夏令时的
+  // 时区（本地 N 个日历日 ≠ N×24h，cutoff 偏移 ±1h，边界文件可能
+  // 该删未删/误删）。改为纯 epoch 毫秒比较后无条件免疫时区与 DST，
+  // 且语义更直白：文件名日期按 UTC 午夜解析，cutoff = 现在 − N×24h。
+  const cutoffTimestamp = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
-  const files = readdirSync(HISTORY_DIR);
+  const files = readdirSync(dir);
   let deletedCount = 0;
 
   for (const file of files) {
@@ -93,9 +128,11 @@ function cleanupExpired(retentionDays = 30) {
     const match = file.match(/(\d{4}-\d{2}-\d{2})/);
     if (!match) continue;
 
-    const fileDate = new Date(match[1]);
-    if (fileDate.getTime() < cutoffTimestamp) {
-      const filepath = resolve(HISTORY_DIR, file);
+    const fileTimestamp = Date.parse(match[1]); // UTC 午夜；无效日期返回 NaN
+    if (Number.isNaN(fileTimestamp)) continue;
+
+    if (fileTimestamp < cutoffTimestamp) {
+      const filepath = resolve(dir, file);
       // 同步删除（修复：旧版用动态 import 异步删除，计数日志永远不打印）
       unlinkSync(filepath);
       deletedCount++;
@@ -116,12 +153,15 @@ async function listHistory() {
     return [];
   }
 
-  const files = readdirSync(HISTORY_DIR).filter(f => f.endsWith('.json')).sort().reverse();
+  const files = readdirSync(HISTORY_DIR)
+    .filter((f) => f.endsWith('.json'))
+    .sort()
+    .reverse();
   const snapshots = [];
 
   for (const file of files) {
     try {
-      const content = await import('node:fs').then(m => m.readFileSync(resolve(HISTORY_DIR, file), 'utf8'));
+      const content = readFileSync(resolve(HISTORY_DIR, file), 'utf8');
       const snapshot = JSON.parse(content);
       snapshots.push(snapshot);
     } catch {
@@ -135,58 +175,23 @@ async function listHistory() {
 // ── D1 云端同步（可选能力）───────────────────────────────────────
 // 设计原则：
 //   1. env 不齐全 → 静默跳过，行为与旧版完全一致（本地开发不受影响）；
-//   2. 任何失败（网络/权限/超限）→ 只警告不抛错，绝不阻断 fetch-feeds 主流程；
+//   2. 任何失败（网络/权限/超限/超时）→ 只警告不抛错，绝不阻断 fetch-feeds 主流程；
 //   3. 凭证只从环境变量读取，不硬编码、不进日志。
+// D1 客户端与 ensure-candidates.mjs 共用 scripts/lib/d1.mjs（2026-10-15 审查 P2：
+// 原两份相同拷贝必然漂移，且旧版 fetch 无超时会让构建无限期挂起）。
 
-const CF_API_BASE = 'https://api.cloudflare.com/client/v4';
-
-function getD1Config() {
-  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const databaseId = process.env.D1_DATABASE_ID;
-  if (!apiToken || !accountId || !databaseId) return null;
-  if (typeof fetch !== 'function') {
-    console.warn('  ⚠️  当前 Node 版本无全局 fetch（需 Node 18+），跳过 D1 同步');
-    return null;
-  }
-  return { apiToken, accountId, databaseId };
-}
-
-async function d1Query(cfg, sql, params = []) {
-  const url = `${CF_API_BASE}/accounts/${cfg.accountId}/d1/database/${cfg.databaseId}/query`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${cfg.apiToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ sql, params }),
-  });
-  const body = await res.json().catch(() => null);
-  if (!res.ok || !body || body.success !== true) {
-    const msg = (body && body.errors && body.errors[0] && body.errors[0].message) || `HTTP ${res.status}`;
-    throw new Error(msg);
-  }
-  return body;
-}
-
-/** 幂等建表（每次运行执行一次，IF NOT EXISTS 无副作用） */
-async function ensureD1Schema(cfg) {
-  const stmts = [
-    `CREATE TABLE IF NOT EXISTS snapshots (
-       id TEXT PRIMARY KEY,
-       section TEXT NOT NULL,
-       date TEXT NOT NULL,
-       timestamp INTEGER NOT NULL,
-       item_count INTEGER NOT NULL,
-       payload TEXT NOT NULL
-     )`,
-    'CREATE INDEX IF NOT EXISTS idx_snapshots_date ON snapshots(date)',
-  ];
-  for (const sql of stmts) {
-    await d1Query(cfg, sql);
-  }
-}
+/** snapshots 表幂等建表语句（每次运行执行一次，IF NOT EXISTS 无副作用） */
+const SNAPSHOT_STMTS = [
+  `CREATE TABLE IF NOT EXISTS snapshots (
+     id TEXT PRIMARY KEY,
+     section TEXT NOT NULL,
+     date TEXT NOT NULL,
+     timestamp INTEGER NOT NULL,
+     item_count INTEGER NOT NULL,
+     payload TEXT NOT NULL
+   )`,
+  'CREATE INDEX IF NOT EXISTS idx_snapshots_date ON snapshots(date)',
+];
 
 /**
  * 将本批次快照 upsert 到 D1（一条多行 INSERT OR REPLACE，4 个板块一次请求）
@@ -197,12 +202,14 @@ async function syncToD1(snapshots) {
 
   const cfg = getD1Config();
   if (!cfg) {
-    console.log('  ℹ️  未配置 D1 环境变量（CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID / D1_DATABASE_ID），跳过云端同步');
+    console.log(
+      '  ℹ️  未配置 D1 环境变量（CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID / D1_DATABASE_ID），跳过云端同步',
+    );
     return;
   }
 
   try {
-    await ensureD1Schema(cfg);
+    await ensureSchema(cfg, SNAPSHOT_STMTS);
 
     const placeholders = [];
     const params = [];
@@ -215,7 +222,9 @@ async function syncToD1(snapshots) {
       placeholders.join(', ');
 
     await d1Query(cfg, sql, params);
-    console.log(`  ☁️  已同步 ${snapshots.length} 个板块快照到 D1（${snapshots.map((s) => s.section).join(' / ')}）`);
+    console.log(
+      `  ☁️  已同步 ${snapshots.length} 个板块快照到 D1（${snapshots.map((s) => s.section).join(' / ')}）`,
+    );
   } catch (e) {
     // 常见失败：token 缺 D1 权限（401/403）、超额（10000/100001 类错误）。均不阻断主流程。
     console.warn(`  ⚠️  D1 同步失败（不影响本地保存）: ${e.message}`);
@@ -231,7 +240,7 @@ async function main() {
   if (command === 'list') {
     const snapshots = await listHistory();
     console.log(`\n共 ${snapshots.length} 条历史记录：\n`);
-    snapshots.forEach(s => {
+    snapshots.forEach((s) => {
       console.log(`  ${s.date} | ${s.section} | ${s.itemCount} 条`);
     });
     return;
@@ -245,7 +254,9 @@ async function main() {
 
   // 默认模式：从标准输入读取 JSON 并保存
   console.log('[九溪] 等待历史数据输入...');
-  console.log('  提示：通过管道传入 JSON 数据，例如: cat feed.json | node scripts/save-history.mjs\n');
+  console.log(
+    '  提示：通过管道传入 JSON 数据，例如: cat feed.json | node scripts/save-history.mjs\n',
+  );
 
   let inputData = '';
   process.stdin.setEncoding('utf8');
@@ -261,7 +272,9 @@ async function main() {
 
   try {
     const data = JSON.parse(inputData);
-    const date = data.generatedAt ? new Date(data.generatedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+    const date = data.generatedAt
+      ? new Date(data.generatedAt).toISOString().split('T')[0]
+      : new Date().toISOString().split('T')[0];
 
     console.log(`\n[九溪] 正在保存 ${date} 的历史快照...\n`);
 
@@ -280,11 +293,15 @@ async function main() {
 
     // 自动清理过期数据
     cleanupExpired(30);
-
   } catch (e) {
     console.error('  ❌ 数据解析失败:', e.message);
     process.exit(1);
   }
 }
 
-main().catch(console.error);
+// 仅在作为 CLI 入口（node scripts/save-history.mjs）执行；被测试 import 时不触发主流程
+// （与 scripts/fetch-feeds.mjs 同一模式，2026-10-15 审查 P2 补齐：
+//  旧版无条件执行 main().catch()，被 import 时会立即读 stdin，无法单测。）
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(console.error);
+}

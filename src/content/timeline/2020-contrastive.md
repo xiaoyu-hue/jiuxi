@@ -1,8 +1,8 @@
 ---
 year: 2020
-title: "对比学习：MoCo 与 SimCLR（无需标注的表征学习）"
+title: '对比学习：MoCo 与 SimCLR（无需标注的表征学习）'
 category: 理论
-source: "Momentum Contrast / A Simple Framework for Contrastive Learning"
+source: 'Momentum Contrast / A Simple Framework for Contrastive Learning'
 sourceUrl: https://arxiv.org/abs/1911.05722
 ---
 

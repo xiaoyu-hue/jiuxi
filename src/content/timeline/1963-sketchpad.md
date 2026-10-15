@@ -1,10 +1,10 @@
 ---
 {
-  "year": 1963,
-  "title": "Sketchpad：交互式计算机图形诞生",
-  "category": "里程碑",
-  "source": "维基百科",
-  "sourceUrl": "https://en.wikipedia.org/wiki/Sketchpad"
+  'year': 1963,
+  'title': 'Sketchpad：交互式计算机图形诞生',
+  'category': '里程碑',
+  'source': '维基百科',
+  'sourceUrl': 'https://en.wikipedia.org/wiki/Sketchpad',
 }
 ---
 

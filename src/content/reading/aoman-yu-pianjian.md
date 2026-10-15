@@ -1,10 +1,10 @@
 ---
 {
-  "title": "傲慢与偏见",
-  "author": "简·奥斯汀",
-  "rating": 4.5,
-  "tag": "文学",
-  "link": "https://www.gutenberg.org/ebooks/1342"
+  'title': '傲慢与偏见',
+  'author': '简·奥斯汀',
+  'rating': 4.5,
+  'tag': '文学',
+  'link': 'https://www.gutenberg.org/ebooks/1342',
 }
 ---
 

@@ -11,28 +11,47 @@ import { withBase } from '../lib/site';
   </header>
 
   <div id="starred-root" class="feed-grid"></div>
-  <p id="starred-empty" class="feed-meta">还没有收藏。去各板块资讯卡片右上角点 ♥ 即可收藏。</p>
+  {/* 空状态常驻 DOM，由脚本切换 hidden（2026-10-15 审查 M17：原先一次性
+      remove，取消收藏到空后再也不显示空状态） */}
+  <p id="starred-empty" class="feed-meta" hidden>还没有收藏。去各板块资讯卡片右上角点 ♥ 即可收藏。</p>
 
   <script>
-    import { getFavorites } from '../lib/favorites';
+    import { getFavorites, isFavorite } from '../lib/favorites';
     import { renderItems, wireFavorites } from '../lib/feeds';
 
     const root = document.getElementById('starred-root');
     const empty = document.getElementById('starred-empty');
-    if (root) {
+
+    function renderStarred() {
+      if (!root) return;
       const favs = getFavorites();
-      if (favs.length) {
-        empty?.remove();
-        const items = favs.map((f) => ({
-          title: f.title,
-          link: f.link,
-          source: f.source,
-          sources: f.source ? [f.source] : [],
-        }));
-        renderItems(root, items);
-        wireFavorites(root);
+      if (!favs.length) {
+        root.replaceChildren();
+        if (empty) empty.hidden = false;
+        return;
       }
+      if (empty) empty.hidden = true;
+      const items = favs.map((f) => ({
+        title: f.title,
+        link: f.link,
+        source: f.source,
+        sources: f.source ? [f.source] : [],
+      }));
+      renderItems(root, items);
+      wireFavorites(root);
     }
+
+    renderStarred();
+
+    // 2026-10-15 审查 M17：取消收藏后卡片原先残留在页面（仅 ♥ 变色），
+    // 只剩一条时呈空白网格。wireFavorites 的按钮监听先于本冒泡监听执行，
+    // 此时 localStorage 已更新——若该链接已不在收藏中，重渲染列表。
+    root?.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('.fav-btn');
+      if (!btn) return;
+      const link = (btn as HTMLElement).dataset.link || '';
+      if (!isFavorite(link)) renderStarred();
+    });
   </script>
 </BaseLayout>
 
@@ -40,6 +59,6 @@ import { withBase } from '../lib/site';
   .back-link {
     display: inline-block;
     margin-top: 0.5rem;
-    color: var(--accent, #4f7cff);
+    color: var(--accent);
   }
 </style>

@@ -1,10 +1,10 @@
 ---
 {
-  "title": "自杀论",
-  "author": "埃米尔·涂尔干",
-  "rating": 4.5,
-  "tag": "社会学",
-  "link": "https://archive.org/details/suicide00durk"
+  'title': '自杀论',
+  'author': '埃米尔·涂尔干',
+  'rating': 4.5,
+  'tag': '社会学',
+  'link': 'https://archive.org/details/suicide00durk',
 }
 ---
 

@@ -1,7 +1,7 @@
 ---
 year: 2023
 title: Google 发布 RT-2：视觉-语言-动作（VLA）模型
-category: "具身"
+category: '具身'
 source: Google DeepMind（RT-1 / RT-2 论文）
 sourceUrl: https://robotics-transformer2.github.io/
 ---

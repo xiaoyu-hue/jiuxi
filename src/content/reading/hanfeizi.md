@@ -1,10 +1,10 @@
 ---
 {
-  "title": "韩非子",
-  "author": "韩非",
-  "rating": 4.5,
-  "tag": "政治学",
-  "link": "https://ctext.org/han-feizi"
+  'title': '韩非子',
+  'author': '韩非',
+  'rating': 4.5,
+  'tag': '政治学',
+  'link': 'https://ctext.org/han-feizi',
 }
 ---
 

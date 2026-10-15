@@ -1,10 +1,10 @@
 ---
 {
-  "title": "数学之美",
-  "author": "吴军",
-  "rating": 4.5,
-  "tag": "数学",
-  "link": "https://weread.qq.com/web/search/books?keyword=%E6%95%B0%E5%AD%A6%E4%B9%8B%E7%BE%8E"
+  'title': '数学之美',
+  'author': '吴军',
+  'rating': 4.5,
+  'tag': '数学',
+  'link': 'https://weread.qq.com/web/search/books?keyword=%E6%95%B0%E5%AD%A6%E4%B9%8B%E7%BE%8E',
 }
 ---
 

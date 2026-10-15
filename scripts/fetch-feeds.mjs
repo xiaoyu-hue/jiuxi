@@ -130,7 +130,6 @@ export function injectData(html, section, items) {
   return html;
 }
 
-
 /**
  * 按源轮询合并（round-robin）：每个源轮流取一条（组内按发布时间降序），
  * 直到凑满 limit。保证每个有数据的源都获得曝光位——
@@ -206,6 +205,17 @@ async function main() {
   writeFileSync(OUT, JSON.stringify(result, null, 2), 'utf8');
   console.log(`✅ 已写入 ${OUT}`);
 
+  // 失败信号：所有板块均为空时终止构建（2026-10-15 审查修复 H1）。
+  // 原先全源失败也写空 JSON + 退出码 0，CI 绿灯把空内容部署上线。
+  const totalItems = Object.values(result.sections).reduce(
+    (n, list) => n + (Array.isArray(list) ? list.length : 0),
+    0,
+  );
+  if (totalItems === 0) {
+    console.error('❌ 四大板块全部抓取失败，产物为空——终止构建（退出码 1），避免空内容上线');
+    process.exit(1);
+  }
+
   // 保存历史快照（通过子进程调用 save-history.mjs）
   try {
     const { spawn } = await import('node:child_process');
@@ -222,38 +232,72 @@ async function main() {
     await new Promise((resolve) => {
       const child = spawn('node', ['scripts/save-history.mjs'], {
         cwd: ROOT,
-        stdio: ['pipe', 'inherit', 'inherit']
+        stdio: ['pipe', 'inherit', 'inherit'],
       });
 
-      child.stdin.write(JSON.stringify(historyData));
-      child.stdin.end();
+      // 2026-10-15 审查 P2 加固：
+      // 1) 看守超时——save-history 正常秒级完成；若其 D1 同步挂起
+      //    （旧版 fetch 无超时），整条构建链会无限期卡死。60s 足够
+      //    覆盖正常路径（含 15s D1 超时），超时强杀子进程；
+      //    历史保存失败不阻断构建（feed.json 与注入均已在此之前完成）。
+      // 2) stdin EPIPE——子进程若在读取前退出（启动即崩等），
+      //    write 会抛 EPIPE。属预期内的失败信号，按"保存失败"处理，
+      //    显式捕获避免语义含糊的异常路径。
+      let settled = false;
+      const finish = (warn) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        if (warn) console.warn(warn);
+        resolve();
+      };
+      const watchdog = setTimeout(() => {
+        child.kill('SIGKILL');
+        finish('⚠️ 历史快照保存超时（60s），已终止子进程（不影响构建）');
+      }, 60000);
+
+      // 同步 write 失败（管道已断开）+ 异步流错误都要接住
+      try {
+        child.stdin.write(JSON.stringify(historyData));
+        child.stdin.end();
+      } catch (e) {
+        if (e.code === 'EPIPE') {
+          child.kill('SIGKILL');
+          finish('⚠️ 历史快照保存失败（子进程提前退出）');
+          return;
+        }
+        throw e;
+      }
+      child.stdin.on('error', (e) => {
+        if (e.code === 'EPIPE') {
+          child.kill('SIGKILL');
+          finish('⚠️ 历史快照保存失败（子进程提前退出）');
+        }
+      });
 
       child.on('close', (code) => {
         if (code === 0) {
           console.log('✅ 历史快照保存完成');
-          resolve();
+          finish();
         } else {
-          console.warn('⚠️ 历史快照保存失败');
-          resolve();
+          finish('⚠️ 历史快照保存失败');
         }
       });
 
-      child.on('error', () => {
-        console.warn('⚠️ 历史快照保存失败');
-        resolve();
+      child.on('error', (e) => {
+        finish(`⚠️ 历史快照保存失败: ${e.message}`);
       });
     });
   } catch (error) {
     console.warn('⚠️ 历史快照保存异常:', error.message);
   }
 
-  // 注入数据到各页面 HTML
-  const PAGES = [
-    { section: 'ai', path: 'dist/ai/index.html' },
-    { section: 'news', path: 'dist/news/index.html' },
-    { section: 'tech', path: 'dist/tech/index.html' },
-    { section: 'gaming', path: 'dist/gaming/index.html' },
-  ];
+  // 注入数据到各页面 HTML。
+  // 板块列表从 feeds.json 的 SOURCES 派生（原先硬编码四板块，新增板块忘同步会静默不注入）
+  const PAGES = Object.keys(SOURCES).map((section) => ({
+    section,
+    path: `dist/${section}/index.html`,
+  }));
 
   for (const { section, path } of PAGES) {
     const filePath = resolve(ROOT, path);

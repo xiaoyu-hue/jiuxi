@@ -5,7 +5,7 @@ import { z } from 'zod';
 // 纯浏览器端实现，无需后端：
 //   1) Google News RSS（中文）作为主源，经第一方同域代理（/api/feed）抓取；
 //   2) Hacker News Algolia API（CORS 友好）作为科技/AI 冗余源；
-//   3) localStorage 缓存 30 分钟，失败回退缓存或空。
+//   3) localStorage 缓存 10 分钟，失败回退缓存或空。
 //
 // 安全：所有外部文本在渲染前都经 HTML 转义，避免 XSS。
 
@@ -36,7 +36,7 @@ interface FeedSource {
 
 // 第一方 feed 代理（Cloudflare Pages Function，见 functions/api/feed.ts）。
 // 与站点同域，故浏览器端 fetch 不受 CORS 限制，且 CSP 只需 'self' 即可放行；
-// GitHub Pages 备站无 Functions，运行时刷新会失败，但构建期注入的数据仍可见（备站降级）。
+// 无 Functions 的环境（纯静态托管/本地预览）运行时刷新会失败，但构建期注入的数据仍可见（降级）。
 const FEED_PROXY_PATH = '/api/feed';
 
 const CACHE_TTL = 10 * 60 * 1000; // 10 分钟(自动刷新;「立即刷新」可强制实时)
@@ -123,7 +123,7 @@ function cacheKey(section: Section): string {
   return `${FEED_PREFIX}${section}`;
 }
 
-/** 读取未过期的缓存（30 分钟内），过期或缺失返回 null */
+/** 读取未过期的缓存（10 分钟内），过期或缺失返回 null */
 function readCacheFresh(section: Section): FeedItem[] | null {
   try {
     const raw = localStorage.getItem(cacheKey(section));
@@ -220,15 +220,44 @@ export function mergeFeedItems(base: FeedItem[], incoming: FeedItem[]): FeedItem
 // 累计来源数（用作热度），保留最新/最完整的一条为代表。纯函数、无 DOM 依赖，
 // 以便前端与服务端（functions/api/feed.ts 聚合端点）复用同一套逻辑。
 const TITLE_STOP = new Set([
-  'the', 'a', 'an', 'of', 'to', 'in', 'on', 'for', 'and', 'with', 'is', 'are', 'via',
-  'how', 'why', 'this', 'that', 'what',
-  '的', '了', '与', '和', '及', '在', '是', '等', '如何', '什么', '为什么', '怎么', '一款', '一个',
+  'the',
+  'a',
+  'an',
+  'of',
+  'to',
+  'in',
+  'on',
+  'for',
+  'and',
+  'with',
+  'is',
+  'are',
+  'via',
+  'how',
+  'why',
+  'this',
+  'that',
+  'what',
+  '的',
+  '了',
+  '与',
+  '和',
+  '及',
+  '在',
+  '是',
+  '等',
+  '如何',
+  '什么',
+  '为什么',
+  '怎么',
+  '一款',
+  '一个',
 ]);
 
 function normalizeTitle(t: string): string {
   return (t || '')
     .toLowerCase()
-    .replace(/[\s ]+/g, ' ')
+    .replace(/[\s\u00a0]+/g, ' ')
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -263,8 +292,14 @@ export function clusterItems(items: FeedItem[]): FeedItem[] {
     let merged = false;
     for (const c of clusters) {
       if (jaccard(tk, c.tk) >= 0.5) {
-        const src = it.source || '';
-        if (src && !c.sources.includes(src)) c.sources.push(src);
+        // 入参条目自身可能已带 sources（聚合端点产物经前端复聚的路径）：
+        // 优先累加其来源数组，只认 it.source 会把 ["量子位","HN"] 漏成
+        // 单个 " · " 连接字符串，多源计数在 rankByHeat 里静默失效
+        // （2026-10-15 审查 M23 写测试时发现并修复）。
+        const incoming = it.sources?.length ? it.sources : it.source ? [it.source] : [];
+        for (const s of incoming) {
+          if (s && !c.sources.includes(s)) c.sources.push(s);
+        }
         const da = it.pubDate ? new Date(it.pubDate).getTime() : 0;
         const db = c.rep.pubDate ? new Date(c.rep.pubDate).getTime() : 0;
         if (da > db) {
@@ -276,7 +311,13 @@ export function clusterItems(items: FeedItem[]): FeedItem[] {
       }
     }
     if (!merged) {
-      clusters.push({ rep: { ...it }, tk, sources: it.source ? [it.source] : [] });
+      // 新簇保留入参已有的 sources 数组（端点已聚簇产物复聚时不塌缩），
+      // 否则 sources 从 ["量子位","HN"] 变成 ["量子位 · HN"]，长度恒为 1。
+      clusters.push({
+        rep: { ...it },
+        tk,
+        sources: it.sources?.length ? [...it.sources] : it.source ? [it.source] : [],
+      });
     }
   }
 
@@ -299,7 +340,7 @@ async function refreshOnline(section: Section): Promise<FeedItem[]> {
 
   // 1) 优先：服务端聚合端点（functions/api/feed.ts 的 ?aggregate=1）。
   //    一次性把各 RSS 源拉到边缘、跨源聚簇、按独立信源数算热度并返回干净 JSON，
-  //    既减少前端请求数，又复用边缘缓存。备站无 Functions 时该请求会失败，
+  //    既减少前端请求数，又复用边缘缓存。无 Functions 时该请求会失败，
   //    自动走下方逐源回退（前端聚簇，效果一致）。
   let aggItems: FeedItem[] = [];
   if (rssSources.length) {
@@ -316,7 +357,7 @@ async function refreshOnline(section: Section): Promise<FeedItem[]> {
         if (Array.isArray(json.items) && json.items.length) aggItems = json.items;
       }
     } catch {
-      /* 聚合端点不可用（如备站），回退逐源拉取 */
+      /* 聚合端点不可用（无 Functions 的环境），回退逐源拉取 */
     }
   }
 
@@ -373,7 +414,7 @@ export async function refreshFeedOnline(section: Section): Promise<FeedItem[]> {
  * 加载某板块资讯（用于无构建期内嵌数据的场景）：在线优先，失败再退持久缓存。
  *  1) 在线刷新（合并各成功源）→ 成功即返回最新；
  *  2) IndexedDB 持久缓存（跨会话）；
- *  3) localStorage 新鲜缓存（30 分钟内）；
+ *  3) localStorage 新鲜缓存（10 分钟内）；
  *  4) localStorage 过期缓存（临时兜底）；
  *  5) 仍无 → 返回空数组（页面提示）。
  *
@@ -416,7 +457,7 @@ export function rankByHeat<T extends { sources?: string[]; source?: string; pubD
   const timeDesc = (a: T, b: T) =>
     (b.pubDate ? Date.parse(b.pubDate) : 0) - (a.pubDate ? Date.parse(a.pubDate) : 0);
   const sorted = [...items].sort(
-    (a, b) => ((b.sources?.length || 1) - (a.sources?.length || 1)) || timeDesc(a, b),
+    (a, b) => (b.sources?.length || 1) - (a.sources?.length || 1) || timeDesc(a, b),
   );
   if (!maxPerSource || maxPerSource <= 0) return sorted;
   const counts = new Map<string, number>();
@@ -505,7 +546,6 @@ export function wireFavorites(container: HTMLElement): void {
     });
   });
 }
-
 
 // P1-5 type-safety + P2-4 bad-data guard: runtime zod check for FeedItem
 export const FeedItemSchema = z.object({

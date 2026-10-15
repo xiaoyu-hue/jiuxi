@@ -1,8 +1,8 @@
 ---
 year: 2014
-title: "注意力机制（Bahdanau Attention）"
+title: '注意力机制（Bahdanau Attention）'
 category: 理论
-source: "Neural Machine Translation by Jointly Learning to Align and Translate"
+source: 'Neural Machine Translation by Jointly Learning to Align and Translate'
 sourceUrl: https://arxiv.org/abs/1409.0473
 ---
 

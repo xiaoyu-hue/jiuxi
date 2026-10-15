@@ -1,8 +1,8 @@
 ---
 year: 2015
-title: "OpenAI 成立"
+title: 'OpenAI 成立'
 category: 生态
-source: "OpenAI"
+source: 'OpenAI'
 sourceUrl: https://en.wikipedia.org/wiki/OpenAI
 ---
 

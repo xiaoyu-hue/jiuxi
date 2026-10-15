@@ -1,8 +1,8 @@
 ---
 year: 2025
-title: "DeepSeek 开源周：把训练基建也开源"
+title: 'DeepSeek 开源周：把训练基建也开源'
 category: 开源
-source: "DeepSeek Open Source Week"
+source: 'DeepSeek Open Source Week'
 sourceUrl: https://github.com/deepseek-ai
 ---
 

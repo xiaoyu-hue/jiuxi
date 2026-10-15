@@ -1,8 +1,8 @@
 ---
 year: 2012
-title: "Google Brain 从无标注视频中「认出猫」"
+title: 'Google Brain 从无标注视频中「认出猫」'
 category: 里程碑
-source: "Google Brain"
+source: 'Google Brain'
 sourceUrl: https://en.wikipedia.org/wiki/Google_Brain
 ---
 
