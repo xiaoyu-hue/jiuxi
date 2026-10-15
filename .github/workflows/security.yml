@@ -9,7 +9,8 @@
 # 门禁强度（2026-10-15 审查后）：
 #   **强制**（无 continue-on-error，发现即红灯阻断合并）：
 #     osv-scanner（依赖漏洞，2026-10-13 起强制）；
-#     trufflehog（历史密钥扫描，2026-10-15 起强制，见 trufflehog job 内说明）。
+#     trufflehog（历史密钥扫描，2026-10-15 起强制，见 trufflehog job 内说明；
+#       扫描命令带 --no-update 禁用其自更新器，原因见 job 内注释）。
 #   **advisory**（job 级 continue-on-error，失败只标红本 job 不阻断）：
 #     gitleaks / codeql / trivy / nuclei / lychee / dependency-review /
 #     zizmor / scorecard / sbom。
@@ -144,6 +145,9 @@ jobs:
           mkdir -p /tmp/trufflehog-bin
           tar -xzf /tmp/trufflehog.tar.gz -C /tmp/trufflehog-bin
           sudo install -m 0755 "$(find /tmp/trufflehog-bin -type f -name trufflehog | head -n 1)" /usr/local/bin/trufflehog
+          # --no-update 必须加（原因见下方扫描步骤注释）：自更新器在主入口
+          # 初始化时执行，这个留痕调用也会触发它（2026-10-15 实测），此处靠
+          # || true 兜底不致命，但扫描步骤没有兜底、必须显式禁用。
           trufflehog --version || true # 仅用于留痕，不参与判定
         env:
           TRUFFLEHOG_VERSION: v3.99.2 # 升级时同步核对 releases 资产名与 checksums 文件名
@@ -154,8 +158,16 @@ jobs:
         # bash -e 语义，不需要再包 if 捕获——2026-10-15 审查 M22 转强制）。
         # 路径用 shell 环境变量 $GITHUB_WORKSPACE 而非 ${{ }} 插值：避免 zizmor
         # 模板注入检查误报（run 脚本内直接插值上下文表达式是其重点审查对象）。
+        # --no-update（2026-10-15 新增）：禁用自更新器。自更新器在 CI 环境
+        # 尝试替换 /usr/local/bin/trufflehog 自身二进制失败
+        # （"error occurred with trufflehog updater 🐷 {"error":
+        # "cannot move binary back (exit status 1)"}"，trufflesecurity/
+        # trufflehog#3217 同款问题，本项目 v1.6.1 推送后首次实测复现），
+        # 且失败即退出 1——扫描根本没跑就红灯，曾长期被 advisory 的
+        # continue-on-error + 输出捕获掩盖为"假绿"。版本由上方安装步骤
+        # pin + SHA256 校验固定，CI 环境不应运行时自更新，禁用不影响门禁语义。
         run: |
-          trufflehog git "file://$GITHUB_WORKSPACE" --only-verified --fail
+          trufflehog git "file://$GITHUB_WORKSPACE" --only-verified --fail --no-update
 
   # ── SAST：CodeQL（公开库免费，无需 token）──
   codeql:

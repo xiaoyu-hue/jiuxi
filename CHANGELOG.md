@@ -35,6 +35,7 @@
 - **src/lib/feeds.ts / functions/api/feed.ts 正则含不可见 NBSP 字面字符**：触发 eslint `no-irregular-whitespace`，改显式 `\u00a0` + disable 注释。
 - **MobileTabBar 三元表达式当语句**：触发 `no-unused-expressions`，改 if/else；`moreActive` 死路径 `/search` 移除。
 - **settings.astro 未使用导入**：删除 `sanitizeUrl` / `escapeHtml` 死导入。
+- **trufflehog 强制门禁首次运行即红灯（自更新器故障，非密钥泄露）**：v1.6.1 推送后「安全门禁」工作流 trufflehog job 失败，日志为 `error occurred with trufflehog updater 🐷 {"error": "cannot move binary back (exit status 1)"}`——trufflehog 自更新器在 CI 环境尝试替换 `/usr/local/bin/trufflehog` 自身二进制失败即退出 1，**扫描根本没执行**。该故障长期被 advisory 状态的 `continue-on-error` 掩盖为「假绿」，本次转强制后才现形。修复：扫描与 `--version` 留痕两处均加 `--no-update`（trufflesecurity/trufflehog#3217 同款问题），版本仍由安装步骤 pin + SHA256 校验固定，禁用运行时自更新不影响门禁语义。
 
 ### Security
 
