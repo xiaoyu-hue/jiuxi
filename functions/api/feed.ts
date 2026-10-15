@@ -276,9 +276,10 @@ function isPrivateHost(host: string): boolean {
 //   旧实现为 specs 串行 for-await——32 源串行在 Workers 免费版
 //   （单请求 50 subrequest 上限）边缘，且最坏耗时远超前端 8s 超时，
 //   导致大板块聚合请求必然超时、白白走前端逐源降级。
-//   现改为：每源 3.5s 独立超时 + 10 路有界并发 + 软限量 20 源
-//   （2 批 × 3.5s ≈ 7s < 8s）。限量只影响「快速通道」覆盖，
-//   全量抓取由前端逐源回退通道保证，信源覆盖不降级。
+//   现改为：每源 3.5s 独立超时 + 无屏障并发池（10 worker 共享队列）
+//   + 软限量 20 源。池化总耗时 ≈ 最慢单源（≤ 3.5s），远低于前端 8s
+//   超时（线上实测 20 源 6s → 池化后约 3.5s）。限量只影响「快速通道」
+//   覆盖，全量抓取由前端逐源回退通道保证，信源覆盖不降级。
 const SPEC_LIMIT = 20;
 const SPEC_CONCURRENCY = 10;
 const SPEC_TIMEOUT_MS = 3500;
@@ -525,12 +526,18 @@ async function handleAggregate(here: URL, env: any): Promise<Response> {
   const specs = here.searchParams.getAll('s').filter(Boolean).slice(0, SPEC_LIMIT);
   if (!specs.length) return new Response('missing s', { status: 400 });
   const collected: any[] = [];
-  // 10 路有界并发分批抓取（旧串行版在大板块必超时，见文件头注释）
-  for (let i = 0; i < specs.length; i += SPEC_CONCURRENCY) {
-    const batch = specs.slice(i, i + SPEC_CONCURRENCY);
-    const results = await Promise.all(batch.map(fetchSpec));
-    for (const r of results) collected.push(...r);
-  }
+  // 无屏障并发池：worker 从队列取源直到取空（旧「按批屏障」实现会被批内
+  // 慢源拖累——批 1 有个 3.5s 超时的源，批 2 全部干等，20 源实测 6s+）。
+  // 池化后总耗时 ≈ 最慢单源（≤ SPEC_TIMEOUT_MS），与源数基本无关。
+  const queue = [...specs];
+  const workers = Array.from({ length: Math.min(SPEC_CONCURRENCY, queue.length) }, async () => {
+    for (;;) {
+      const spec = queue.shift();
+      if (!spec) return;
+      collected.push(...(await fetchSpec(spec)));
+    }
+  });
+  await Promise.all(workers);
   const clustered = clusterFeed(collected);
   // 按独立信源数（热度）降序：被越多不同源报道的事件越重要
   clustered.sort((a: any, b: any) => (b.sources?.length || 1) - (a.sources?.length || 1));
