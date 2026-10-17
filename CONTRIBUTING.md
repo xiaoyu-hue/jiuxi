@@ -105,6 +105,19 @@ docs: 补充部署说明
 
 ---
 
+## 依赖更新策略
+
+九溪是「低频维护的个人站」，依赖策略偏向**稳定优先、批量跟进、门禁兜底**：
+
+1. **版本范围**：`package.json` 用 `^` 语义范围，不锁死小版本；真正的锁定在 `package-lock.json`。
+2. **lock 必须同步**：任何改动 `package.json`（含仅 version 字段）的提交，`package-lock.json` 必须同批更新并提交——CI 的 `npm ci` 以 lock 为准，两者漂移会造成「本地能跑、CI 另装一套」。
+3. **更新节奏**：每季度做一次 `npm outdated` 盘点，按「安全补丁 > 构建工具链（Astro/Vite/TypeScript）> 运行时依赖」排序处理；平时不追新。
+4. **门禁兜底**：更新后必须全绿才可合并——`npm run check`（astro check）、`npm run test:coverage`（含覆盖率阈值）、`npm run lint`、`npm run format:check`、`npm run build`。任一项红灯，回退该次更新而非放宽门禁。
+5. **大版本升级**（如 Astro 主版本）单独开分支/PR，先在 CHANGELOG 记录升级动机与回退点，不混在功能提交里。
+6. **CI 内 action 版本**：GitHub Actions 全部 pin 到 commit SHA（见各 workflow），更新方式同上——先看 release notes，再改 SHA 与版本注释，单独提交。
+
+---
+
 ## 许可证
 
 - 代码：Apache License 2.0

@@ -2,6 +2,27 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [v1.7.1] — 2026-10-17
+
+> 线上 API 全失效（P0）修复批次：补上定时重建部署缺失的 functions/ 目录（直接根因），并建立两道「静默失败 → CI 可见」机制（部署后冒烟测试 + D1 写穿核查）。触发事件：2026-10-17 深度评价发现 `/api/feed`、`/api/history`、`/api/candidates` 线上全部返回 index.html。
+
+### Fixed
+
+- **定时重建部署缺失 functions/ 目录（P0 直接根因）**：`refresh-feeds.yml` 的 `deploy-cloudflare` job 漏了 `actions/checkout`——`deploy.yml` 有而此处无。`wrangler pages deploy` 只自动编译 **cwd 下**的 `functions/`（不存在则整个 Pages Functions 层缺失，只上传静态 dist）。定时重建每小时把「无 functions」的 dist 覆盖上线，导致线上三个 `/api` 端点全部返回 index.html：浏览器端靠前端逐源降级勉强可用（掩盖了故障），服务端聚簇与 D1 持久化全部静默失效。本版本补上 checkout，与 `deploy.yml` 对齐。
+
+### Added
+
+- **部署后冒烟测试（deploy.yml 新 job）**：部署完成立即请求 `/api/history?days=7`、`/api/feed?aggregate=1`、`/api/candidates?section=ai` 三端点，断言 `content-type: application/json` 且 body 可解析——把「Functions 静默失效」转为 CI 红灯。三级判定：非 JSON → 红灯（退出码 1）；JSON 带 `d1_binding_missing`/`query_failed` → 黄灯 warning（链路通、D1 配置问题，附控制台排查路径）；规范 JSON → 绿灯。每端点 3 次重试（应对 CDN 传播延迟）。仅当本次运行真的发生部署时执行（未配 CF 密钥则跳过，不对线上旧版本误报）。
+- **D1 写穿核查（refresh-feeds.yml 新步骤）**：fetch-feeds 写入后经 Cloudflare REST API（与 `scripts/lib/d1.mjs` 同一端点）查 `snapshots` 表：0 行 / 超过 2 小时未更新 / 查询失败 → `::warning::`。save-history 的设计是「失败不阻断构建」（云端故障不拖垮定时重建），本步骤补上日志淹没后的可见性。密钥缺失自动跳过。
+- **`docs/云端资源交接清单.md`**：Cloudflare 资源（Pages 项目 / D1 / Secrets）、双工作流分工、控制台操作路径、本地接管 checklist、应急操作一表收齐——换人换账号不靠记忆。
+
+### Changed
+
+- **fetch-feeds.mjs 源健康摘要**：299 源每源一行日志，失败源的 ✗ 行淹没在上百行输出里。现抓取结束集中输出健康摘要（可用数/健康度/失败数/空结果数）+ 失败源与空结果源清单；失败率 ≥ 20% 时追加 `::warning::` 注解（Actions 通知可见）。不改变既有容错语义（单源失败不阻断，全部失败仍 exit 1）。
+- **`public/search-index.json` 移出 git 跟踪**（`git rm --cached`，`.gitignore` 早已包含）：150KB 构建期生成物入库会让每次内容变更产生巨大 diff，工作区文件保留不受影响。
+- **`package-lock.json` 同步 v1.6.0 → v1.7.0**：v1.7.0 发布时漏跟进的 lock 版本字段，`npm ci` 以 lock 为准，两者应一致。
+- **CONTRIBUTING.md 新增「依赖更新策略」章节**：lock 同步纪律、季度盘点节奏、门禁兜底、大版本单独 PR、action SHA pin 更新方式。
+
 ## [v1.7.0] — 2026-10-16
 
 > 全行业信源扩容 31 → 299（15 个板块）+ 板块页模板化（动态路由）+ 构建/实时通道两处性能改造 + 「立即刷新」显式按钮试点（AI/科技）。交付说明见仓库外交付文档《变更清单-v1.7.0》。

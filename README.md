@@ -208,8 +208,10 @@ jiuxi/
 
 采用**单站部署**，由 `.github/workflows/deploy.yml`（push 即构建并发布）驱动：
 
-- **Cloudflare Pages**：无限带宽、全球 CDN。需在仓库 `Settings → Secrets` 添加 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID`（最小权限：仅 Pages Edit）。
+- **Cloudflare Pages**：无限带宽、全球 CDN。需在仓库 `Settings → Secrets` 添加 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID`（最小权限：Pages Edit + D1 Edit）。
 - 缺 Cloudflare 密钥时，部署步骤自动跳过（不阻塞流水线）。你只需 `git push` 到 `main`。
+- **部署后冒烟测试**：部署完成自动请求 `/api/history`、`/api/feed?aggregate=1`、`/api/candidates` 三个端点，断言返回 `application/json`——Pages Functions 若未生效（历史故障：全部返回 index.html），CI 红灯 + 排查指引，不再静默。详见 `docs/云端资源交接清单.md`。
+- **定时重建**（`refresh-feeds.yml`，每小时）额外做 D1 写穿核查：save-history 同步失败时以 warning 显式提示（不阻断构建）。
 
 > ⚠️ **D1 绑定必须写在 `wrangler.toml`**：该文件一旦包含 `pages_build_output_dir`，就成为 Pages 项目配置的唯一来源（source of truth），每次 `wrangler pages deploy` 都会用它覆盖云端设置——只在仪表盘里绑定的 D1，一次部署后就会被抹掉（2026-10 实测复现）。当前绑定（库 `jiuxi-history`）已声明在 `wrangler.toml` 的 `[[d1_databases]]`，随每次部署自动同步，无需手动操作。
 
@@ -232,7 +234,7 @@ jiuxi/
 | 阶段 B  | 全局热点榜 `/hot` + 分组导航 + 移动 TabBar + 全站站内搜索                        | ✅ 已完成 |
 | 阶段 C  | 九溪日报 `/daily`（当日候选按板块聚合，可选 LLM 摘要）+ 热度趋势 Delta/Sparkline | 📋 规划中 |
 
-> 当前 **v1.6.1** = 全维度代码审查修复批次（P0 止血 + P1 安全/死代码/测试补齐 + P2 可访问性与脚本健壮性）；**v1.6.0** = 报刊体验升级 v2：今日热点多源交叉信任排序、品牌签名母题「九点汇聚」、导航收敛（4 + 更多）、流式排版与留白节奏、克制动效编排；承续 v1.5.1（Cloudflare Pages 单站部署）、v1.5.0（阶段 A + B 体验升级）与 v1.4.x 的策展内容大扩充及安全门禁。
+> 当前 **v1.7.1** = 线上 API 失效（P0）修复批次：定时重建部署补上 functions/ 目录（直接根因）+ 部署后冒烟测试 + D1 写穿核查 + 源健康摘要；**v1.7.0** = 全行业信源扩容 31 → 299（15 个板块）+ 板块页模板化 + 构建/实时通道性能改造；承续 v1.6.1（全维度代码审查修复批次）与 v1.6.0（报刊体验升级 v2）。
 
 **后续可规划**：真正的后端（用户系统 / 收藏云同步 / 评论）、更多策展板块（影视 / 财经 / 学习等）、无障碍与多语言。
 详见仓库 `docs/` 内《九溪-PRD.md》《九溪-实施计划.md》《九溪-调研报告.md》《九溪-架构文档.md》。
