@@ -37,7 +37,7 @@
 #      trufflehog 沿用同一模式。
 #   已核实可用（2026-10-13 起全部 SHA pin，标签仅作注释；Dependabot 依据尾部
 #     版本注释把 SHA 滚动到各 action 最新发布，兼顾供应链安全与可更新性）：
-#     checkout@v7.0.1、gitleaks@v3.0.0、codeql@v3、lychee@v2、
+#     checkout@v7.0.1、gitleaks@v3.0.0、codeql@v4、lychee@v2、
 #     zaproxy/action-baseline@v0.15.0、zizmorcore/zizmor-action@v0.6.4（SHA cc914d7f…）、
 #     ossf/scorecard-action@v2.5.0、actions/dependency-review-action@v5.0.0、
 #     step-security/harden-runner@v2.22.1、actions/setup-node@v7.1.0（node-version 22）、
@@ -185,11 +185,11 @@ jobs:
         with:
           persist-credentials: false
       - name: 初始化 CodeQL
-        uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v3
+        uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           languages: javascript-typescript
       - name: CodeQL 分析
-        uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v3
+        uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
 
   # ── 依赖漏洞扫描 ──
   osv-scanner:
@@ -446,7 +446,7 @@ jobs:
           # https://api.scorecard.dev/projects/github.com/xiaoyu-hue/jiuxi/badge
           publish_results: true
       - name: 上传 Scorecard SARIF 到代码扫描告警
-        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v3
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           sarif_file: results.sarif
           category: scorecard
