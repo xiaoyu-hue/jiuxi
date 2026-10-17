@@ -101,7 +101,8 @@ function main() {
   const targets = [];
   for (const [section, sources] of Object.entries(feeds.sections || {})) {
     for (const s of sources || []) {
-      if (s && s.url) targets.push({ section, label: s.label || s.url, url: s.url, rsshub: s.rsshub });
+      if (s && s.url)
+        targets.push({ section, label: s.label || s.url, url: s.url, rsshub: s.rsshub });
     }
   }
   console.log(
