@@ -93,6 +93,10 @@ jobs:
     needs: build-cloudflare
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     timeout-minutes: 15
+    # 暴露密钥配置状态：冒烟测试 job 据此判断「本次是否真的发生了部署」——
+    # 未配 CF 密钥时部署步骤跳过，冒烟测试也应跳过（而非对线上旧版本误报红灯）。
+    outputs:
+      has-token: ${{ steps.check.outputs.has-token }}
     # 部署互斥（2026-10-15 审查修复 M20）：与 refresh-feeds.yml 的 deploy-cloudflare
     # 共用同一组，防止定时重建与 push 部署交错上传 dist 不一致。
     # 仅部署 job 互斥；build/quality job 不受影响，PR 门禁不被阻塞。
@@ -142,3 +146,102 @@ jobs:
     # 自引用语法（GitHub 2026-07 起官方支持）：$/ 解析到当前运行的提交（zizmor
     # self-repository 修复）；被调工作流不用 secrets，故不传（secrets-inherit 修复）。
     uses: $/.github/workflows/dast-scan.yml
+
+  # ── 部署后冒烟：验证 Pages Functions 真实生效 ──
+  # 背景（2026-10-17 深度评价 P0）：线上 /api/feed、/api/history、/api/candidates
+  # 全部返回 index.html（与首页逐字节相同）——Pages Functions 静默失效，浏览器端
+  # 靠前端降级勉强可用，服务端聚簇 / D1 持久化全部落空，且此前无任何告警机制。
+  # 本 job 把「静默失败」转为 CI 红灯：部署完成后立即请求三个 /api 端点。
+  # 判定分三级：
+  #   绿灯：content-type 为 application/json 且 body 可解析、含预期字段；
+  #   黄灯：JSON 规范但带 d1_binding_missing / query_failed（Functions 链路 OK，
+  #        D1 配置或数据层问题，warning 提示但不阻断，避免误报）；
+  #   红灯：非 JSON（HTML / 纯文本）→ Functions 未部署，exit 1。
+  # 说明：聚合端点即使外部源全部失败也返回 200 {"items":[]}，因此本测试
+  # 不依赖第三方 RSS 可用性，只验证 Functions 链路本身。
+  smoke-test:
+    # 仅当本次运行真的发生了部署才冒烟（has-token 由 deploy-cloudflare 暴露）：
+    # 未配 CF 密钥时部署步骤跳过，对线上旧版本断言会误报红灯；
+    # PR 事件时 deploy-cloudflare 整个 job 跳过，其 outputs 为空，本 job 同样跳过。
+    # deploy-cloudflare 部署失败时默认 needs 语义也会跳过本 job（冒烟无意义）。
+    if: needs.deploy-cloudflare.outputs.has-token == 'true'
+    needs: deploy-cloudflare
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
+    steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - name: 冒烟测试：三个 /api 端点必须返回 JSON
+        env:
+          # 与 build-cloudflare job 的 SITE_URL 保持一致（Cloudflare 主站规范域名）
+          BASE_URL: https://jiuxi-bm1.pages.dev
+        run: |
+          set -uo pipefail
+          BODY_FILE=$(mktemp)
+          fail=0
+
+          # judge <预期字段>：从 $BODY_FILE 读响应体并分级判定
+          #   ok / d1-missing / d1-error:<code> / not-json / missing-field:<name>
+          # 注意判定顺序：error 分级必须先于字段检查——错误响应
+          # （如 {"error":"d1_binding_missing"}）不带业务字段，先查字段会把
+          # 「Functions 生效但 D1 未绑定」误判成 missing-field 触发红灯。
+          judge() {
+            node -e '
+              let raw = "";
+              process.stdin.on("data", (c) => (raw += c));
+              process.stdin.on("end", () => {
+                let d;
+                try { d = JSON.parse(raw); } catch { console.log("not-json"); return; }
+                if (typeof d !== "object" || d === null) { console.log("not-json"); return; }
+                if (d.error === "d1_binding_missing") { console.log("d1-missing"); return; }
+                if (d.error) { console.log("d1-error:" + d.error); return; }
+                const field = process.argv[1];
+                if (field && !Object.prototype.hasOwnProperty.call(d, field)) {
+                  console.log("missing-field:" + field); return;
+                }
+                console.log("ok");
+              });
+            ' "$1" < "$BODY_FILE" 2>/dev/null || echo "not-json"
+          }
+
+          # probe <名称> <路径> <预期字段>：最多 3 次尝试（应对部署后 CDN 短暂传播延迟）
+          probe() {
+            local label="$1" path="$2" field="$3" attempt meta code ct body verdict
+            for attempt in 1 2 3; do
+              meta=$(curl -sS -m 25 -o "$BODY_FILE" -w '%{http_code} %{content_type}' "$BASE_URL$path" 2>/dev/null || echo '000 curl-failed')
+              code=${meta%% *}
+              # 最短匹配删除（#* ）：只去掉开头的状态码，保留完整 content-type
+              # （含 "; charset=utf-8" 后缀——用 ##* 最长匹配会把它截成 charset=utf-8）
+              ct=${meta#* }
+              body=$(head -c 120 "$BODY_FILE" 2>/dev/null || true)
+              verdict=$(judge "$field")
+              if printf '%s' "$ct" | grep -qi 'application/json'; then
+                case "$verdict" in
+                  ok)
+                    echo "✓ $label：HTTP $code，$ct"
+                    return 0 ;;
+                  d1-missing)
+                    echo "::warning::$label：Functions 已生效（返回 JSON），但 D1 绑定缺失（error=d1_binding_missing）。请在 Cloudflare 控制台 → Pages 项目 jiuxi → 设置 → Functions → D1 绑定，添加 binding 名 DB（database jiuxi-history）；否则历史快照 / 候选持久化不落库（前端仍可降级实时拉取）。"
+                    return 0 ;;
+                  d1-error:*)
+                    echo "::warning::$label：Functions 已生效（返回 JSON），但 D1 查询失败（${verdict#d1-error:}）。链路正常，请检查 D1 表结构（snapshots / candidates）与绑定配置。"
+                    return 0 ;;
+                esac
+              fi
+              echo "… $label 第 $attempt 次尝试未达标：HTTP $code，content-type=$ct，body 前 120 字符：$body"
+              [ "$attempt" -lt 3 ] && sleep 12
+            done
+            echo "::error::$label 连续 3 次未返回 application/json（实际 content-type：$ct）。Pages Functions 未部署或编译失败——浏览器端将静默降级为前端直连（跨域源 / 慢源体验受损），服务端聚簇与 D1 持久化全部失效。请检查 deploy-cloudflare job 的 wrangler 部署日志与 Cloudflare 控制台 Functions 部署状态。"
+            return 1
+          }
+
+          probe 'GET /api/history?days=7（D1 快照查询）' '/api/history?days=7' 'snapshots' || fail=1
+          probe 'GET /api/feed?aggregate=1（服务端聚簇，量子位源）' '/api/feed?aggregate=1&section=ai&s=%E9%87%8F%E5%AD%90%E4%BD%8D%20%C2%B7%20AI%40https%3A%2F%2Fwww.qbitai.com%2Ffeed' 'items' || fail=1
+          probe 'GET /api/candidates?section=ai（D1 候选读取）' '/api/candidates?section=ai' 'items' || fail=1
+
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::Pages Functions 冒烟测试未通过——修复前请勿对外宣布「服务端功能正常」"
+            exit 1
+          fi
+          echo "::notice::三个 /api 端点均返回规范 JSON，Pages Functions 部署链路验证通过"
