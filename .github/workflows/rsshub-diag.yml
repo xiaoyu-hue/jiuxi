@@ -1,0 +1,26 @@
+name: RSSHub 诊断（临时）
+
+on:
+  workflow_dispatch
+
+permissions: contents: read
+
+jobs:
+  diag:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: 探测代表性路由并输出响应体
+        env:
+          BASE: https://jiuxi-rsshub.xyyovo520.workers.dev
+        run: |
+          for route in "/" "/hupu" "/36kr/hot-list" "/yicai/headline" "/cls/telegraph" "/douban/book/rank"; do
+            echo "========== $route =========="
+            for i in 1 2; do
+              echo "--- 第 $i 次 ---"
+              curl -sS --max-time 20 -w "\n[HTTP %{http_code} · %{size_download}B · %{time_total}s]\n" \
+                -H "User-Agent: Jiuxi/1.0" -L "$BASE$route" | head -c 800
+              echo
+            done
+          done
