@@ -176,13 +176,13 @@ jobs:
           check() {
             local label="$1" path="$2" fragment="$3" attempt code
             for attempt in 1 2 3; do
-              code=$(curl -sS -m 25 -o /dev/null -w '%{http_code}' "$BASE_URL$path" 2>/dev/null || echo '000')
+              code=$(curl -sSL -m 25 -o /dev/null -w '%{http_code}' "$BASE_URL$path" 2>/dev/null || echo '000')
               if [ "$code" = "200" ]; then
                 if [ -z "$fragment" ]; then
                   echo "OK $label：HTTP 200"
                   return 0
                 fi
-                if curl -sS -m 25 "$BASE_URL$path" 2>/dev/null | grep -q "$fragment"; then
+                if curl -sSL -m 25 "$BASE_URL$path" 2>/dev/null | grep -q "$fragment"; then
                   echo "OK $label：HTTP 200，且含构建期注入片段（$fragment）"
                   return 0
                 fi
