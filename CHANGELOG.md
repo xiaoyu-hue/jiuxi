@@ -2,6 +2,22 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [v1.10.1] — 2026-10-18
+
+> 致谢与署名补充：RSSHub 自托管实例（P1）已部署上线，按开源礼节补全署名、许可证边界说明与基础设施致谢。触发决策：用户在 Cloudflare 完成 RSSHub Worker 一键部署后明确要求「加个说明，保持尊重与致敬致谢」。
+
+### Added
+
+- **README 9.1 新增「自托管数据加工服务」段**：RSSHub（AGPL-3.0）——九溪在 Cloudflare Workers 部署未修改官方实例（`jiuxi-rsshub.xyyovo520.workers.dev`），仅以标准 HTTP GET 调用公开路由；按 AGPL-3.0 §13，只有修改才触发「向网络交互用户提供对应源码」义务，未修改实例的该义务由官方仓库天然满足，九溪与 RSSHub 不构成衍生作品。经 RSSHub 路由取得的源在 `src/data/feeds.json` 中以 `rsshub` 字段标注。
+- **README 9.1 新增「基础设施致谢」段**：Cloudflare Pages（站点托管）、Cloudflare Workers（RSSHub 实例运行时，免费额度 10 万 req/天，九溪日用量约 0.1%）、GitHub Actions（CI/CD 与每周源健康检查）。
+- **README 9.2 新增「特别致敬 · RSSHub」**：说明 RSSHub 是 P1 中文源扩容的承重墙（P2 实测 310 源中 103 个不可用、约七成中文源的背景），致敬 DIYgod 与数百位路由贡献者。
+- **README 路线图新增 Phase 12**：RSSHub 自托管 + 中文源扩容，状态「进行中（Worker 已部署，首批 12 路由接入中）」。
+
+### Changed
+
+- **README 当前版本行与版本沿革叙述**：v1.10.0 → v1.10.1。
+- **docs/九溪-架构文档.md 数据源行**：RSSHub 补充「自托管 Cloudflare Worker」说明；顺手修正该行残留的 v1.8.0 前表述（原写「失败回退第一方同域代理 `/api/feed`」——该后端已于 v1.8.0 随纯静态化移除，实际兜底通道为构建期注入的内嵌 JSON）。
+
 ## [v1.10.0] — 2026-10-17
 
 > 英文保底配额：修复「中文源过多导致英文源没有出现」。触发决策：v1.9.0 中文优先策略上线后，中文候选量（全站约 195 条）已远超每板块 24 条上限，「中文优先 + 纯时间序 + slice(24)」在数学上必然导致英文源零曝光——线上实测 15/15 板块 24/24 全中文、首页今日热点前 10 全中文，英文资讯（HN / arXiv / TechCrunch 等）彻底不可见。用户明确要求「中文优先保留，但英文必须有稳定曝光」。
