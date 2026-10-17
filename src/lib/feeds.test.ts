@@ -7,6 +7,7 @@ import {
   clusterItems,
   rankByHeat,
   rankZhFirst,
+  enQuotaFor,
   isChineseText,
   cleanFeedItems,
   type FeedItem,
@@ -346,6 +347,77 @@ describe('rankZhFirst（中文优先 + 时间降序，2026-10-17 策略变更）
       { link: 'zh1', title: '中文', pubDate: '2026-10-01T00:00:00Z' },
     ]);
     expect(out.map((i) => i.link)).toEqual(['zh1', 'en1']);
+  });
+
+  // 2026-10-17 v1.10.0：英文保底配额（中文候选超限时英文不再零曝光）
+  it('英文保底配额：中文再多也按配额给英文留位（18 中 + 6 英）', () => {
+    const items = [];
+    for (let i = 0; i < 30; i++) {
+      items.push({
+        link: `zh${i}`,
+        title: `中文${i}`,
+        pubDate: `2026-10-${String(10 + (i % 8)).padStart(2, '0')}T00:00:00Z`,
+      });
+    }
+    for (let i = 0; i < 10; i++) {
+      items.push({ link: `en${i}`, title: `English ${i}`, pubDate: '2026-10-15T00:00:00Z' });
+    }
+    const out = rankZhFirst(items, 24, 6);
+    expect(out.filter((i) => i.link.startsWith('zh'))).toHaveLength(18);
+    expect(out.filter((i) => i.link.startsWith('en'))).toHaveLength(6);
+  });
+
+  it('英文不足配额时多余名额由中文补上；中文不足时英文补满空位', () => {
+    const enShort = rankZhFirst(
+      [
+        { link: 'en1', title: 'English', pubDate: '2026-10-15T00:00:00Z' },
+        { link: 'zh1', title: '中文一', pubDate: '2026-10-14T00:00:00Z' },
+        { link: 'zh2', title: '中文二', pubDate: '2026-10-13T00:00:00Z' },
+      ],
+      4,
+      6,
+    );
+    expect(enShort.map((i) => i.link)).toEqual(['zh1', 'zh2', 'en1']);
+    const zhShort = rankZhFirst(
+      [
+        { link: 'zh1', title: '中文', pubDate: '2026-10-14T00:00:00Z' },
+        { link: 'en1', title: 'English A', pubDate: '2026-10-15T00:00:00Z' },
+        { link: 'en2', title: 'English B', pubDate: '2026-10-13T00:00:00Z' },
+        { link: 'en3', title: 'English C', pubDate: '2026-10-12T00:00:00Z' },
+      ],
+      4,
+      2,
+    );
+    expect(zhShort.map((i) => i.link)).toEqual(['zh1', 'en1', 'en2', 'en3']);
+  });
+
+  it('enQuota 大于 limit 时全英文且总数不超 limit', () => {
+    const out = rankZhFirst(
+      [
+        { link: 'zh1', title: '中文', pubDate: '2026-10-14T00:00:00Z' },
+        { link: 'en1', title: 'English A', pubDate: '2026-10-15T00:00:00Z' },
+        { link: 'en2', title: 'English B', pubDate: '2026-10-13T00:00:00Z' },
+      ],
+      2,
+      5,
+    );
+    expect(out.map((i) => i.link)).toEqual(['en1', 'en2']);
+  });
+
+  it('enQuota 默认 0 保持 v1.9.0 旧行为（中文排满后英文才补位）', () => {
+    const items = [
+      { link: 'zh1', title: '中文', pubDate: '2026-10-14T00:00:00Z' },
+      { link: 'en1', title: 'English', pubDate: '2026-10-15T00:00:00Z' },
+    ];
+    expect(rankZhFirst(items, 4).map((i) => i.link)).toEqual(['zh1', 'en1']);
+    expect(rankZhFirst(items, 4, 0).map((i) => i.link)).toEqual(['zh1', 'en1']);
+  });
+
+  it('enQuotaFor：聚合视图英文配额约 25%（3:1），至少保底 1 条', () => {
+    expect(enQuotaFor(10)).toBe(3);
+    expect(enQuotaFor(60)).toBe(15);
+    expect(enQuotaFor(4)).toBe(1);
+    expect(enQuotaFor(1)).toBe(1);
   });
 
   it('不修改入参数组（内部拷贝后排序）', () => {

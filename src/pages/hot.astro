@@ -28,7 +28,7 @@ const SECTIONS = SECTION_ORDER.map((s) => ({ key: s, label: SECTION_META[s].labe
 </BaseLayout>
 
 <script>
-  import { renderItems, wireFavorites, cleanFeedItems, rankZhFirst, clusterItems } from '../lib/feeds';
+  import { renderItems, wireFavorites, cleanFeedItems, rankZhFirst, enQuotaFor, clusterItems } from '../lib/feeds';
   import { SECTION_ORDER } from '../lib/sections';
 
   // 与前端 Filters 同一来源（feeds.json 派生），避免两处漂移。
@@ -69,7 +69,7 @@ const SECTIONS = SECTION_ORDER.map((s) => ({ key: s, label: SECTION_META[s].labe
     }
     const items = cleanFeedItems(clusterItems(all));
     if (items.length) {
-      renderTagged(grid, rankZhFirst(items).slice(0, 60));
+      renderTagged(grid, rankZhFirst(items, 60, enQuotaFor(60)));
     } else {
       grid.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
     }

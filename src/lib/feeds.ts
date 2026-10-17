@@ -6,7 +6,7 @@ import { z } from 'zod';
 // （<script type="application/json" id="jiuxi-feed-*">），本模块只负责：
 //   1) 解析 RSS / HN（parseRss / parseHn）；
 //   2) 跨源聚簇去重（clusterItems）；
-//   3) 中文优先 + 按发布时间排序（rankZhFirst；原按热度 rankByHeat 已不用于展示）；
+//   3) 中文优先 + 按发布时间排序 + 英文保底配额（rankZhFirst；原按热度 rankByHeat 已不用于展示）；
 //   4) 把条目渲染成卡片（renderItems / wireFavorites）。
 // 安全：所有外部文本在渲染前都经 HTML 转义，避免 XSS。
 
@@ -278,23 +278,40 @@ export function isChineseText(text?: string): boolean {
 }
 
 /**
- * 中文优先 + 发布时间降序：中文条目（标题含中文）按发布时间降序整体排在英文条目
- * 之前，英文条目同样按时间降序补位；可选 limit 截断。
+ * 中文优先 + 发布时间降序 + 英文保底配额：中文条目（标题含中文）按发布时间
+ * 降序整体排在英文条目之前，英文条目同样按时间降序补位；可选 limit 截断。
  *
- * 2026-10-17 用户决策：由原「按源轮询（round-robin）/ 按热度」改为
+ * 2026-10-17 用户决策（v1.9.0）：由原「按源轮询（round-robin）/ 按热度」改为
  * 「中文源优先、英文其次，按最新实时信息」。首页「今日热点」与全局热点榜
  * 均改用本函数（原 rankByHeat 热度排序不再用于展示）。
+ *
+ * 2026-10-17 用户决策（v1.10.0）：新增英文保底配额 enQuota——中文候选量已
+ * 远超名额上限，纯中文优先会使英文源零曝光。配额语义：英文最多优先占 enQuota
+ * 个名额，中文补满其余；英文不足时多余名额由中文顶上，中文不足时英文补满空位。
+ * enQuota 默认 0 = v1.9.0 旧行为（中文排满后英文才补位）。
  */
 export function rankZhFirst<T extends { title?: string; pubDate?: string }>(
   items: T[],
   limit?: number,
+  enQuota = 0,
 ): T[] {
   const t = (s?: string) => (s ? Date.parse(s) || 0 : 0);
   const byTimeDesc = (a: T, b: T) => t(b.pubDate) - t(a.pubDate);
   const zh = items.filter((it) => isChineseText(it.title)).sort(byTimeDesc);
   const en = items.filter((it) => !isChineseText(it.title)).sort(byTimeDesc);
-  const all = [...zh, ...en];
-  return typeof limit === 'number' ? all.slice(0, limit) : all;
+  const cap = typeof limit === 'number' ? limit : Infinity;
+  const enReserved = Math.min(enQuota, en.length, cap);
+  const zhTake = Math.min(zh.length, cap - enReserved);
+  const enTake = Math.min(en.length, cap - zhTake);
+  return [...zh.slice(0, zhTake), ...en.slice(0, enTake)];
+}
+
+/**
+ * 聚合视图（首页今日热点 / 全局热点榜）的英文保底配额：约 25%（中:英 ≈ 3:1），
+ * 与板块默认口径（18 中 + 6 英）一致；至少保底 1 条，避免小视图英文零曝光。
+ */
+export function enQuotaFor(limit: number): number {
+  return Math.max(1, Math.round(limit / 4));
 }
 
 export function renderItems(container: HTMLElement, items: FeedItem[]): void {

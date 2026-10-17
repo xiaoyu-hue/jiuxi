@@ -25,6 +25,15 @@ const ROOT = resolve(__dirname, '..');
 const OUT = resolve(ROOT, 'src/data/feed.json');
 const TIMEOUT = 5;
 
+// ── 英文保底配额（2026-10-17 用户决策，v1.10.0）──────────────────────
+// 背景：中文候选量已远超每板块 24 条上限，「中文优先 + 纯时间序」在数学上
+// 必然导致英文源零曝光（v1.9.0 线上曾 15/15 板块 24/24 全中文）。
+// 现每板块为英文资讯预留保底名额：默认 6 条（18 中 + 6 英）；
+// ai / science / dev 三个板块英文源是刚需（arXiv / HN / 论文预印本），
+// 提高为 8 条（16 中 + 8 英）。英文不足时多余名额由中文补上，不会空槽。
+const EN_QUOTA_BY_SECTION = { ai: 8, science: 8, dev: 8 };
+const DEFAULT_EN_QUOTA = 6;
+
 // ── HTTP 工具（execFile 异步 curl，参数与旧 spawnSync 版逐项一致）─────
 // 2026-10-12：源从 14 扩到 21 后，同步版会让板块内抓取完全串行（spawnSync 阻塞
 // 事件循环，Promise 并行无效），最坏耗时随源数线性增长。改用 execFile 异步版：
@@ -150,20 +159,31 @@ async function fetchSource(section, source) {
   return [];
 }
 
-// ── 中文优先 + 发布时间降序（2026-10-17 用户决策）────────────────────
+// ── 中文优先 + 发布时间降序 + 英文保底配额（2026-10-17 用户决策）─────
 // 取代原「按源轮询 round-robin」策略（原意图：高频源不淹没低频源）。
 // 新策略：按最新实时信息，中文条目（标题含中文）优先、英文其次，
-// 各组内按发布时间降序，取前 limit 条。
+// 各组内按发布时间降序；并为英文预留保底配额 enQuota（见文件头常量），
+// 避免中文候选超限时英文源零曝光。
 function isChineseText(text) {
   return /[\u4e00-\u9fff]/.test(text || '');
 }
 
-export function rankZhFirstByTime(items, limit) {
+/**
+ * 中文优先 + 时间降序 + 英文保底配额。
+ * 配额语义：英文最多优先占 enQuota 个名额，中文补满其余；英文不足时
+ * 多余名额由中文顶上，中文不足时英文补满空位（板块不会出现空槽）。
+ * enQuota 默认 0 = v1.9.0 旧行为（中文排满后英文才补位）。
+ */
+export function rankZhFirstByTime(items, limit, enQuota = 0) {
   const t = (s) => (s ? Date.parse(s) || 0 : 0);
   const byTimeDesc = (a, b) => t(b.pubDate) - t(a.pubDate);
   const zh = items.filter((it) => isChineseText(it.title)).sort(byTimeDesc);
   const en = items.filter((it) => !isChineseText(it.title)).sort(byTimeDesc);
-  return [...zh, ...en].slice(0, limit);
+  const cap = typeof limit === 'number' ? limit : Infinity;
+  const enReserved = Math.min(enQuota, en.length, cap);
+  const zhTake = Math.min(zh.length, cap - enReserved);
+  const enTake = Math.min(en.length, cap - zhTake);
+  return [...zh.slice(0, zhTake), ...en.slice(0, enTake)];
 }
 
 // ── 注入数据到 HTML ────────────────────────────────────────────────
@@ -240,7 +260,8 @@ export async function fetchAll() {
     for (const f of emptySources) console.log(`  ○ [${f.section}] ${f.label} — ${f.url}`);
   }
 
-  // 按板块归组 → 去重 → 中文优先后按发布时间限 24 条（2026-10-17 起）
+  // 按板块归组 → 去重 → 中文优先后按发布时间限 24 条，并为英文预留保底配额
+  // （2026-10-17 起：默认 18 中 + 6 英；ai/science/dev 为 16 中 + 8 英）
   for (const [i, task] of tasks.entries()) {
     const items = fetched[i] || [];
     if (!result.sections[task.section]) result.sections[task.section] = [];
@@ -253,8 +274,9 @@ export async function fetchAll() {
       seen.add(it.link);
       return true;
     });
-    result.sections[section] = rankZhFirstByTime(unique, 24);
-    console.log(`  → ${section}: ${result.sections[section].length} 条`);
+    const enQuota = EN_QUOTA_BY_SECTION[section] ?? DEFAULT_EN_QUOTA;
+    result.sections[section] = rankZhFirstByTime(unique, 24, enQuota);
+    console.log(`  → ${section}: ${result.sections[section].length} 条（英文保底 ${enQuota}）`);
   }
 
   return result;

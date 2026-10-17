@@ -2,6 +2,26 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [v1.10.0] — 2026-10-17
+
+> 英文保底配额：修复「中文源过多导致英文源没有出现」。触发决策：v1.9.0 中文优先策略上线后，中文候选量（全站约 195 条）已远超每板块 24 条上限，「中文优先 + 纯时间序 + slice(24)」在数学上必然导致英文源零曝光——线上实测 15/15 板块 24/24 全中文、首页今日热点前 10 全中文，英文资讯（HN / arXiv / TechCrunch 等）彻底不可见。用户明确要求「中文优先保留，但英文必须有稳定曝光」。
+
+### Changed
+
+- **双端排序函数新增英文保底配额 `enQuota`**：构建端 `scripts/fetch-feeds.mjs` 的 `rankZhFirstByTime(items, limit, enQuota = 0)` 与前端 `src/lib/feeds.ts` 的 `rankZhFirst(items, limit?, enQuota = 0)` 同步改造（两端行为必须一致，否则构建期注入数据与浏览器端重排会打架）。配额语义：英文最多优先占 `enQuota` 个名额，中文补满其余；**英文不足时多余名额由中文顶上，中文不足时英文补满空位**——板块不会出现空槽，也不会出现「英文占位但内容陈旧」。`enQuota` 默认 0 = v1.9.0 旧行为（中文排满后英文才补位），存量调用零影响。
+- **板块配额配置**：`fetch-feeds.mjs` 新增 `EN_QUOTA_BY_SECTION`（ai / science / dev = 8，这三个板块英文源是刚需：arXiv / HN / 论文预印本）与 `DEFAULT_EN_QUOTA`（6），即默认每板块 **18 中 + 6 英**、上述三板块 **16 中 + 8 英**；构建日志每条板块输出追加「（英文保底 N）」便于 CI 核查。
+- **聚合视图按 3:1 口径**：`src/lib/feeds.ts` 新增导出 `enQuotaFor(limit)`（约 25%，至少 1 条）；`src/pages/index.astro`（首页今日热点）改用 `rankZhFirst(items, 10, enQuotaFor(10))`（7 中 + 3 英）、`src/pages/hot.astro`（全局热点榜）改用 `rankZhFirst(items, 60, enQuotaFor(60))`（45 中 + 15 英）。
+- **文档同步**：README 项目简介 / 核心特性 / 工程经验 / 知识路径 / 路线图 / 版本沿革六处策略描述改为「中文优先 + 英文保底配额」口径，新增 Phase 11；`src/pages/feed-policy.astro` 策展标准页排序规则同步（v1.9.0 口径 → v1.10.0 口径）；`docs/云端资源交接清单.md` 最后核对时间戳更新。
+
+### Added
+
+- **配额测试**：`src/lib/feeds.test.ts` 与 `src/lib/fetch-feeds.test.ts` 各新增 4 个用例组（共 9 个用例）：保底配额精确切分（18+6 / 16+8）、英文不足时中文补位、中文不足时英文补满、enQuota 超 limit 全英文、默认 0 保持旧行为、`enQuotaFor` 取值。全量测试 96 → 105 全绿。
+
+### Known Issues
+
+- **配额值为经验设定，需线上观察微调**：6/24 与 8/24 基于英文科技资讯日更新量级的估计（HN 前端页日约 30 帖、arXiv cs.AI 日约百篇但九溪只收头部源）。上线后应观察一周各板块英文条目的「新鲜度」，若出现英文条目明显陈旧（配额大而当日英文产出少）或英文仍偶发缺席（配额小而当日英文产出多），调整代码顶部两个常量即可。
+- **沙箱与 CI 抓取表现不同**：沙箱屏蔽 Google News，本次沙箱构建中 home/travel/food/books 板块中文条目为 0（全英）；线上（CI）这些板块由中文 Google News 查询供给，将是 18+6 形态。配额逻辑本身已经沙箱数据验证（news/tech/health/education/dev 精确 18+6，ai/science/finance/sports 中文不足时英文补满空位）。
+
 ## [v1.9.0] — 2026-10-17
 
 > 资讯选取策略变更 + 中文源补充：从「每板块 24 条按源轮询」改为「中文优先 + 按发布时间」，并为中文供给不足的板块补充中国新闻网等官方 RSS 与中文 Google News 查询。触发决策：轮询保证多元化但不反映最新实时、也不区分语言权重；本站定位中文信息聚集地，应让中文资讯按时间排满名额、英文补位。

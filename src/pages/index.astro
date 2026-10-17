@@ -72,7 +72,7 @@ const blocks = [...sectionBlocks, ...featureBlocks];
 </BaseLayout>
 
 <script>
-  import { renderItems, wireFavorites, cleanFeedItems, rankZhFirst, clusterItems } from '../lib/feeds';
+  import { renderItems, wireFavorites, cleanFeedItems, rankZhFirst, enQuotaFor, clusterItems } from '../lib/feeds';
   import { SECTION_ORDER } from '../lib/sections';
 
   // 今日热点覆盖全部板块（2026-10-15 扩容：4 → 15，与 feeds.json 联动派生）。
@@ -98,7 +98,7 @@ const blocks = [...sectionBlocks, ...featureBlocks];
     const all = SECTIONS.flatMap((s) => (sections[s] || []) as any[]);
     const items = cleanFeedItems(clusterItems(all));
     if (items.length) {
-      renderItems(el, rankZhFirst(items).slice(0, 10));
+      renderItems(el, rankZhFirst(items, 10, enQuotaFor(10)));
       wireFavorites(el);
     } else {
       el.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
