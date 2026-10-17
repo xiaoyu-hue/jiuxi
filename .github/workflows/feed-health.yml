@@ -1,0 +1,36 @@
+# 九溪 · 资讯源健康检查（P2）
+#
+# 每周一自动探测 feeds.json 全部源的存活状态，报告写入 Action Summary。
+# 背景：中文媒体官方 RSS 在集体消亡，死链只会越攒越多；而构建日志里的
+# 失败信号会过期、没人看。本工作流把「源失效」变成每周可见的固定信号。
+# 定位：只报告、不阻断——探测失败不影响任何构建与部署（退出码恒 0）。
+# 配套脚本：scripts/feed-health-check.mjs（判定口径与构建期健康摘要对齐）。
+
+name: Feed Health Check
+
+on:
+  schedule:
+    # 每周一 03:00 UTC（北京时间 11:00）
+    - cron: '0 3 * * 1'
+  workflow_dispatch: # 支持手动触发（改完 feeds.json 可立即全量体检）
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
+    timeout-minutes: 15 # 310 源 × 并发 10 × 8s 超时，最坏约 5 分钟，留一倍余量
+    steps:
+      - name: Harden-Runner（出口审计）
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+
+      - name: 探测全部资讯源（报告写入 Action Summary）
+        run: node scripts/feed-health-check.mjs
