@@ -3,7 +3,7 @@
 //
 // 复用首页「今日热点」的合并排序逻辑，跨全部板块（2026-10-15 扩容：4 → 15，
 // 板块列表从 feeds.json 派生），按「独立信源数（cluster_size）」降序展示全局热点；
-// 顶部 Filters 可按板块筛选。D1（/api/candidates）为空时回退实时聚合，永不白屏。
+// 顶部 Filters 可按板块筛选。数据来自构建期内嵌的聚合 JSON（#jiuxi-feed-all），纯静态。
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Filters from '../components/Filters.astro';
 import { SECTION_META, SECTION_ORDER } from '../lib/sections';
@@ -28,10 +28,11 @@ const SECTIONS = SECTION_ORDER.map((s) => ({ key: s, label: SECTION_META[s].labe
 </BaseLayout>
 
 <script>
-  import { refreshFeedOnline, renderItems, wireFavorites, rankByHeat } from '../lib/feeds';
+  import { renderItems, wireFavorites, cleanFeedItems, rankByHeat, clusterItems } from '../lib/feeds';
   import { SECTION_ORDER } from '../lib/sections';
 
-  // 与前端 Filters 同一来源（feeds.json 派生），避免两处漂移
+  // 与前端 Filters 同一来源（feeds.json 派生），避免两处漂移。
+  // 数据来自构建期内嵌的聚合 JSON（#jiuxi-feed-all），纯静态、零运行时 API。
   const SECTIONS = SECTION_ORDER;
   const grid = document.getElementById('hot-grid');
 
@@ -46,40 +47,29 @@ const SECTIONS = SECTION_ORDER.map((s) => ({ key: s, label: SECTION_META[s].labe
     });
   }
 
-  async function loadHot() {
+  function loadHot() {
     if (!grid) return;
-    const all: any[] = [];
-    await Promise.all(
-      SECTIONS.map(async (s) => {
-        try {
-          const res = await fetch(`/api/candidates?section=${s}`);
-          if (res.ok) {
-            const j = await res.json();
-            if (Array.isArray(j.items)) {
-              (j.items as any[]).forEach((it: any) => (it._section = s));
-              all.push(...j.items);
-            }
-          }
-        } catch {
-          /* 单板块失败忽略，不阻断其它板块 */
-        }
-      }),
-    );
-
-    if (all.length) {
-      renderTagged(grid, rankByHeat(all, 6).slice(0, 60));
+    const script = document.getElementById('jiuxi-feed-all');
+    if (!script) {
+      grid.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
       return;
     }
-
-    // D1 为空 → 回退实时聚合（按板块逐次拉，可靠标注板块）
-    const live: any[] = [];
-    for (const s of SECTIONS) {
-      const items = await refreshFeedOnline(s);
-      items.forEach((it: any) => (it._section = s));
-      live.push(...items);
+    let data: { sections?: Record<string, any[]> };
+    try {
+      data = JSON.parse(script.textContent ?? '{}');
+    } catch {
+      grid.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
+      return;
     }
-    if (live.length) {
-      renderTagged(grid, rankByHeat(live, 6).slice(0, 60));
+    const sections = data.sections || {};
+    const all: any[] = [];
+    for (const s of SECTIONS) {
+      (sections[s] || []).forEach((it: any) => (it._section = s));
+      all.push(...(sections[s] || []));
+    }
+    const items = cleanFeedItems(clusterItems(all));
+    if (items.length) {
+      renderTagged(grid, rankByHeat(items, 6).slice(0, 60));
     } else {
       grid.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
     }

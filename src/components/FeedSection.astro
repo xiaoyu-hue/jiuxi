@@ -25,20 +25,7 @@ const { section, title, description = '', showRefresh = false } = Astro.props;
 
 <BaseLayout title={`九溪 · ${title}`} description={description}>
   <header class="page-head">
-    <h2>
-      {title}{
-        showRefresh && (
-          <button
-            class:list={['refresh-btn']}
-            id={`refresh-${section}`}
-            type="button"
-            title="绕过缓存，实时抓取该板块最新一批"
-          >
-            立即刷新
-          </button>
-        )
-      }
-    </h2>
+    <h2>{title}</h2>
     <p>{description}</p>
     <div class="feed-status" id={`status-${section}`}>正在加载最新资讯…</div>
   </header>
@@ -85,79 +72,25 @@ const { section, title, description = '', showRefresh = false } = Astro.props;
 </style>
 
 <script>
-  import { loadFeed, refreshFeedOnline, renderItems, wireFavorites } from '../lib/feeds';
+  import { renderItems, wireFavorites } from '../lib/feeds';
   import type { Section } from '../lib/sections';
 
-  document.querySelectorAll<HTMLElement>('.feed-grid').forEach(async (el) => {
+  // 纯静态：直接渲染构建期内嵌的 JSON（scripts/fetch-feeds.mjs 注入），零运行时请求。
+  document.querySelectorAll<HTMLElement>('.feed-grid').forEach((el) => {
     const section = el.dataset.section as any;
     const status = document.getElementById(`status-${section}`);
-
-    // 第1步：构建时内嵌 JSON（零等待，立即展示）
-    const embeddedScript = document.getElementById(`jiuxi-feed-${section}`);
-    if (embeddedScript) {
-      try {
-        const base = JSON.parse(embeddedScript.textContent ?? '[]') as any[];
-        if (base.length) {
-          renderItems(el, base);
-          wireFavorites(el);
-          if (status) status.textContent = `已加载 · ${new Date().toLocaleString('zh-CN')}`;
-          // 后台刷新：主站（/api/feed 代理可用）实时拉最新，成功后整屏替换为在线结果，
-          // 确保用户看到的是最新资讯而非构建期内嵌的陈旧快照；在线全部源失败才保留内嵌。
-          refreshFeedOnline(section)
-            .then((online) => {
-              if (!online.length) return; // 全部源失败则保留内嵌旧数据
-              // 直接用实时抓取结果（各源最新合并去重），不再混合可能陈旧的构建期内嵌
-              renderItems(el, online);
-              wireFavorites(el);
-              if (status) status.textContent = `已更新 · ${new Date().toLocaleString('zh-CN')}`;
-            })
-            .catch(() => {});
-          return;
-        }
-      } catch { /* 解析失败，降级到普通加载 */ }
-    }
-
-    // 第2步：无内嵌数据 → 在线优先，失败回退缓存
+    const script = document.getElementById(`jiuxi-feed-${section}`);
     try {
-      const items = await loadFeed(section);
-      if (!items.length) {
-        if (status) status.textContent = '暂时无法获取资讯，请稍后重试或检查网络';
+      const items = script ? (JSON.parse(script.textContent ?? '[]') as any[]) : [];
+      if (items.length) {
+        renderItems(el, items);
+        wireFavorites(el);
+        if (status) status.textContent = `已加载 · ${new Date().toLocaleString('zh-CN')}`;
         return;
       }
-      renderItems(el, items);
-      wireFavorites(el);
-      if (status) status.textContent = `已更新 · ${new Date().toLocaleString('zh-CN')}`;
     } catch {
-      if (status) status.textContent = '加载失败，稍后重试';
+      /* 解析失败，走下方空态 */
     }
-  });
-
-  // 「立即刷新」按钮（渐进试点）：绕过缓存实时抓取该板块，成功整屏替换，
-  // 失败保留已展示内容并明示状态。容错形态与首页 refresh-hot 一致——
-  // disabled + finally 复位，防「刷新中…」永久卡死（P0-1 回归防线）。
-  document.querySelectorAll<HTMLButtonElement>('button.refresh-btn').forEach((btn) => {
-    const section = btn.id.replace(/^refresh-/, '') as Section;
-    btn.addEventListener('click', async () => {
-      const grid = document.getElementById(`feed-${section}`);
-      const status = document.getElementById(`status-${section}`);
-      if (!grid) return;
-      btn.disabled = true;
-      btn.textContent = '刷新中…';
-      try {
-        const online = await refreshFeedOnline(section);
-        if (online.length) {
-          renderItems(grid, online);
-          wireFavorites(grid);
-          if (status) status.textContent = `已更新 · ${new Date().toLocaleString('zh-CN')}`;
-        } else if (status) {
-          status.textContent = '刷新失败，已显示此前的资讯';
-        }
-      } catch {
-        if (status) status.textContent = '刷新失败，已显示此前的资讯';
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '立即刷新';
-      }
-    });
+    if (status) status.textContent = '暂无可展示的资讯';
   });
 </script>

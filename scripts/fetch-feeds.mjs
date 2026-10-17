@@ -2,13 +2,20 @@
 /**
  * 九溪 · 预抓取并注入 feed 数据到各页面 HTML
  *
- * 1. 抓取动态资讯 → src/data/feed.json
- * 2. 将各板块数据内嵌到对应页面的 HTML 中（脚本标签）
- * 3. 页面打开即有数据，无需等待网络请求
+ * 两段式（CI / 本地 build 均按此顺序）：
+ *   1) --write  ：抓取动态资讯 → 写入 src/data/feed.json（在 astro build 之前运行）；
+ *   2) astro build 生成 dist；
+ *   3) --inject：读取 feed.json，把数据注入各页面 HTML（在 astro build 之后运行）。
+ *
+ * 注入内容：
+ *   - 板块页 dist/<section>/index.html：<script id="jiuxi-feed-<section>">（供 FeedSection 渲染）；
+ *   - 首页 / 热点榜 / 策展台：<script id="jiuxi-feed-all"> 聚合全板块数据（纯静态，零运行时 API）。
+ *
+ * 历史快照（D1）已在 2026-10-17 架构简化中移除：站点改为纯静态，内容随每次 build 刷新。
  */
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { extractFromXml } from '@extractus/feed-extractor';
@@ -143,26 +150,6 @@ async function fetchSource(section, source) {
   return [];
 }
 
-// 合并该板块下所有成功源的结果（而非只取第一个成功的源）：
-// 更符合“综合信息聚集地”的定位，且单源失效时其余源仍能补位。
-// （fetchSection 原为板块内 Promise.all；2026-10-15 起并入全局任务池 runPool，
-//  板块只作为归组维度，不再作为并发单位——见下方主流程。）
-
-// ── 注入数据到 HTML ────────────────────────────────────────────────
-// 导出以便单元测试；注入前把 < 转义为 \u003c，阻止外部 RSS 标题里的
-// </script> 提前闭合脚本块（否则可造成全站存储型 XSS）。
-export function injectData(html, section, items) {
-  const json = JSON.stringify(items).replace(/</g, '\\u003c');
-  const jsonScript = `<script type="application/json" id="jiuxi-feed-${section}">${json}</script>`;
-  html = html.replace('</head>', jsonScript + '\n</head>');
-  // 更新状态文本
-  html = html.replace(
-    new RegExp(`id="status-${section}">[^<]*`, 'g'),
-    `id="status-${section}">已加载最新资讯`,
-  );
-  return html;
-}
-
 /**
  * 按源轮询合并（round-robin）：每个源轮流取一条（组内按发布时间降序），
  * 直到凑满 limit。保证每个有数据的源都获得曝光位——
@@ -203,15 +190,44 @@ function roundRobinBySource(items, limit) {
   return out;
 }
 
-// ── 主流程 ─────────────────────────────────────────────────────────
-async function main() {
+// ── 注入数据到 HTML ────────────────────────────────────────────────
+// 导出以便单元测试；注入前把 < 转义为 \u003c，阻止外部 RSS 标题里的
+// </script> 提前闭合脚本块（否则可造成全站存储型 XSS）。
+export function injectData(html, section, items) {
+  const json = JSON.stringify(items).replace(/</g, '\\u003c');
+  const jsonScript = `<script type="application/json" id="jiuxi-feed-${section}">${json}</script>`;
+  html = html.replace('</head>', jsonScript + '\n</head>');
+  // 更新状态文本
+  html = html.replace(
+    new RegExp(`id="status-${section}">[^<]*`, 'g'),
+    `id="status-${section}">已加载最新资讯`,
+  );
+  return html;
+}
+
+/**
+ * 注入「全板块聚合数据」到首页 / 热点榜 / 策展台。
+ * 纯静态：这三页不再依赖运行时 D1 取数，打开即有内容（零运行时 API 请求）。
+ */
+export function injectAll(html, result) {
+  const json = JSON.stringify(result).replace(/</g, '\\u003c');
+  const jsonScript = `<script type="application/json" id="jiuxi-feed-all">${json}</script>`;
+  return html.replace('</head>', jsonScript + '\n</head>');
+}
+
+/**
+ * 抓取全部板块资讯：有界并发池抓取 → 源健康摘要 → 归组去重 → 按源轮询限 24 条。
+ * 单源失败不阻断其它（fetchSource 内部容错返回 []）。
+ */
+export async function fetchAll() {
+  failedSources.length = 0;
+  emptySources.length = 0;
   const t0 = Date.now();
   console.log('[九溪] 开始抓取动态资讯…');
 
   const result = { generatedAt: new Date().toISOString(), sections: {} };
 
   // 全局任务池抓取：板块 × 源拍平为任务队列，有界并发（见 runPool 注释）。
-  // 单源失败不阻断其它（fetchSource 内部容错返回 []），与旧 Promise.allSettled 语义一致。
   const tasks = [];
   for (const [section, sources] of Object.entries(SOURCES)) {
     for (const source of sources) tasks.push({ section, source });
@@ -265,7 +281,11 @@ async function main() {
     console.log(`  → ${section}: ${result.sections[section].length} 条`);
   }
 
-  // 保存 JSON
+  return result;
+}
+
+/** 把抓取结果写入 src/data/feed.json；全部板块为空时退出码 1 强阻断，避免空内容上线。 */
+export function writeFeedJson(result) {
   mkdirSync(resolve(OUT, '..'), { recursive: true });
   writeFileSync(OUT, JSON.stringify(result, null, 2), 'utf8');
   console.log(`✅ 已写入 ${OUT}`);
@@ -280,84 +300,11 @@ async function main() {
     console.error('❌ 全部板块抓取失败，产物为空——终止构建（退出码 1），避免空内容上线');
     process.exit(1);
   }
+  return result;
+}
 
-  // 保存历史快照（通过子进程调用 save-history.mjs）
-  try {
-    const { spawn } = await import('node:child_process');
-    const date = new Date().toISOString().split('T')[0];
-    console.log(`\n[九溪] 正在保存 ${date} 的历史快照...`);
-
-    // 构建历史数据
-    const historyData = {
-      generatedAt: new Date().toISOString(),
-      sections: result.sections,
-    };
-
-    // 使用 spawn 调用 save-history.mjs
-    await new Promise((resolve) => {
-      const child = spawn('node', ['scripts/save-history.mjs'], {
-        cwd: ROOT,
-        stdio: ['pipe', 'inherit', 'inherit'],
-      });
-
-      // 2026-10-15 审查 P2 加固：
-      // 1) 看守超时——save-history 正常秒级完成；若其 D1 同步挂起
-      //    （旧版 fetch 无超时），整条构建链会无限期卡死。60s 足够
-      //    覆盖正常路径（含 15s D1 超时），超时强杀子进程；
-      //    历史保存失败不阻断构建（feed.json 与注入均已在此之前完成）。
-      // 2) stdin EPIPE——子进程若在读取前退出（启动即崩等），
-      //    write 会抛 EPIPE。属预期内的失败信号，按"保存失败"处理，
-      //    显式捕获避免语义含糊的异常路径。
-      let settled = false;
-      const finish = (warn) => {
-        if (settled) return;
-        settled = true;
-        clearTimeout(watchdog);
-        if (warn) console.warn(warn);
-        resolve();
-      };
-      const watchdog = setTimeout(() => {
-        child.kill('SIGKILL');
-        finish('⚠️ 历史快照保存超时（60s），已终止子进程（不影响构建）');
-      }, 60000);
-
-      // 同步 write 失败（管道已断开）+ 异步流错误都要接住
-      try {
-        child.stdin.write(JSON.stringify(historyData));
-        child.stdin.end();
-      } catch (e) {
-        if (e.code === 'EPIPE') {
-          child.kill('SIGKILL');
-          finish('⚠️ 历史快照保存失败（子进程提前退出）');
-          return;
-        }
-        throw e;
-      }
-      child.stdin.on('error', (e) => {
-        if (e.code === 'EPIPE') {
-          child.kill('SIGKILL');
-          finish('⚠️ 历史快照保存失败（子进程提前退出）');
-        }
-      });
-
-      child.on('close', (code) => {
-        if (code === 0) {
-          console.log('✅ 历史快照保存完成');
-          finish();
-        } else {
-          finish('⚠️ 历史快照保存失败');
-        }
-      });
-
-      child.on('error', (e) => {
-        finish(`⚠️ 历史快照保存失败: ${e.message}`);
-      });
-    });
-  } catch (error) {
-    console.warn('⚠️ 历史快照保存异常:', error.message);
-  }
-
-  // 注入数据到各页面 HTML。
+/** 把数据注入所有页面 HTML：板块页（按 section）+ 首页/热点榜/策展台（聚合）。 */
+export function injectAllPages(result) {
   // 板块列表从 feeds.json 的 SOURCES 派生（原先硬编码四板块，新增板块忘同步会静默不注入）
   const PAGES = Object.keys(SOURCES).map((section) => ({
     section,
@@ -366,6 +313,10 @@ async function main() {
 
   for (const { section, path } of PAGES) {
     const filePath = resolve(ROOT, path);
+    if (!existsSync(filePath)) {
+      console.log(`  ⚠️  ${path} 不存在（跳过注入）`);
+      continue;
+    }
     let html = readFileSync(filePath, 'utf8');
     const items = result.sections[section] || [];
     if (items.length) {
@@ -377,6 +328,45 @@ async function main() {
     }
   }
 
+  // 首页 / 全局热点榜 / 策展台：注入「全板块聚合数据」（id=jiuxi-feed-all），
+  // 供这三个页面在构建期拿到数据（纯静态，不再依赖运行时 D1 取数）。
+  for (const p of ['index.html', 'hot/index.html', 'curate/index.html']) {
+    const f = resolve(ROOT, 'dist', p);
+    if (!existsSync(f)) {
+      console.log(`  ⚠️  ${p} 不存在（跳过聚合注入）`);
+      continue;
+    }
+    let h = readFileSync(f, 'utf8');
+    h = injectAll(h, result);
+    writeFileSync(f, h, 'utf8');
+    console.log(`  ✅ 已注入聚合数据 → ${p}`);
+  }
+}
+
+async function main() {
+  // 两段式：--write 只抓写 JSON（build 前）；--inject 只读 JSON 注入（build 后）；
+  // 无参数则抓写+注入一气呵成（兼容旧单步调用）。
+  const INJECT_ONLY = process.argv.includes('--inject');
+  const WRITE_ONLY = process.argv.includes('--write');
+
+  if (INJECT_ONLY) {
+    let result;
+    try {
+      result = JSON.parse(readFileSync(OUT, 'utf8'));
+    } catch {
+      console.error(`❌ 未找到 ${OUT}，请先运行 node scripts/fetch-feeds.mjs --write`);
+      process.exit(1);
+    }
+    const t0 = Date.now();
+    injectAllPages(result);
+    console.log(`\n注入耗时: ${Date.now() - t0}ms`);
+    return;
+  }
+
+  const t0 = Date.now();
+  const result = await fetchAll();
+  writeFeedJson(result);
+  if (!WRITE_ONLY) injectAllPages(result);
   console.log(`\n总耗时: ${Date.now() - t0}ms`);
 }
 

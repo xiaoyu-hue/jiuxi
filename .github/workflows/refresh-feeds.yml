@@ -2,12 +2,8 @@
 # 每小时重建并部署主站；也可手动 workflow_dispatch 或 repository_dispatch 触发。
 # 注：早先每 30 分钟（cron */30）线上一次都没被调度——GitHub 对高频
 # schedule 不可靠（官方仅说明"可能延迟"）。降到每小时（24 次/天）后
-# 调度可靠性显著提升，且内容新鲜度本就有前端 refreshInBackground 兜底。
+# 调度可靠性显著提升，且内容新鲜度由构建期预渲染保证（纯静态，无运行时刷新）。
 # 缺 Cloudflare 密钥时自动跳过部署。
-#
-# D1 历史同步（阶段 1）：仅 build-cloudflare 一个 job 传入 D1 环境变量——
-# 每次定时重建只写一次云端（save-history.mjs 用 INSERT OR REPLACE，天然幂等）。
-# 缺任一变量的情况下 save-history.mjs 自动跳过 D1，仅保存本地 JSON，行为与改造前一致。
 
 name: 定时重建（刷新资讯）
 
@@ -48,72 +44,6 @@ jobs:
         run: npm run build
         env:
           SITE_URL: https://jiuxi-bm1.pages.dev
-      - name: 预抓取并注入动态资讯
-        run: node scripts/fetch-feeds.mjs
-        # D1 历史快照同步（save-history.mjs 读取这三个变量；缺失则自动跳过，不报错）
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
-      - name: D1 快照数据量核查（验证 save-history 写穿真实生效）
-        # 背景：save-history.mjs 对 D1 失败只警告不阻断（设计使然——云端故障不应
-        # 拖垮定时重建），但 ⚠️ 日志会淹没在上百行抓取输出里。本步骤在写入后立即
-        # 经 Cloudflare REST API（与 scripts/lib/d1.mjs 同一端点）查 snapshots 表：
-        #   0 行 / 超过 2 小时未更新 / 查询失败 → ::warning::（把静默失败变可见）。
-        # 判定为 warning 而非 error：定时任务每小时一次，红灯会产生持续通知噪音；
-        # warning 在 Actions UI 与通知中同样可见，足以触发人工排查。
-        # 密钥缺失时自动跳过（与 save-history 的静默跳过行为一致）。
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
-        run: |
-          set -uo pipefail
-          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ] || [ -z "${D1_DATABASE_ID:-}" ]; then
-            echo "::notice::未配置 D1 环境变量，跳过快照数据量核查（save-history 同步跳过，行为与既有一致）"
-            exit 0
-          fi
-          resp=$(curl -sS -m 20 -X POST \
-            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/d1/database/${D1_DATABASE_ID}/query" \
-            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d '{"sql":"SELECT COUNT(*) AS n, MAX(timestamp) AS latest FROM snapshots"}' || echo '')
-          stats=$(printf '%s' "$resp" | node -e '
-            let raw = "";
-            process.stdin.on("data", (c) => (raw += c));
-            process.stdin.on("end", () => {
-              let d;
-              try { d = JSON.parse(raw); } catch { console.log("api-error:响应不是合法 JSON"); return; }
-              if (!d.success) { console.log("api-error:" + ((d.errors && d.errors[0] && d.errors[0].message) || "unknown")); return; }
-              const row = d.result && d.result[0] && d.result[0].results && d.result[0].results[0];
-              if (!row) { console.log("api-error:结果结构异常"); return; }
-              const n = row.n === null || row.n === undefined ? "null" : String(row.n);
-              const latest = row.latest === null || row.latest === undefined ? "null" : String(row.latest);
-              console.log(n + " " + latest);
-            });
-          ' || echo 'api-error:node 解析失败')
-          case "$stats" in
-            api-error:*)
-              echo "::warning::D1 快照核查查询失败（${stats#api-error:}）。save-history 的写穿可能静默失败——请检查 CLOUDFLARE_API_TOKEN 的 D1 编辑权限与 D1_DATABASE_ID 是否正确。"
-              exit 0 ;;
-          esac
-          n=${stats%% *}
-          latest=${stats##* }
-          if [ "$n" = "0" ]; then
-            echo "::warning::D1 snapshots 表为 0 行——定时重建的 save-history 写穿从未成功（或表刚建）。请对照本 job 日志中的 ☁️ / ⚠️ 行与密钥权限。"
-            exit 0
-          fi
-          if [ "$latest" = "null" ]; then
-            echo "::warning::D1 snapshots 共 $n 行但 MAX(timestamp) 为空，数据异常，请人工检查。"
-            exit 0
-          fi
-          age_ms=$(( $(date +%s%3N) - latest ))
-          age_h=$(( age_ms / 3600000 ))
-          if [ "$age_ms" -gt 7200000 ]; then
-            echo "::warning::D1 snapshots 最新写入已过 ${age_h} 小时（共 $n 行）——超过 2×cron 间隔，本次 save-history 写穿可能失败，请对照 job 日志中的 ☁️ / ⚠️ 行。"
-            exit 0
-          fi
-          echo "::notice::D1 snapshots 共 $n 行，最新写入在 ${age_h} 小时内，写穿链路正常"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: cf-dist
@@ -133,12 +63,10 @@ jobs:
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
-      # 必须拉取仓库以携带 functions/ 目录：wrangler pages deploy dist 只上传 cwd 下
-      # 的静态产物 + 自动编译 cwd/functions（不存在则整个 Functions 层缺失）。
-      # 2026-10-17 修复（深度评价 P0 直接根因）：本 job 此前漏了 checkout——
-      # deploy.yml 有而此处无，定时重建每小时把「无 functions」的 dist 覆盖上线，
-      # 导致线上 /api/feed、/api/history、/api/candidates 全部返回 index.html。
-      - name: 拉取仓库（含 functions/ 代理）
+      # 拉取仓库：wrangler pages deploy dist 上传静态产物。本仓库已是纯静态站点
+      # （无 functions/ 目录，后端已移除），checkout 仅为保留构建上下文与可复现性，
+      # 部署产物完全来自 build-cloudflare job 上传的 cf-dist artifact。
+      - name: 拉取仓库（纯静态部署上下文）
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）

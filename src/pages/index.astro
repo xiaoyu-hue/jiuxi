@@ -25,7 +25,6 @@ const featureBlocks: Block[] = [
   { href: '/timeline', title: 'AI 发展时间线', desc: '从起源到今天' },
   { href: '/tools', title: 'AI 工具箱', desc: '好用的 AI 工具推荐' },
   { href: '/reading', title: '读书推荐', desc: '值得一读的书' },
-  { href: '/history', title: '历史回顾', desc: '每日资讯快照，回看过去' },
   { href: '/settings', title: '设置与数据', desc: '主题、偏好与导出' },
   { href: '/about', title: '关于九溪', desc: '项目说明与致谢' },
 ];
@@ -53,7 +52,7 @@ const blocks = [...sectionBlocks, ...featureBlocks];
   </header>
 
   <header class="feed-head">
-    <h2>今日热点<button id="refresh-hot" class="refresh-hot" type="button" title="绕过缓存，实时抓取最新一批">立即刷新</button></h2>
+    <h2>今日热点</h2>
     <p>聚合 {SECTION_ORDER.length} 个板块热讯 · 多源交叉的同一事件置顶</p>
   </header>
   <div class="feed-grid" id="home-hot">
@@ -73,77 +72,40 @@ const blocks = [...sectionBlocks, ...featureBlocks];
 </BaseLayout>
 
 <script>
-  import { renderItems, wireFavorites, refreshFeedOnline, cleanFeedItems, rankByHeat } from '../lib/feeds';
+  import { renderItems, wireFavorites, cleanFeedItems, rankByHeat, clusterItems } from '../lib/feeds';
   import { SECTION_ORDER } from '../lib/sections';
 
-  // 今日热点覆盖全部板块（2026-10-15 扩容：4 → 15，与 feeds.json 联动派生）
+  // 今日热点覆盖全部板块（2026-10-15 扩容：4 → 15，与 feeds.json 联动派生）。
+  // 数据来自构建期内嵌的聚合 JSON（#jiuxi-feed-all），纯静态、零运行时 API。
   const SECTIONS = SECTION_ORDER;
   const el = document.getElementById('home-hot');
 
-  async function loadHot(forceLive = false) {
+  function loadHot() {
     if (!el) return;
-    const root = el;
-    if (forceLive) {
-      const live = cleanFeedItems((await Promise.all(SECTIONS.map((s) => refreshFeedOnline(s)))).flat());
-      if (live.length) {
-        renderItems(root, rankByHeat(live, 3).slice(0, 10));
-        wireFavorites(root);
-      } else {
-        root.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
-      }
+    const script = document.getElementById('jiuxi-feed-all');
+    if (!script) {
+      el.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
       return;
     }
-    const raw: unknown[] = [];
-    await Promise.all(
-      SECTIONS.map(async (s) => {
-        try {
-          const res = await fetch(`/api/candidates?section=${s}`);
-          if (res.ok) {
-            const j = await res.json();
-            if (Array.isArray(j.items)) raw.push(...j.items);
-          }
-        } catch {
-          /* 单板块失败忽略 */
-        }
-      }),
-    );
-    const items = cleanFeedItems(raw);
+    let data: { sections?: Record<string, any[]> };
+    try {
+      data = JSON.parse(script.textContent ?? '{}');
+    } catch {
+      el.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
+      return;
+    }
+    const sections = data.sections || {};
+    const all = SECTIONS.flatMap((s) => (sections[s] || []) as any[]);
+    const items = cleanFeedItems(clusterItems(all));
     if (items.length) {
-      renderItems(root, rankByHeat(items, 3).slice(0, 10));
-      wireFavorites(root);
+      renderItems(el, rankByHeat(items, 3).slice(0, 10));
+      wireFavorites(el);
     } else {
-      // D1 为空时回退实时聚合（同 /curate 逻辑），永不白屏
-      const live = cleanFeedItems((await Promise.all(SECTIONS.map((s) => refreshFeedOnline(s)))).flat());
-      if (live.length) {
-        renderItems(root, rankByHeat(live, 3).slice(0, 10));
-        wireFavorites(root);
-      } else {
-        root.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
-      }
+      el.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
     }
   }
 
-  // 初始加载：今日热点失败不应留下 unhandled rejection（2026-10-15 审查修复）
-  loadHot().catch((e) => console.error('[九溪] 今日热点初始加载失败:', e));
-
-  const refreshBtn = document.getElementById('refresh-hot') as HTMLButtonElement | null;
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', async () => {
-      refreshBtn.disabled = true;
-      refreshBtn.textContent = '刷新中…';
-      try {
-        await loadHot(true);
-      } catch (e) {
-        // 刷新失败时按钮必须复位，否则永久卡在「刷新中…」禁用态（2026-10-15 审查修复）
-        console.error('[九溪] 立即刷新失败:', e);
-        const root = document.getElementById('home-hot');
-        if (root) root.innerHTML = '<p class="feed-meta">刷新失败，请稍后再试。</p>';
-      } finally {
-        refreshBtn.disabled = false;
-        refreshBtn.textContent = '立即刷新';
-      }
-    });
-  }
+  loadHot();
 
   const clk = document.getElementById('masthead-clock');
   function tickClock() {

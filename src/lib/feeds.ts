@@ -1,18 +1,17 @@
 import { z } from 'zod';
 
-// 九溪 · 动态资讯数据源与抓取
+// 九溪 · 动态资讯数据源与渲染（纯前端，无后端）
 //
-// 纯浏览器端实现，无需后端：
-//   1) Google News RSS（中文）作为主源，经第一方同域代理（/api/feed）抓取；
-//   2) Hacker News Algolia API（CORS 友好）作为科技/AI 冗余源；
-//   3) localStorage 缓存 10 分钟，失败回退缓存或空。
-//
+// 数据在构建期由 scripts/fetch-feeds.mjs 抓取并注入各页面 HTML
+// （<script type="application/json" id="jiuxi-feed-*">），本模块只负责：
+//   1) 解析 RSS / HN（parseRss / parseHn）；
+//   2) 跨源聚簇去重（clusterItems）；
+//   3) 按热度排序（rankByHeat）；
+//   4) 把条目渲染成卡片（renderItems / wireFavorites）。
 // 安全：所有外部文本在渲染前都经 HTML 转义，避免 XSS。
 
 import { isFavorite, toggleFavorite } from './favorites';
-import { FEED_PREFIX } from './settings';
 import { sanitizeUrl, escapeHtml } from './security';
-import { readIndexedDB, writeIndexedDB } from './db';
 import { extractFromXml } from '@extractus/feed-extractor';
 import feedsData from '../data/feeds.json';
 import type { Section } from './sections';
@@ -35,17 +34,9 @@ interface FeedSource {
   type: 'rss' | 'hn';
 }
 
-// 第一方 feed 代理（Cloudflare Pages Function，见 functions/api/feed.ts）。
-// 与站点同域，故浏览器端 fetch 不受 CORS 限制，且 CSP 只需 'self' 即可放行；
-// 无 Functions 的环境（纯静态托管/本地预览）运行时刷新会失败，但构建期注入的数据仍可见（降级）。
-const FEED_PROXY_PATH = '/api/feed';
-
-const CACHE_TTL = 10 * 60 * 1000; // 10 分钟(自动刷新;「立即刷新」可强制实时)
-
 // 数据源外置到 src/data/feeds.json（运行端与构建端共用的唯一配置）。
 // Section 联合类型由 sections.ts 从本文件的 sections 键动态派生（15 板块），
 // 新增板块无需改任何 TS 代码。
-const SOURCES = (feedsData as { sections: Record<Section, FeedSource[]> }).sections;
 
 function formatDate(d?: string): string {
   if (!d) return '';
@@ -85,87 +76,6 @@ export function parseHn(json: any): FeedItem[] {
   }));
 }
 
-// ── 抓取（直连优先，失败回退第一方同域代理）──
-async function fetchText(url: string): Promise<string> {
-  const errors: unknown[] = [];
-
-  // 1) 先试直连（HN 等 CORS 友好源可用）
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 5000);
-    const res = await fetch(url, { signal: ctrl.signal });
-    clearTimeout(timer);
-    if (res.ok) {
-      const text = await res.text();
-      if (text.includes('<?xml') || text.includes('<rss') || text.includes('<feed')) return text;
-    }
-  } catch (e) {
-    errors.push(e);
-  }
-
-  // 2) 回退第一方同域代理 /api/feed（Cloudflare Pages Function，同源无 CORS 问题）
-  try {
-    const proxyUrl = `${FEED_PROXY_PATH}?url=${encodeURIComponent(url)}`;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 5000);
-    const res = await fetch(proxyUrl, { signal: ctrl.signal });
-    clearTimeout(timer);
-    if (res.ok) {
-      const text = await res.text();
-      if (text.includes('<?xml') || text.includes('<rss') || text.includes('<feed')) return text;
-    }
-    errors.push(new Error(`第一方代理返回非 XML: ${res.status}`));
-  } catch (e) {
-    errors.push(e);
-  }
-
-  throw new Error(`抓取失败: ${errors.length} 次尝试均失败`);
-}
-
-function cacheKey(section: Section): string {
-  return `${FEED_PREFIX}${section}`;
-}
-
-/** 读取未过期的缓存（10 分钟内），过期或缺失返回 null */
-function readCacheFresh(section: Section): FeedItem[] | null {
-  try {
-    const raw = localStorage.getItem(cacheKey(section));
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (
-      typeof obj?.t === 'number' &&
-      Date.now() - obj.t < CACHE_TTL &&
-      Array.isArray(obj.items) &&
-      obj.items.length
-    ) {
-      return obj.items as FeedItem[];
-    }
-  } catch {
-    /* ignore */
-  }
-  return null;
-}
-
-/** 读取任意缓存（含过期），仅在刷新全部失败时兜底 */
-function readCacheAny(section: Section): FeedItem[] | null {
-  try {
-    const raw = localStorage.getItem(cacheKey(section));
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (Array.isArray(obj?.items) && obj.items.length) return obj.items as FeedItem[];
-  } catch {
-    /* ignore */
-  }
-  return null;
-}
-
-function writeCache(section: Section, items: FeedItem[]): void {
-  try {
-    localStorage.setItem(cacheKey(section), JSON.stringify({ t: Date.now(), items }));
-  } catch {
-    /* 容量满/隐私模式忽略 */
-  }
-}
 
 /**
  * 合并去重：以 link 为键去重，在线结果优先（同链接取 incoming），最多 24 条。
@@ -221,7 +131,7 @@ export function mergeFeedItems(base: FeedItem[], incoming: FeedItem[]): FeedItem
 // 同一事件常被多个源报道（Google News 聚合 + 原站 + HN 转帖），标题相似但链接不同，
 // 直接展示会产生一堆重复。这里按「标题词集合 Jaccard 相似度」归并为一个条目，
 // 累计来源数（用作热度），保留最新/最完整的一条为代表。纯函数、无 DOM 依赖，
-// 以便前端与服务端（functions/api/feed.ts 聚合端点）复用同一套逻辑。
+// 纯前端聚簇：构建期注入的数据与浏览器端渲染共用同一套去重逻辑。
 const TITLE_STOP = new Set([
   'the',
   'a',
@@ -329,118 +239,6 @@ export function clusterItems(items: FeedItem[]): FeedItem[] {
     source: c.sources.length ? c.sources.join(' · ') : c.rep.source,
     sources: c.sources,
   }));
-}
-
-/**
- * 在线刷新某板块：依次尝试所有源，**合并**全部成功源（而非只取第一个成功的源），
- * 任一源成功即视为该板块可刷新。全部失败返回空数组（不回退缓存，
- * 由调用方决定是否保留已展示内容）。
- */
-async function refreshOnline(section: Section): Promise<FeedItem[]> {
-  const sources = SOURCES[section];
-  const rssSources = sources.filter((s) => s.type !== 'hn');
-  let lastError: string | null = null;
-
-  // 1) 优先：服务端聚合端点（functions/api/feed.ts 的 ?aggregate=1）。
-  //    一次性把各 RSS 源拉到边缘、跨源聚簇、按独立信源数算热度并返回干净 JSON，
-  //    既减少前端请求数，又复用边缘缓存。无 Functions 时该请求会失败，
-  //    自动走下方逐源回退（前端聚簇，效果一致）。
-  let aggItems: FeedItem[] = [];
-  if (rssSources.length) {
-    try {
-      const aggUrl =
-        `${FEED_PROXY_PATH}?aggregate=1&section=${encodeURIComponent(section)}&` +
-        rssSources.map((s) => `s=${encodeURIComponent(`${s.label}@${s.url}`)}`).join('&');
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 8000);
-      const res = await fetch(aggUrl, { signal: ctrl.signal });
-      clearTimeout(timer);
-      if (res.ok) {
-        const json = (await res.json()) as { items?: FeedItem[] };
-        if (Array.isArray(json.items) && json.items.length) aggItems = json.items;
-      }
-    } catch {
-      /* 聚合端点不可用（无 Functions 的环境），回退逐源拉取 */
-    }
-  }
-
-  // 2) HN 源始终前端直拉（聚合端点只处理 RSS）；聚合失败时 RSS 源也在此逐源补齐。
-  const lists: FeedItem[][] = [];
-  const needFallback = aggItems.length === 0;
-  for (const s of sources) {
-    if (s.type === 'hn') {
-      try {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 5000);
-        const res = await fetch(s.url, { signal: ctrl.signal });
-        clearTimeout(timer);
-        if (!res.ok) {
-          lastError = `HN ${res.status}`;
-          continue;
-        }
-        lists.push(parseHn(await res.json()));
-      } catch (e) {
-        lastError = e instanceof Error ? e.message : String(e);
-      }
-    } else if (needFallback) {
-      try {
-        const xml = await fetchText(s.url);
-        lists.push(parseRss(xml).map((it) => ({ ...it, source: it.source || s.label })));
-      } catch (e) {
-        lastError = e instanceof Error ? e.message : String(e);
-        console.debug(`[九溪] ${section} 源失败 (${s.label}):`, lastError);
-      }
-    }
-  }
-
-  const all = [...aggItems, ...lists.flat()];
-  if (!all.length) {
-    console.warn(`[九溪] ${section} 所有在线源失败:`, lastError);
-    return [];
-  }
-  // 跨源聚簇（幂等：聚合端点已聚过的 RSS 不会再被重复合并），按源轮询多元化 + 去重。
-  const merged = clusterItems(mergeFeedItems([], all));
-  writeCache(section, merged);
-  await writeIndexedDB(section, merged);
-  return merged;
-}
-
-/**
- * 后台刷新专用：只返回在线最新数据，失败返回空（不回退缓存），
- * 避免用过期缓存覆盖页面已展示的构建期内嵌内容（防止「被刷新走」）。
- */
-export async function refreshFeedOnline(section: Section): Promise<FeedItem[]> {
-  return refreshOnline(section);
-}
-
-/**
- * 加载某板块资讯（用于无构建期内嵌数据的场景）：在线优先，失败再退持久缓存。
- *  1) 在线刷新（合并各成功源）→ 成功即返回最新；
- *  2) IndexedDB 持久缓存（跨会话）；
- *  3) localStorage 新鲜缓存（10 分钟内）；
- *  4) localStorage 过期缓存（临时兜底）；
- *  5) 仍无 → 返回空数组（页面提示）。
- *
- * 历史修复：
- *  - 「刷新了但页面还是旧的」：旧逻辑有缓存时立即把旧快照当返回值、丢弃后台结果；
- *    现改为在线刷新优先。
- *  - 「被刷新走」：后台刷新改走 refreshFeedOnline + mergeFeedItems，与已展示内嵌内容
- *    取并集（见 FeedSection.astro），绝不回退/冲掉已展示内容。
- */
-export async function loadFeed(section: Section): Promise<FeedItem[]> {
-  const online = await refreshOnline(section);
-  if (online.length) return online;
-
-  const dbItems = await readIndexedDB(section);
-  if (dbItems?.length) return dbItems as FeedItem[];
-
-  const lsFresh = readCacheFresh(section);
-  if (lsFresh) return lsFresh;
-
-  const lsAny = readCacheAny(section);
-  if (lsAny?.length) return lsAny;
-
-  return [];
 }
 
 /**

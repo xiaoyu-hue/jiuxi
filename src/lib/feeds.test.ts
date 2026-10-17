@@ -1,10 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   parseHn,
   parseRss,
   renderItems,
-  loadFeed,
-  refreshFeedOnline,
   mergeFeedItems,
   clusterItems,
   rankByHeat,
@@ -89,54 +87,6 @@ describe('renderItems', () => {
     const c = document.createElement('div');
     renderItems(c, [{ title: '正常', link: 'https://news.com/a?b=1' }]);
     expect(c.querySelector('a')?.getAttribute('href')).toBe('https://news.com/a?b=1');
-  });
-});
-
-describe('loadFeed（刷新回流）', () => {
-  beforeEach(() => {
-    localStorage.clear();
-    vi.unstubAllGlobals();
-  });
-
-  // 复现原 bug：有旧缓存时，loadFeed 必须返回在线刷新拿到的最新数据，
-  // 而不是把首次加载的旧快照当返回值（否则「刷新了但页面还是旧的」）。
-  it('有旧缓存时仍返回在线刷新拿到的最新数据，不返回旧快照', async () => {
-    localStorage.setItem(
-      'jiuxi-feed-ai',
-      JSON.stringify({ t: Date.now(), items: [{ title: '旧快照', link: 'https://old.com' }] }),
-    );
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (u: any) => {
-        const url = String(u);
-        if (url.includes('hn.algolia')) {
-          return new Response(JSON.stringify({ hits: [] }), { status: 200 });
-        }
-        return new Response(
-          '<?xml version="1.0"?><rss version="2.0"><channel><item><title>最新资讯</title><link>https://new.com</link></item></channel></rss>',
-          { status: 200, headers: { 'Content-Type': 'application/rss+xml' } },
-        );
-      }),
-    );
-    const items = await loadFeed('ai');
-    expect(items).toHaveLength(1);
-    expect(items[0].title).toBe('最新资讯');
-  });
-
-  it('在线刷新全部失败时退到旧缓存，不返回空', async () => {
-    localStorage.setItem(
-      'jiuxi-feed-ai',
-      JSON.stringify({ t: Date.now(), items: [{ title: '兜底旧数据', link: 'https://old.com' }] }),
-    );
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => {
-        throw new Error('network down');
-      }),
-    );
-    const items = await loadFeed('ai');
-    expect(items).toHaveLength(1);
-    expect(items[0].title).toBe('兜底旧数据');
   });
 });
 
@@ -230,70 +180,6 @@ describe('mergeFeedItems（按源轮询，多元化成份）', () => {
       [],
     );
     expect(merged.map((i) => i.title)).toEqual(['新', '旧']);
-  });
-});
-
-describe('refreshFeedOnline（后台刷新不回退缓存）', () => {
-  beforeEach(() => {
-    localStorage.clear();
-    vi.unstubAllGlobals();
-  });
-
-  it('全部源失败时返回空数组，不回退旧缓存（避免覆盖内嵌内容）', async () => {
-    localStorage.setItem(
-      'jiuxi-feed-ai',
-      JSON.stringify({ t: Date.now(), items: [{ title: '内嵌兜底', link: 'https://old.com' }] }),
-    );
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => {
-        throw new Error('network down');
-      }),
-    );
-    const items = await refreshFeedOnline('ai');
-    expect(items).toHaveLength(0);
-  });
-
-  it('合并多个成功源，而非只取第一个', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (u: any) => {
-        const url = String(u);
-        if (url.includes('hn.algolia')) {
-          return new Response(
-            JSON.stringify({
-              hits: [
-                { title: 'HN-A', url: 'https://hn.com/1', objectID: '1', created_at: '2024-05-01' },
-              ],
-            }),
-            { status: 200 },
-          );
-        }
-        // 各 RSS 源返回不同 link，避免被并集去重合并成一条
-        const tag = url.includes('qbitai')
-          ? 'qbitai'
-          : url.includes('arxiv')
-            ? 'arxiv'
-            : url.includes('openai.com')
-              ? 'openai'
-              : url.includes('blog.google')
-                ? 'googleai'
-                : 'googlenews';
-        return new Response(
-          `<?xml version="1.0"?><rss version="2.0"><channel><item><title>RSS-${tag}</title><link>https://rss.com/${tag}</link></item></channel></rss>`,
-          { status: 200, headers: { 'Content-Type': 'application/rss+xml' } },
-        );
-      }),
-    );
-    // AI 板块 6 个源（量子位/OpenAI/Google AI/HN/ArXiv/Google News）全部成功 → 合并去重后 6 条
-    const items = await refreshFeedOnline('ai');
-    expect(items).toHaveLength(6);
-    expect(items.some((i) => i.title === 'HN-A')).toBe(true);
-    expect(items.some((i) => i.title === 'RSS-qbitai')).toBe(true);
-    expect(items.some((i) => i.title === 'RSS-openai')).toBe(true);
-    expect(items.some((i) => i.title === 'RSS-googleai')).toBe(true);
-    expect(items.some((i) => i.title === 'RSS-arxiv')).toBe(true);
-    expect(items.some((i) => i.title === 'RSS-googlenews')).toBe(true);
   });
 });
 

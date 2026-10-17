@@ -7,8 +7,8 @@
 # 为什么是 baseline 模式：zap-baseline 只做被动扫描 + 蜘蛛爬取，不发动攻击，
 # 对生产站安全（行业常规做法）；含主动攻击的 full scan 从不安排在生产上。
 #
-# 扫描目标：Cloudflare 站点（https://jiuxi-bm1.pages.dev/）——挂在上面的
-# /api/feed 与 /api/history 两个 Pages Functions 端点，是唯一的服务端攻击面。
+# 扫描目标：Cloudflare 站点（https://jiuxi-bm1.pages.dev/）——现为纯静态站，
+# 内容在构建期预渲染注入各页内嵌 JSON；ZAP 蜘蛛爬取即覆盖全部页面，无服务端攻击面。
 #
 # advisory 约定：job 级 continue-on-error。ZAP action 的 fail_action 默认 false，
 # 发现只进日志与 artifact、不把 job 搞红；真执行错误才会红，但也不阻断调用方。

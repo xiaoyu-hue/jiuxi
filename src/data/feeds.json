@@ -1,5 +1,5 @@
 {
- "_comment": "九溪 · 资讯源配置（唯一数据源）。运行端 feeds.ts 与构建端 scripts/fetch-feeds.mjs 共用本文件。2026-10-15 全行业扩容：31 源/4 板块 → 299 源/15 板块。每板块 = Google News 行业搜索（骨干，线上实证可用）+ 行业官方 RSS（质量锚点）。verified=true 为沙箱实测可用（34 个）；其余为知名稳定源标注「待线上验证」，由每小时定时构建自动验证，失败源自动跳过不阻断（fetch-feeds 容错），可据构建日志清理。新增源必须同步 functions/api/feed.ts 的 ALLOWED_HOSTS 白名单。",
+ "_comment": "九溪 · 资讯源配置（唯一数据源）。运行端 feeds.ts 与构建端 scripts/fetch-feeds.mjs 共用本文件。2026-10-15 全行业扩容：31 源/4 板块 → 299 源/15 板块。每板块 = Google News 行业搜索（骨干，线上实证可用）+ 行业官方 RSS（质量锚点）。verified=true 为沙箱实测可用（34 个）；其余为知名稳定源标注「待线上验证」，由每小时定时构建自动验证，失败源自动跳过不阻断（fetch-feeds 容错），可据构建日志清理。",
  "sections": {
   "ai": [
    {
