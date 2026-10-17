@@ -2,6 +2,24 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [未发布]
+
+> 资讯选取策略变更：从「每板块 24 条按源轮询」改为「中文优先 + 按发布时间」。触发决策：轮询保证多元化但不反映最新实时、也不区分语言权重；本站定位中文信息聚集地，应让中文资讯按时间排满名额、英文补位。
+
+### Changed
+
+- **资讯选取改为中文优先 + 时间排序**：构建端 `scripts/fetch-feeds.mjs` 删除 `roundRobinBySource`（按源轮询），新增导出的 `rankZhFirstByTime(items, limit)`——按标题是否含中文（`isChineseText`，正则 `/[\u4e00-\u9fff]/`）分两组，各自按发布时间降序，中文组整体排在英文组前，`concat` 后按 limit 截断（每板块仍 24 条上限）。语言判定按标题自动识别，无需给 299 个源逐一标注语言字段。
+- **前端排序同步**：`src/lib/feeds.ts` 新增导出 `isChineseText` 与 `rankZhFirst(items, limit?)`（同上逻辑，无 limit 时返回全量）；`src/pages/index.astro`（首页今日热点）与 `src/pages/hot.astro`（全局热点榜）由 `rankByHeat`（独立信源数降序）改用 `rankZhFirst`，两页副标题/description/正文文案同步改为「中文资讯优先、按发布时间排序」口径。`rankByHeat` 与 `mergeFeedItems` 保留未删（`mergeFeedItems` 仍被测试引用）。
+- **文档同步**：README 项目简介 / 核心特性 / 工程经验 / 知识路径四处策略描述由「按源轮询 / 独立信源数降序」改为「中文优先 + 按发布时间」口径。
+
+### Added
+
+- **策略测试**：`src/lib/feeds.test.ts` 新增 `rankZhFirst` 用例组（中文判定、中文整体在前、limit 截断、limit 小于中文数、无 limit、不修改入参、缺失字段容错）；`src/lib/fetch-feeds.test.ts` 新增 `rankZhFirstByTime` 用例组（中文优先截断、全英文退化时间降序）。
+
+### Known Issues
+
+- **部分板块仍全英文**：财经 / 体育 / 健康 / 科学 / 汽车 / 家居 / 旅行 / 美食 / 读书板块中文条目为 0——这些板块缺稳定中文官方 RSS，中文原依赖 Google News 行业搜索，而本次抓取 Google News 全部失败（疑限流），一旦失败即全英文。已确认可用的中文官方源（AI 板块量子位、新闻板块 IT 之家/爱范儿/少数派/极客公园）所在板块中文供给充足。后续方案：为全英文板块补充稳定中文官方 RSS 源。
+
 ## [v1.8.0] — 2026-10-17
 
 > 纯静态架构简化：移除全部云端后端与数据库，回归并定型为纯静态站点。资讯改为构建期预渲染注入，删除历史回顾板块。触发决策：后端（Pages Functions + D1）带来 Cloudflare 密钥强依赖与部署复杂度，而静态站本就能覆盖全部需求。

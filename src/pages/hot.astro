@@ -1,8 +1,8 @@
 ---
-// 九溪 · 全局热点榜（跨板块按独立信源数排序）
+// 九溪 · 全局热点榜（中文优先 + 按发布时间排序）
 //
-// 复用首页「今日热点」的合并排序逻辑，跨全部板块（2026-10-15 扩容：4 → 15，
-// 板块列表从 feeds.json 派生），按「独立信源数（cluster_size）」降序展示全局热点；
+// 跨全部板块（2026-10-15 扩容：4 → 15，板块列表从 feeds.json 派生）：
+// 中文资讯优先、英文其次，各组内按发布时间降序展示全局热点；
 // 顶部 Filters 可按板块筛选。数据来自构建期内嵌的聚合 JSON（#jiuxi-feed-all），纯静态。
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Filters from '../components/Filters.astro';
@@ -13,11 +13,11 @@ const SECTIONS = SECTION_ORDER.map((s) => ({ key: s, label: SECTION_META[s].labe
 
 <BaseLayout
   title="九溪 · 全局热点榜"
-  description={`跨 ${SECTIONS.length} 个板块，按独立信源数排序的全局热点`}
+  description={`跨 ${SECTIONS.length} 个板块，中文资讯优先、按发布时间排序的全局热点`}
 >
   <header class="page-head">
     <h2>全局热点榜</h2>
-    <p>跨板块聚合，多源交叉的同一事件越靠前，单一来源已限流不刷屏。点击板块可筛选。</p>
+    <p>跨板块聚合，中文资讯优先、英文其次，按发布时间实时排序。点击板块可筛选。</p>
   </header>
 
   <Filters target="hot-grid" sections={SECTIONS} />
@@ -28,7 +28,7 @@ const SECTIONS = SECTION_ORDER.map((s) => ({ key: s, label: SECTION_META[s].labe
 </BaseLayout>
 
 <script>
-  import { renderItems, wireFavorites, cleanFeedItems, rankByHeat, clusterItems } from '../lib/feeds';
+  import { renderItems, wireFavorites, cleanFeedItems, rankZhFirst, clusterItems } from '../lib/feeds';
   import { SECTION_ORDER } from '../lib/sections';
 
   // 与前端 Filters 同一来源（feeds.json 派生），避免两处漂移。
@@ -69,7 +69,7 @@ const SECTIONS = SECTION_ORDER.map((s) => ({ key: s, label: SECTION_META[s].labe
     }
     const items = cleanFeedItems(clusterItems(all));
     if (items.length) {
-      renderTagged(grid, rankByHeat(items, 6).slice(0, 60));
+      renderTagged(grid, rankZhFirst(items).slice(0, 60));
     } else {
       grid.innerHTML = '<p class="feed-meta">暂无热点，稍后再来。</p>';
     }

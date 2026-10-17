@@ -6,7 +6,7 @@ import { z } from 'zod';
 // （<script type="application/json" id="jiuxi-feed-*">），本模块只负责：
 //   1) 解析 RSS / HN（parseRss / parseHn）；
 //   2) 跨源聚簇去重（clusterItems）；
-//   3) 按热度排序（rankByHeat）；
+//   3) 中文优先 + 按发布时间排序（rankZhFirst；原按热度 rankByHeat 已不用于展示）；
 //   4) 把条目渲染成卡片（renderItems / wireFavorites）。
 // 安全：所有外部文本在渲染前都经 HTML 转义，避免 XSS。
 
@@ -270,6 +270,31 @@ export function rankByHeat<T extends { sources?: string[]; source?: string; pubD
     out.push(it);
   }
   return out;
+}
+
+/** 判定文本是否含中文（CJK 统一表意文字 U+4E00–U+9FFF）。用于「中文优先」策略。 */
+export function isChineseText(text?: string): boolean {
+  return /[\u4e00-\u9fff]/.test(text || '');
+}
+
+/**
+ * 中文优先 + 发布时间降序：中文条目（标题含中文）按发布时间降序整体排在英文条目
+ * 之前，英文条目同样按时间降序补位；可选 limit 截断。
+ *
+ * 2026-10-17 用户决策：由原「按源轮询（round-robin）/ 按热度」改为
+ * 「中文源优先、英文其次，按最新实时信息」。首页「今日热点」与全局热点榜
+ * 均改用本函数（原 rankByHeat 热度排序不再用于展示）。
+ */
+export function rankZhFirst<T extends { title?: string; pubDate?: string }>(
+  items: T[],
+  limit?: number,
+): T[] {
+  const t = (s?: string) => (s ? Date.parse(s) || 0 : 0);
+  const byTimeDesc = (a: T, b: T) => t(b.pubDate) - t(a.pubDate);
+  const zh = items.filter((it) => isChineseText(it.title)).sort(byTimeDesc);
+  const en = items.filter((it) => !isChineseText(it.title)).sort(byTimeDesc);
+  const all = [...zh, ...en];
+  return typeof limit === 'number' ? all.slice(0, limit) : all;
 }
 
 export function renderItems(container: HTMLElement, items: FeedItem[]): void {

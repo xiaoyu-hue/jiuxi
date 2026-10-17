@@ -6,6 +6,8 @@ import {
   mergeFeedItems,
   clusterItems,
   rankByHeat,
+  rankZhFirst,
+  isChineseText,
   cleanFeedItems,
   type FeedItem,
 } from './feeds';
@@ -292,6 +294,73 @@ describe('rankByHeat（多源优先 + 同源限流）', () => {
     const snapshot = items.map((i) => i.link);
     rankByHeat(items);
     expect(items.map((i) => i.link)).toEqual(snapshot);
+  });
+});
+
+describe('rankZhFirst（中文优先 + 时间降序，2026-10-17 策略变更）', () => {
+  it('isChineseText：含 CJK 判定为中文，纯英文/空为否', () => {
+    expect(isChineseText('量子位发布新模型')).toBe(true);
+    expect(isChineseText('AI 突破 mixed 中英')).toBe(true);
+    expect(isChineseText('OpenAI releases GPT')).toBe(false);
+    expect(isChineseText('')).toBe(false);
+    expect(isChineseText(undefined)).toBe(false);
+  });
+
+  it('中文条目整体排在英文条目之前，各组内按发布时间降序', () => {
+    const out = rankZhFirst([
+      { link: 'en1', title: 'OpenAI news', pubDate: '2026-10-15T00:00:00Z' },
+      { link: 'zh1', title: '国内 AI 动态', pubDate: '2026-10-10T00:00:00Z' },
+      { link: 'en2', title: 'Google blog', pubDate: '2026-10-14T00:00:00Z' },
+      { link: 'zh2', title: '华为新芯片', pubDate: '2026-10-12T00:00:00Z' },
+    ]);
+    expect(out.map((i) => i.link)).toEqual(['zh2', 'zh1', 'en1', 'en2']);
+  });
+
+  it('limit 截断：先满足中文，名额有剩余再补英文', () => {
+    const out = rankZhFirst(
+      [
+        { link: 'zh1', title: '中文一', pubDate: '2026-10-12T00:00:00Z' },
+        { link: 'zh2', title: '中文二', pubDate: '2026-10-11T00:00:00Z' },
+        { link: 'en1', title: 'English one', pubDate: '2026-10-15T00:00:00Z' },
+      ],
+      2,
+    );
+    expect(out.map((i) => i.link)).toEqual(['zh1', 'zh2']);
+  });
+
+  it('limit 小于中文数时只取中文（不掺英文）', () => {
+    const out = rankZhFirst(
+      [
+        { link: 'zh1', title: '中文一', pubDate: '2026-10-12T00:00:00Z' },
+        { link: 'zh2', title: '中文二', pubDate: '2026-10-11T00:00:00Z' },
+        { link: 'en1', title: 'English one', pubDate: '2026-10-15T00:00:00Z' },
+      ],
+      1,
+    );
+    expect(out.map((i) => i.link)).toEqual(['zh1']);
+  });
+
+  it('无 limit 时返回全部（中文在前）', () => {
+    const out = rankZhFirst([
+      { link: 'en1', title: 'English', pubDate: '2026-10-15T00:00:00Z' },
+      { link: 'zh1', title: '中文', pubDate: '2026-10-01T00:00:00Z' },
+    ]);
+    expect(out.map((i) => i.link)).toEqual(['zh1', 'en1']);
+  });
+
+  it('不修改入参数组（内部拷贝后排序）', () => {
+    const items = [
+      { link: 'en1', title: 'English', pubDate: '2026-10-15T00:00:00Z' },
+      { link: 'zh1', title: '中文', pubDate: '2026-10-01T00:00:00Z' },
+    ];
+    const snap = items.map((i) => i.link);
+    rankZhFirst(items);
+    expect(items.map((i) => i.link)).toEqual(snap);
+  });
+
+  it('缺失 pubDate / title 不报错（按时间 0 归位，无标题归英文）', () => {
+    const out = rankZhFirst([{ link: 'a' }, { link: 'b', title: '中文' }]);
+    expect(out.map((i) => i.link)).toEqual(['b', 'a']);
   });
 });
 

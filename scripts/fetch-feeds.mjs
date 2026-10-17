@@ -150,44 +150,20 @@ async function fetchSource(section, source) {
   return [];
 }
 
-/**
- * 按源轮询合并（round-robin）：每个源轮流取一条（组内按发布时间降序），
- * 直到凑满 limit。保证每个有数据的源都获得曝光位——
- * 纯按时间排序时，高频源（ArXiv 日更 15 条、IT之家、HN）会占满全部名额，
- * 低频源（周更的阮一峰、量少的触乐/OpenAI）永远排不进来，
- * 与「综合信息聚集地」的多元化定位相悖（2026-10-12 实测复现：
- * 21 源配置下 AI 板块 24 条被 ArXiv×15 + 量子位×9 占满，新源零曝光）。
- * 无 source 字段的条目归入同一组，保持既有行为。
- */
-function roundRobinBySource(items, limit) {
-  const groups = new Map();
-  for (const it of items) {
-    const key = it.source || '';
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(it);
-  }
-  for (const list of groups.values()) {
-    list.sort((a, b) => {
-      const da = a.pubDate ? new Date(a.pubDate).getTime() : 0;
-      const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;
-      return db - da;
-    });
-  }
-  const out = [];
-  let round = 0;
-  while (out.length < limit) {
-    let added = false;
-    for (const list of groups.values()) {
-      if (round < list.length) {
-        out.push(list[round]);
-        added = true;
-        if (out.length >= limit) break;
-      }
-    }
-    if (!added) break; // 所有源都已取尽
-    round++;
-  }
-  return out;
+// ── 中文优先 + 发布时间降序（2026-10-17 用户决策）────────────────────
+// 取代原「按源轮询 round-robin」策略（原意图：高频源不淹没低频源）。
+// 新策略：按最新实时信息，中文条目（标题含中文）优先、英文其次，
+// 各组内按发布时间降序，取前 limit 条。
+function isChineseText(text) {
+  return /[\u4e00-\u9fff]/.test(text || '');
+}
+
+export function rankZhFirstByTime(items, limit) {
+  const t = (s) => (s ? Date.parse(s) || 0 : 0);
+  const byTimeDesc = (a, b) => t(b.pubDate) - t(a.pubDate);
+  const zh = items.filter((it) => isChineseText(it.title)).sort(byTimeDesc);
+  const en = items.filter((it) => !isChineseText(it.title)).sort(byTimeDesc);
+  return [...zh, ...en].slice(0, limit);
 }
 
 // ── 注入数据到 HTML ────────────────────────────────────────────────
@@ -216,7 +192,7 @@ export function injectAll(html, result) {
 }
 
 /**
- * 抓取全部板块资讯：有界并发池抓取 → 源健康摘要 → 归组去重 → 按源轮询限 24 条。
+ * 抓取全部板块资讯：有界并发池抓取 → 源健康摘要 → 归组去重 → 中文优先后按时间限 24 条。
  * 单源失败不阻断其它（fetchSource 内部容错返回 []）。
  */
 export async function fetchAll() {
@@ -264,7 +240,7 @@ export async function fetchAll() {
     for (const f of emptySources) console.log(`  ○ [${f.section}] ${f.label} — ${f.url}`);
   }
 
-  // 按板块归组 → 去重 → 按源轮询限 24 条（round-robin，保低频源曝光）
+  // 按板块归组 → 去重 → 中文优先后按发布时间限 24 条（2026-10-17 起）
   for (const [i, task] of tasks.entries()) {
     const items = fetched[i] || [];
     if (!result.sections[task.section]) result.sections[task.section] = [];
@@ -277,7 +253,7 @@ export async function fetchAll() {
       seen.add(it.link);
       return true;
     });
-    result.sections[section] = roundRobinBySource(unique, 24);
+    result.sections[section] = rankZhFirstByTime(unique, 24);
     console.log(`  → ${section}: ${result.sections[section].length} 条`);
   }
 
