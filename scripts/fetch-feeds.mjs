@@ -108,6 +108,13 @@ async function runPool(tasks, limit, worker) {
   return results;
 }
 
+// ── 源健康追踪（2026-10-17 深度评价 P2）─────────────────────────────
+// 背景：299 源每源一行日志，失败源的 ✗ 行淹没在上百行输出里，CI 日志
+// 无人能快速回答「这次多少源挂了、是哪些」。集中记录失败/空结果源，
+// 抓取结束后输出健康摘要（总源数/可用/失败清单 + 失败率告警注解）。
+const failedSources = []; // 抓取失败（网络/超时/非 XML）
+const emptySources = []; // 抓取成功但解析出 0 条（上游格式可能已变化）
+
 async function fetchSource(section, source) {
   try {
     if (source.type === 'hn') {
@@ -115,6 +122,7 @@ async function fetchSource(section, source) {
       if (r.ok) {
         const items = parseHn(r.body);
         console.log(`  ✓ [${section}] ${source.label}: ${items.length} 条`);
+        if (!items.length) emptySources.push({ section, ...source });
         return items;
       }
     } else {
@@ -122,6 +130,7 @@ async function fetchSource(section, source) {
       if (xml) {
         const items = parseRss(xml).map((it) => ({ ...it, source: source.label }));
         console.log(`  ✓ [${section}] ${source.label}: ${items.length} 条`);
+        if (!items.length) emptySources.push({ section, ...source });
         return items;
       }
     }
@@ -129,6 +138,7 @@ async function fetchSource(section, source) {
     /* 跳过失败源 */
   }
   // 单源失败不静默：打出来便于排查（板块总数不变，缺源时日志可定位是哪个源）
+  failedSources.push({ section, ...source });
   console.warn(`  ✗ [${section}] ${source.label}: 抓取失败（${source.url}）`);
   return [];
 }
@@ -212,6 +222,31 @@ async function main() {
   console.log(
     `[九溪] 抓取完成：${okCount}/${tasks.length} 源有数据，池并发 ${CONCURRENCY}，耗时 ${Date.now() - t1}ms`,
   );
+
+  // ── 源健康摘要（2026-10-17 深度评价 P2）────────────────────────────
+  // 集中复盘失败/空结果源——失败率 ≥ 20% 时追加 ::warning:: 注解，
+  // 在 Actions 通知与摘要页可见（不打断构建：单源失败本就有前端降级兜底，
+  // 全部失败另有下方 totalItems === 0 的 exit 1 强阻断）。
+  const failCount = failedSources.length;
+  const healthPct = tasks.length
+    ? Math.round(((tasks.length - failCount) / tasks.length) * 100)
+    : 0;
+  console.log(
+    `[九溪] 源健康摘要：${tasks.length - failCount}/${tasks.length} 源抓取成功（健康度 ${healthPct}%），${failCount} 个失败，${emptySources.length} 个空结果`,
+  );
+  if (failCount > 0) {
+    console.log('[九溪] 失败源清单：');
+    for (const f of failedSources) console.log(`  ✗ [${f.section}] ${f.label} — ${f.url}`);
+    if (failCount / tasks.length >= 0.2) {
+      console.warn(
+        `::warning::源抓取失败率 ${100 - healthPct}%（${failCount}/${tasks.length}）超过 20%——请检查上方失败源清单、runner 网络与上游媒体状态`,
+      );
+    }
+  }
+  if (emptySources.length > 0) {
+    console.log('[九溪] 空结果源清单（抓取成功但 0 条，上游格式可能已变化）：');
+    for (const f of emptySources) console.log(`  ○ [${f.section}] ${f.label} — ${f.url}`);
+  }
 
   // 按板块归组 → 去重 → 按源轮询限 24 条（round-robin，保低频源曝光）
   for (const [i, task] of tasks.entries()) {
