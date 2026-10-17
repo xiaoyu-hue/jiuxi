@@ -3,7 +3,8 @@ name: RSSHub 诊断（临时）
 on:
   workflow_dispatch
 
-permissions: contents: read
+permissions:
+  contents: read
 
 jobs:
   diag:
