@@ -16,12 +16,9 @@ jobs:
         env:
           BASE: https://jiuxi-rsshub.xyyovo520.workers.dev
         run: |
-          for route in "/" "/hupu" "/36kr/hot-list" "/yicai/headline" "/cls/telegraph" "/douban/book/rank"; do
+          for route in "/36kr/hot-list" "/huxiu/article" "/dongqiudi/top_news" "/smzdm/haowen" "/aibase/daily" "/gamersky/news" "/3dmgame/news" "/meishichina/recipe" "/cnbeta" "/tmtpost/new" "/sina/rollnews" "/sina/sports" "/gelonghui/home" "/chsi/hotnews" "/a9vg" "/jin10"; do
             echo "========== $route =========="
-            for i in 1 2; do
-              echo "--- 第 $i 次 ---"
-              curl -sS --max-time 20 -w "\n[HTTP %{http_code} · %{size_download}B · %{time_total}s]\n" \
-                -H "User-Agent: Jiuxi/1.0" -L "$BASE$route" | head -c 800
-              echo
-            done
+            curl -sS --max-time 25 -w "\n[HTTP %{http_code} · %{size_download}B · %{time_total}s]\n" \
+              -H "User-Agent: Jiuxi/1.0" -L "$BASE$route" | head -c 300
+            echo
           done
