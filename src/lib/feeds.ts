@@ -76,7 +76,6 @@ export function parseHn(json: any): FeedItem[] {
   }));
 }
 
-
 /**
  * 合并去重：以 link 为键去重，在线结果优先（同链接取 incoming），最多 24 条。
  * 选取方式为**按源轮询（round-robin）**：每个源轮流取一条（组内按发布时间降序），

@@ -2,6 +2,30 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [v1.8.0] — 2026-10-17
+
+> 纯静态架构简化：移除全部云端后端与数据库，回归并定型为纯静态站点。资讯改为构建期预渲染注入，删除历史回顾板块。触发决策：后端（Pages Functions + D1）带来 Cloudflare 密钥强依赖与部署复杂度，而静态站本就能覆盖全部需求。
+
+### Removed
+
+- **Cloudflare Pages Functions 后端**：`functions/api/feed.ts`（第一方 CORS 代理 + 服务端聚簇）、`functions/api/history.ts`（读 D1）、`functions/api/candidates.ts`（读 D1 候选）三个接口整体移除。
+- **Cloudflare D1 数据库相关**：`scripts/save-history.mjs`、`scripts/ensure-candidates.mjs`、`scripts/lib/d1.mjs` 及对应测试（`src/lib/d1-client.test.ts`、`src/lib/save-history.test.ts`、`src/lib/cluster-consistency.test.ts`）全部移除；`wrangler.toml` 的 `[[d1_databases]]` 绑定声明删除。
+- **历史回顾板块**：`src/pages/history.astro` 与 `public/history-client.js` 删除，导航与首页卡片入口移除。
+- **`/api/*` 部署后冒烟测试与 D1 写穿核查**（原 v1.7.1 新增）：CI 改为校验静态站三页（`/`、`/hot`、`/curate`）返回 200 且首页含构建期注入的聚合 JSON（`#jiuxi-feed-all`）。
+- **`docs/d1-candidates.md`**：候选表建表与聚合接口说明，随功能移除而删除。
+
+### Changed
+
+- **`src/lib/feeds.ts` 改造为纯前端**：移除在线刷新（`refreshFeedOnline` / `loadFeed`）、D1 回退、IndexedDB 缓存层与 SSRF/白名单代理逻辑；保留 `parseRss` / `parseHn` / `mergeFeedItems` / `clusterItems` / `rankByHeat` / `renderItems` / `wireFavorites` / `cleanFeedItems` 等纯函数。
+- **`scripts/fetch-feeds.mjs` 改为两段式**：`--write`（build 前抓写 `src/data/feed.json`）→ `astro build` → `--inject`（build 后注入各页内嵌 JSON）；新增聚合数据 `jiuxi-feed-all` 注入首页 / 热点榜 / 策展页，实现纯静态闭环。
+- **板块页去掉「立即刷新」按钮与后台自动刷新**（原依赖 `/api/feed` 代理），改为打开即读构建期内嵌 JSON。
+- **构建脚本**：`package.json` 的 `build` 串联 `fetch-feeds --write` → `build-search-index` → `astro build` → `fetch-feeds --inject`。
+- **文档同步**：README 技术栈 / 部署 / 路线图 / 工程经验改为纯静态口径；SECURITY.md 受影响文件示例去掉已删除的 `functions/api/feed.ts`、`history-client.js`；`docs/云端资源交接清单.md` 重写为纯静态接管指南；三份规划文档顶部加 v1.8.0 架构变更提示。
+
+### Added
+
+- **构建期聚合注入**：首页「今日热点」、`/hot` 全局榜、`/curate` 策展页均读取 `#jiuxi-feed-all` 聚合 JSON，纯静态打开即有内容，永不白屏。
+
 ## [v1.7.1] — 2026-10-17
 
 > 线上 API 全失效（P0）修复批次：补上定时重建部署缺失的 functions/ 目录（直接根因），并建立两道「静默失败 → CI 可见」机制（部署后冒烟测试 + D1 写穿核查）。触发事件：2026-10-17 深度评价发现 `/api/feed`、`/api/history`、`/api/candidates` 线上全部返回 index.html。

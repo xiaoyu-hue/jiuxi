@@ -1,6 +1,6 @@
 # 安全策略（Security Policy）
 
-九溪（jiuxi）是一个个人向的静态信息站 + Cloudflare Pages Functions 轻后端。
+九溪（jiuxi）是一个个人向的纯静态信息站（Cloudflare Pages 托管，无云端后端）。
 如果你发现了安全漏洞，请按下面的方式**负责任地**报告——我们会优先修复，并尽量不在修复前公开细节。
 
 ## 支持的版本
@@ -25,7 +25,7 @@
 
 ## 报告时请包含
 
-- 漏洞类型与受影响文件/接口（如 `functions/api/feed.ts`、`public/history-client.js` 等）；
+- 漏洞类型与受影响文件/组件（如 `src/lib/feeds.ts`、`src/components/FeedSection.astro` 等前端聚簇/渲染逻辑，或 `scripts/fetch-feeds.mjs` 构建期抓取脚本）；
 - 触发条件与复现步骤（最好附最小 PoC）；
 - 影响范围与严重程度判断；
 - 你的联系方式（便于回执与致谢）。

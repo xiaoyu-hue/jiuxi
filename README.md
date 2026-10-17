@@ -4,12 +4,12 @@
 > 本地优先的静态信息站：无需服务器、手机可维护，内容由「仓库内文件 + 浏览器端实时抓取」共同驱动。
 > 视觉采用**报刊版式（editorial）：暖白纸底 + 墨色字 + 单一强调色 + 自托管中文衬线字体**，动效克制可降级。
 
-| 项目     | 说明                                                                                                                       |
-| -------- | -------------------------------------------------------------------------------------------------------------------------- |
-| 当前版本 | **v1.6.1**（全维度代码审查修复批次：P0 止血 + P1 安全/死代码/测试 + P2 可访问性与脚本健壮性；承续 v1.6.0 报刊体验升级 v2） |
-| 技术栈   | Astro 7 · Tailwind CSS 4 · TypeScript（纯静态输出 + Cloudflare Pages Functions 轻后端 + Cloudflare D1）                    |
-| 托管目标 | [Cloudflare Pages](https://jiuxi-bm1.pages.dev/)（单站，含 Pages Functions 轻后端 + D1）                                   |
-| 许可证   | 代码 Apache-2.0 / 文档与内容 CC BY-NC 4.0                                                                                  |
+| 项目     | 说明                                                                                             |
+| -------- | ------------------------------------------------------------------------------------------------ |
+| 当前版本 | **v1.8.0**（纯静态架构简化：移除后端 Pages Functions + D1 与历史回顾板块，资讯改为构建期预渲染） |
+| 技术栈   | Astro 7 · Tailwind CSS 4 · TypeScript（纯静态输出 + 构建期预渲染）                               |
+| 托管目标 | [Cloudflare Pages](https://jiuxi-bm1.pages.dev/)（纯静态单站）                                   |
+| 许可证   | 代码 Apache-2.0 / 文档与内容 CC BY-NC 4.0                                                        |
 
 ---
 
@@ -71,13 +71,13 @@
 - **实时资讯**：15 个全行业板块（AI / 新闻 / 科技 / 游戏 / 财经 / 体育 / 健康 / 科学 / 教育 / 汽车 / 家居 / 旅行 / 美食 / 读书 / 开发）在浏览器端实时抓取公开数据源并本地缓存；每板块 24 条名额**按源轮询**分配，高频源不会淹没低频源。
 - **报刊版式视觉**：暖白纸底 + 墨色字 + 单一强调色 + 自托管中文衬线字体，4 套可切换主题（晨曦 / 午夜 / 极光 / 樱粉），偏好持久化记忆。
 
-> **里程碑 · 第一次有了「轻后端」（2026-10）**：九溪此前是彻底的纯静态站。本次上线**历史回顾**板块——定时构建时把各板块每日资讯快照写入 **Cloudflare D1**（云端 SQLite 数据库），页面经 Pages Functions 接口 `/api/history` 读取，形成「云端 → IndexedDB 本地缓存 → 静态索引」三级降级链路。虽然数据库目前只用于存储历史快照、功能很轻，但这是项目**第一次拥有数据库与在线接口**，验证了「静态站 + Serverless 轻后端」的路线，为后续做真正的后端（用户系统、评论、同步等）铺平了道路。
+> **架构定型 · 纯静态 + 构建期预渲染（2026-10）**：九溪自 v1.8.0 起定型为**纯静态站点**——不再依赖任何云端运行时（无 Pages Functions、无 D1）。所有资讯在 `npm run build` 时由 `scripts/fetch-feeds.mjs` 抓取并注入各页内嵌 JSON（首页 / 热点榜 / 策展页注入聚合数据 `jiuxi-feed-all`），访客打开即有内容。此前短暂的「轻后端」试水（历史回顾板块 + D1 云端快照）验证了 Serverless 路线，但因 Cloudflare 密钥依赖与维护成本，最终回归更稳的纯静态方案。
 
 ## 二、核心特性
 
 **🎨 体验与视觉**
 
-- **15 个页面 / 三组信息架构**：动态（首页 / AI / 热点 / 新闻 / 科技 / 游戏 / 历史回顾）· 策展（时间线 / 工具箱 / 读书）· 更多（收藏 / 设置 / 关于）。另有两个直链页（导航未收录、经 llms.txt 与站内检索可达）：`/curate` 候选策展台（作者视图：从聚簇候选里挑条目沉淀）与 `/feed-policy` 资讯策展标准（公开“什么算重要资讯”的精选规则）。
+- **15 个页面 / 三组信息架构**：动态（首页 / AI / 热点 / 新闻 / 科技 / 游戏）· 策展（时间线 / 工具箱 / 读书）· 更多（收藏 / 设置 / 关于）。另有两个直链页（导航未收录、经 llms.txt 与站内检索可达）：`/curate` 候选策展台（作者视图：从聚簇候选里挑条目沉淀）与 `/feed-policy` 资讯策展标准（公开“什么算重要资讯”的精选规则）。
 - 报刊版式 UI（实色面板 + 发丝边 + 纸纹质感，动效克制可降级，不支持的浏览器自动回退）。
 - 4 套主题自由切换，防首屏闪烁，偏好写入 localStorage。
 - **移动端体验**：≤768px 显示底部 TabBar（首页 / 热点 / 工具 / 我的）+「我的」sheet（收藏 / 搜索 / 设置 / 关于），小屏隐藏桌面分组导航避免重复。
@@ -91,15 +91,14 @@
 
 **📡 资讯引擎**
 
-- **浏览器端实时资讯聚合**：直连优先 + 第一方同域代理（Cloudflare Pages Functions `/api/feed`，同源免 CORS，含 SSRF 防护与目标白名单），构建期注入兜底数据；本地缓存 10 分钟。
+- **浏览器端实时资讯聚合**：构建期预渲染兜底（各板块资讯在 `npm run build` 时抓取并注入页面内嵌 JSON）+ 浏览器端直连源实时刷新；打开即有内容，无需服务器。
 - **299 个资讯源 / 15 个板块**（每板块 = Google News 行业搜索骨干 + 行业官方 RSS；沙箱实测 34 个可用，其余「待线上验证」由每小时构建自动验证），每板块 24 条名额**按源轮询**分配——每个有数据的源都有曝光位，高频源（如 ArXiv 日更 15 条）不再淹没低频源。
-- **首页「今日热点」**：并发读各板块 D1 候选，按「独立信源数（cluster_size）」降序取前 10；D1 为空时回退浏览器端实时聚合，永不白屏。
+- **首页「今日热点」**：读取构建期注入的聚合 JSON（`jiuxi-feed-all`），按「独立信源数（cluster_size）」降序取前 10；纯静态，打开即有内容，永不白屏。
 - **全局热点榜 `/hot`**：跨 15 板块按「独立信源数」降序聚合前 60，顶部 `Filters` 按板块筛选。
 
 **🔒 安全与工程**
 
 - **单站部署**：Cloudflare Pages，push 即上线，全球 CDN 加速。
-- **历史回顾 · 云端存储**：定时构建将每日资讯快照写入 Cloudflare D1（SQLite），`/api/history` 接口读取，页面三级降级（云端 → IndexedDB → 静态索引），离线可用。
 - **安全门禁分层**：SAST / DAST / 依赖 / 密钥 / 供应链 五类（详见 9.3 与 `docs/`）。
 - **SEO 增强**：自动生成 sitemap / RSS / Open Graph 分享图，规范地址（canonical）。
 - **系统能力**：收藏、外观设置、数据导出 / 导入（JSON）、清空缓存。
@@ -108,16 +107,15 @@
 
 ## 三、技术栈
 
-| 类别   | 选型                                                                                                                                                                                                                                                                                                                                                                                                                                    | 用途                                   |
-| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| 框架   | **Astro 7**                                                                                                                                                                                                                                                                                                                                                                                                                             | 内容优先的静态站点生成，零 JS 默认输出 |
-| 样式   | **Tailwind CSS 4**（含 `@tailwindcss/vite`）                                                                                                                                                                                                                                                                                                                                                                                            | 原子化样式 + 快速开发                  |
-| 语言   | **TypeScript**                                                                                                                                                                                                                                                                                                                                                                                                                          | 类型安全                               |
-| 运行时 | **Node.js 22+**                                                                                                                                                                                                                                                                                                                                                                                                                         | 本地构建（部署侧由 CI 提供）           |
-| 内容   | Astro Content Collections（Zod schema）                                                                                                                                                                                                                                                                                                                                                                                                 | 时间线 / 工具箱 / 读书的结构化数据     |
-| 轻后端 | **Cloudflare Pages Functions**（`/api/feed` 代理 + `/api/history` 读 D1 + `/api/candidates` 读候选）+ **Cloudflare D1**（SQLite）                                                                                                                                                                                                                                                                                                       | 第一方 CORS 代理、云端历史与候选存储   |
-| 数据源 | 量子位 / OpenAI 新闻 / Google AI 博客 / Hacker News / ArXiv / The Decoder / Hugging Face / Google 新闻；Google 新闻 / IT之家 / 爱范儿 / 少数派 / 蓝点网 / 极客公园；Google 新闻 / Hacker News / TechCrunch / Ars Technica / The Verge / 阮一峰 / Solidot / MIT Technology Review / The Guardian；Google 新闻 / 机核 / 触乐 / IT之家 / Eurogamer / PC Gamer / Rock Paper Shotgun——共 31 源，直连优先，失败回退第一方同域代理 `/api/feed` | 动态资讯实时抓取                       |
-| 部署   | GitHub Actions + Cloudflare Pages                                                                                                                                                                                                                                                                                                                                                                                                       | 自动构建与单站发布                     |
+| 类别   | 选型                                                                                                                                                                                                                                                                                                                                                                                                                                          | 用途                                   |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| 框架   | **Astro 7**                                                                                                                                                                                                                                                                                                                                                                                                                                   | 内容优先的静态站点生成，零 JS 默认输出 |
+| 样式   | **Tailwind CSS 4**（含 `@tailwindcss/vite`）                                                                                                                                                                                                                                                                                                                                                                                                  | 原子化样式 + 快速开发                  |
+| 语言   | **TypeScript**                                                                                                                                                                                                                                                                                                                                                                                                                                | 类型安全                               |
+| 运行时 | **Node.js 22+**                                                                                                                                                                                                                                                                                                                                                                                                                               | 本地构建（部署侧由 CI 提供）           |
+| 内容   | Astro Content Collections（Zod schema）                                                                                                                                                                                                                                                                                                                                                                                                       | 时间线 / 工具箱 / 读书的结构化数据     |
+| 数据源 | 量子位 / OpenAI 新闻 / Google AI 博客 / Hacker News / ArXiv / The Decoder / Hugging Face / Google 新闻；Google 新闻 / IT之家 / 爱范儿 / 少数派 / 蓝点网 / 极客公园；Google 新闻 / Hacker News / TechCrunch / Ars Technica / The Verge / 阮一峰 / Solidot / MIT Technology Review / The Guardian；Google 新闻 / 机核 / 触乐 / IT之家 / Eurogamer / PC Gamer / Rock Paper Shotgun——共 299 源（15 板块），直连优先，失败回退构建期预渲染兜底数据 | 动态资讯实时抓取                       |
+| 部署   | GitHub Actions + Cloudflare Pages                                                                                                                                                                                                                                                                                                                                                                                                             | 自动构建与单站发布                     |
 
 ---
 
@@ -152,7 +150,7 @@ jiuxi/
 │  ├─ layouts/
 │  │  └─ BaseLayout.astro      # 报刊版式外壳 + 防闪烁 + 导航 + 搜索按钮
 │  ├─ pages/            # 15 个页面
-│  │  ├─ index.astro  ai  news  tech  gaming  hot(全局热点榜)  history
+│  │  ├─ index.astro  ai  news  tech  gaming  hot(全局热点榜)
 │  │  ├─ timeline  tools  reading   # 策展三大板块
 │  │  └─ starred(收藏)  settings  about
 │  │  └─ curate(候选策展台·作者视图)  feed-policy(策展标准)  # 直链页，导航未收录
@@ -161,15 +159,11 @@ jiuxi/
 │  │  ├─ timeline/  tools/  reading/
 │  ├─ styles/           # global / themes(4套主题令牌) / glass(兼容别名) / components
 │  └─ lib/              # feeds(抓取) / settings(设置) / favorites(收藏单数据源) / db(IndexedDB) / theme(主题) / motion(动效) / site(base工具) / security(转义/URL白名单)
-├─ functions/                   # Cloudflare Pages Functions（轻后端）
-│  └─ api/  feed.ts(第一方CORS代理+聚合)  history.ts(读D1)  candidates.ts(读D1候选)
 ├─ scripts/                     # 构建期脚本
-│  ├─ fetch-feeds.mjs           # 预抓取注入（构建期内嵌资讯；全失败时退出码 1）
-│  ├─ build-search-index.mjs    # 生成 public/search-index.json（站内搜索用）
-│  ├─ save-history.mjs          # 写 D1 每日快照
-│  └─ ensure-candidates.mjs     # 幂等建 candidates 表
+│  ├─ fetch-feeds.mjs           # 预抓取注入（两段式：--write 抓写 JSON → astro build → --inject 注入内嵌资讯；全失败时退出码 1）
+│  └─ build-search-index.mjs    # 生成 public/search-index.json（站内搜索用）
 ├─ .github/workflows/           # deploy.yml(单站) + security.yml(安全门禁) + 其它
-├─ wrangler.toml                # Cloudflare Pages 配置（含 D1 绑定声明）
+├─ wrangler.toml                # Cloudflare Pages 配置（纯静态：pages_build_output_dir = 'dist'）
 ├─ astro.config.mjs             # Astro 配置
 ├─ package.json                 # 依赖与脚本
 ├─ README.md                    # 本文件
@@ -184,7 +178,7 @@ jiuxi/
 
 1. **策展内容**（AI 发展时间线 / AI 工具箱 / 读书推荐）：改仓库里的数据文件，推送后自动上线。
    手机浏览器登录 GitHub → 打开 `src/content/<板块>/` 下对应文件 → 点铅笔图标编辑 → 提交即可。
-2. **动态资讯**（15 个全行业板块，配置在 `src/data/feeds.json`）：由站点在浏览器端实时抓取公开源，无需你维护；**AI 板块每次打开页面会自动重新拉取最新资讯**（主站走第一方同域代理，纯静态环境用构建期注入数据），若发现内容滞后请刷新或清缓存，而非手动改文件。
+2. **动态资讯**（15 个全行业板块，配置在 `src/data/feeds.json`）：由各板块公开源实时抓取，构建期预渲染兜底；**每次打开页面会显示构建期注入的最新资讯**，若想看实时更新可刷新（浏览器端直连源重新拉取），无需手动改文件。
 
 **数据格式**（每个条目是一个 Markdown 文件，Frontmatter 写元数据，正文写简介）：
 
@@ -208,33 +202,32 @@ jiuxi/
 
 采用**单站部署**，由 `.github/workflows/deploy.yml`（push 即构建并发布）驱动：
 
-- **Cloudflare Pages**：无限带宽、全球 CDN。需在仓库 `Settings → Secrets` 添加 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID`（最小权限：Pages Edit + D1 Edit）。
+- **Cloudflare Pages**：无限带宽、全球 CDN。需在仓库 `Settings → Secrets` 添加 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID`（最小权限：Pages Edit）。
 - 缺 Cloudflare 密钥时，部署步骤自动跳过（不阻塞流水线）。你只需 `git push` 到 `main`。
-- **部署后冒烟测试**：部署完成自动请求 `/api/history`、`/api/feed?aggregate=1`、`/api/candidates` 三个端点，断言返回 `application/json`——Pages Functions 若未生效（历史故障：全部返回 index.html），CI 红灯 + 排查指引，不再静默。详见 `docs/云端资源交接清单.md`。
-- **定时重建**（`refresh-feeds.yml`，每小时）额外做 D1 写穿核查：save-history 同步失败时以 warning 显式提示（不阻断构建）。
-
-> ⚠️ **D1 绑定必须写在 `wrangler.toml`**：该文件一旦包含 `pages_build_output_dir`，就成为 Pages 项目配置的唯一来源（source of truth），每次 `wrangler pages deploy` 都会用它覆盖云端设置——只在仪表盘里绑定的 D1，一次部署后就会被抹掉（2026-10 实测复现）。当前绑定（库 `jiuxi-history`）已声明在 `wrangler.toml` 的 `[[d1_databases]]`，随每次部署自动同步，无需手动操作。
+- **部署后冒烟测试**：部署完成自动校验静态站三页（`/`、`/hot`、`/curate`）返回 200 且首页含构建期注入的聚合 JSON（`#jiuxi-feed-all`）——把「静态站部署异常」转为 CI 红灯，不再静默。
+- **定时重建**（`refresh-feeds.yml`，每小时）重新抓取并注入最新资讯，保持内容新鲜（纯静态，无云端写入）。
 
 ---
 
 ## 八、发展路线图
 
-| 阶段    | 内容                                                                             | 状态      |
-| ------- | -------------------------------------------------------------------------------- | --------- |
-| Phase 0 | 工程初始化 + 报刊版式外壳骨架                                                    | ✅ 已完成 |
-| Phase 1 | 视觉系统与 4 套主题（晨曦 / 午夜 / 极光 / 樱粉）                                 | ✅ 已完成 |
-| Phase 2 | 导航与首页 Bento 聚合                                                            | ✅ 已完成 |
-| Phase 3 | 动态资讯板块（15 个全行业板块，feeds.json 配置驱动 + 动态路由模板）              | ✅ 已完成 |
-| Phase 4 | 策展板块（时间线 / 工具箱 / 读书）                                               | ✅ 已完成 |
-| Phase 5 | 系统板块（设置与数据 / 关于）                                                    | ✅ 已完成 |
-| Phase 6 | 部署配置（Cloudflare Pages 单站）                                                | ✅ 已完成 |
-| Phase 7 | 轻后端试水：历史回顾 + Cloudflare D1 云端快照 + `/api/history` 接口              | ✅ 已完成 |
-| Phase 8 | 内容大扩充：时间线 / 工具箱 / 读书全面补全                                       | ✅ 已完成 |
-| 阶段 A  | 首页「今日热点」+ 收藏体系重构（单数据源 + `/starred`）                          | ✅ 已完成 |
-| 阶段 B  | 全局热点榜 `/hot` + 分组导航 + 移动 TabBar + 全站站内搜索                        | ✅ 已完成 |
-| 阶段 C  | 九溪日报 `/daily`（当日候选按板块聚合，可选 LLM 摘要）+ 热度趋势 Delta/Sparkline | 📋 规划中 |
+| 阶段    | 内容                                                                             | 状态                       |
+| ------- | -------------------------------------------------------------------------------- | -------------------------- |
+| Phase 0 | 工程初始化 + 报刊版式外壳骨架                                                    | ✅ 已完成                  |
+| Phase 1 | 视觉系统与 4 套主题（晨曦 / 午夜 / 极光 / 樱粉）                                 | ✅ 已完成                  |
+| Phase 2 | 导航与首页 Bento 聚合                                                            | ✅ 已完成                  |
+| Phase 3 | 动态资讯板块（15 个全行业板块，feeds.json 配置驱动 + 动态路由模板）              | ✅ 已完成                  |
+| Phase 4 | 策展板块（时间线 / 工具箱 / 读书）                                               | ✅ 已完成                  |
+| Phase 5 | 系统板块（设置与数据 / 关于）                                                    | ✅ 已完成                  |
+| Phase 6 | 部署配置（Cloudflare Pages 单站）                                                | ✅ 已完成                  |
+| Phase 7 | 轻后端试水：历史回顾 + Cloudflare D1 云端快照 + `/api/history` 接口              | ↩️ 已回退（v1.8.0 纯静态） |
+| Phase 8 | 内容大扩充：时间线 / 工具箱 / 读书全面补全                                       | ✅ 已完成                  |
+| 阶段 A  | 首页「今日热点」+ 收藏体系重构（单数据源 + `/starred`）                          | ✅ 已完成                  |
+| 阶段 B  | 全局热点榜 `/hot` + 分组导航 + 移动 TabBar + 全站站内搜索                        | ✅ 已完成                  |
+| 阶段 C  | 九溪日报 `/daily`（当日候选按板块聚合，可选 LLM 摘要）+ 热度趋势 Delta/Sparkline | 📋 规划中                  |
+| Phase 9 | 纯静态架构定型：移除后端（Pages Functions + D1）与历史回顾板块，改为构建期预渲染 | ✅ 已完成                  |
 
-> 当前 **v1.7.1** = 线上 API 失效（P0）修复批次：定时重建部署补上 functions/ 目录（直接根因）+ 部署后冒烟测试 + D1 写穿核查 + 源健康摘要；**v1.7.0** = 全行业信源扩容 31 → 299（15 个板块）+ 板块页模板化 + 构建/实时通道性能改造；承续 v1.6.1（全维度代码审查修复批次）与 v1.6.0（报刊体验升级 v2）。
+> 当前 **v1.8.0** = 纯静态架构简化：移除 Cloudflare Pages Functions 后端（`/api/feed`、`/api/history`、`/api/candidates`）与 D1 数据库、删除历史回顾板块，资讯改为构建期预渲染注入；**v1.7.1** = 线上 API 失效（P0）修复批次：定时重建部署补上 functions/ 目录（直接根因）+ 部署后冒烟测试 + D1 写穿核查 + 源健康摘要；**v1.7.0** = 全行业信源扩容 31 → 299（15 个板块）+ 板块页模板化 + 构建/实时通道性能改造；承续 v1.6.1（全维度代码审查修复批次）与 v1.6.0（报刊体验升级 v2）。
 
 **后续可规划**：真正的后端（用户系统 / 收藏云同步 / 评论）、更多策展板块（影视 / 财经 / 学习等）、无障碍与多语言。
 详见仓库 `docs/` 内《九溪-PRD.md》《九溪-实施计划.md》《九溪-调研报告.md》《九溪-架构文档.md》。
@@ -270,7 +263,7 @@ jiuxi/
 
 **数据源（公开服务，非 npm 依赖，共 31 个）**：AI——量子位、OpenAI 新闻、Google AI 博客、Hacker News（Algolia API）、ArXiv cs.AI、The Decoder、Hugging Face、Google 新闻；新闻——Google 新闻、IT之家、爱范儿、少数派、蓝点网、极客公园；科技——Google 新闻、Hacker News、TechCrunch、Ars Technica、The Verge、阮一峰的网络日志、Solidot 奇客、MIT Technology Review、Ars Technica·AI、The Guardian·Tech；游戏——Google 新闻、机核 GCores、触乐、IT之家、Eurogamer、PC Gamer、Rock Paper Shotgun。
 
-**第一方轻后端（Cloudflare Pages Functions，自研，非第三方依赖）**：`functions/api/feed.ts`（第一方 CORS 代理，与站点同域、含目标主机白名单与 SSRF 防护，**已取代 allorigins / corsproxy 等公共代理**）+ `functions/api/history.ts`（读取 Cloudflare D1 中的每日资讯快照）+ `functions/api/candidates.ts`（读取 D1 候选表，供首页今日热点与 `/hot` 全局榜使用）。
+**纯静态站点（无第一方后端）**：九溪自 v1.8.0 起不依赖任何云端运行时，无 Pages Functions、无 D1。资讯抓取与聚簇全部在构建期（`scripts/fetch-feeds.mjs`）完成并注入页面内嵌 JSON；浏览器端仅做渲染与可选的实时刷新（直连公开源）。
 
 > 具体依赖版本见 `package.json` 与 `package-lock.json`。部署前建议运行 `npm audit` 复核依赖安全告警。
 
@@ -299,7 +292,7 @@ jiuxi/
 
 九溪虽是个人的小项目，但其中若干**架构与工程决策**对想自建「内容站 / 信息聚合站」的人有参考价值。以下按「做法 → 为什么」列出：
 
-1. **静态优先，按需补足轻后端（渐进式 Serverless）**：纯静态托底，只在需要跨会话 / 离线数据时才上 D1 + Pages Functions（历史回顾、候选整理）。不要为一上来就上重后端——能用构建期 + 浏览器端解决的事，就不引入服务器。
+1. **静态优先，慎加后端（渐进式 Serverless 的右侧教训）**：九溪曾短暂引入 D1 + Pages Functions（历史回顾、候选整理）做「轻后端」，但最终因 Cloudflare 密钥依赖、部署复杂度与维护成本，在 v1.8.0 整体移除、回归纯静态。结论：**能用构建期 + 浏览器端解决的事，就绝不引入服务器**——后端只在确实无法用静态手段覆盖时才考虑，且要先算清密钥与运维代价。
 2. **浏览器端 RSS 聚合的三级降级**：直连优先 → 第一方同域代理（含目标主机白名单 + 协议检查 + 私有地址拦截 + Origin 校验）→ 构建期注入兜底。同一份代码在弱网 / 无 Functions 环境自动降级，永不白屏。
 3. **按源轮询而非纯按时间排序**：高频源（如 ArXiv 日更 15 条）会占满名额、淹没低频源。改为「每个源轮流取一条、凑满上限为止」，保证「综合信息聚集地」的多元化定位。
 4. **收藏单数据源**：多个模块共用同一个 localStorage 键极易双写冲突。抽成 `favorites.ts` 单一真相（对象化存储、旧版格式自动归一化），`settings.ts` / `starred.astro` 只消费、不各写——UI 与数据解耦。
@@ -321,12 +314,11 @@ jiuxi/
 **学法**：先想「我要做啥」→ 映射到类别——写代码要助手 → 编程（Claude Code / Cursor / Trae）；做智能体 → 智能体（Coze / Manus / Dify）；出图出视频 → 图像 / 视频。避免被「新工具焦虑」裹挟，按任务选工具。
 
 **③ 用热点三视角追动态**
-九溪提供「当下 ↔ 全局 ↔ 过往」三层对照：
+九溪提供「当下 ↔ 全局」两层对照：
 
 - **当下**：首页「今日热点」——各板块按独立信源数降序的即时聚合。
 - **全局**：`/hot` 全局热点榜——跨板块 cluster_size 降序前 60，顶部 `Filters` 按板块聚焦。
-- **过往**：历史回顾——云端 D1 每日快照，看「同一事件如何演化」。
-  **学法**：先用今日热点抓当下，再用全局榜看全局权重，最后用历史回顾理解来龙去脉。
+  **学法**：先用今日热点抓当下，再用全局榜看全局权重，建立「当下 ↔ 全局」的对照视野。
 
 **④ 用读书单打知识底子**
 读书 **128 本**，覆盖 AI / 技术 / 历史 / 哲学 / 经济 / 商业 / 政治 / 心理 / 社会 / 科学 / 艺术 / 文学等，每本配客观推荐语与在线可读链接。
@@ -371,7 +363,6 @@ jiuxi/
 - `docs/九溪-PRD.md`：产品需求文档（定位、架构、功能优先级、风险）
 - `docs/九溪-架构文档.md`：技术架构与运行原理（模块协作、部署与站点拓扑、安全与隐私）
 - `docs/九溪-实施计划.md`：分阶段实施方案、技术选型理由、部署细节
-- `docs/d1-candidates.md`：候选表（candidates）建表与聚合接口说明
 
 > 文档均为 Markdown，统一存放在 `docs/` 目录，便于集中管理与移动端阅读。
 
