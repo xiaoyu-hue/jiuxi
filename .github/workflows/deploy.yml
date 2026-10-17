@@ -172,10 +172,15 @@ jobs:
         run: |
           set -uo pipefail
           fail=0
-          # check <名称> <路径> <必须出现的内嵌片段>：最多 3 次尝试（应对 CDN 短暂传播延迟）
+          # 部署完成后 Cloudflare Pages 的 CDN 边缘需要时间从旧版本切换到新版本
+          # （通常 30-60s，极端情况下更长）。先等待再断言，避免命中尚未刷新的边缘节点
+          # （旧版本的首页可能不含构建期注入的 #jiuxi-feed-all，会误报红叉）。
+          echo "等待 CDN 边缘传播（60s）..."
+          sleep 60
+          # check <名称> <路径> <必须出现的内嵌片段>：最多 6 次尝试（应对 CDN 传播延迟）
           check() {
             local label="$1" path="$2" fragment="$3" attempt code
-            for attempt in 1 2 3; do
+            for attempt in 1 2 3 4 5 6; do
               code=$(curl -sSL -m 25 -o /dev/null -w '%{http_code}' "$BASE_URL$path" 2>/dev/null || echo '000')
               if [ "$code" = "200" ]; then
                 if [ -z "$fragment" ]; then
@@ -190,9 +195,9 @@ jobs:
               else
                 echo "... $label 第 $attempt 次 HTTP $code"
               fi
-              [ "$attempt" -lt 3 ] && sleep 12
+              [ "$attempt" -lt 6 ] && sleep 15
             done
-            echo "::error::$label 连续 3 次未达标（预期 HTTP 200 且含 $fragment）。静态站部署异常——首页可能未注入聚合 JSON 或构建失败，请检查 deploy-cloudflare 日志与 Cloudflare 控制台。"
+            echo "::error::$label 连续多次未达标（预期 HTTP 200 且含 $fragment）。静态站部署异常——首页可能未注入聚合 JSON、构建失败或 CDN 尚未传播，请检查 deploy-cloudflare 日志与 Cloudflare 控制台。"
             return 1
           }
           check 'GET /（首页 + 聚合 JSON 注入）' '/' 'id="jiuxi-feed-all"' || fail=1
