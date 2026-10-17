@@ -2,6 +2,22 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [v1.11.1] — 2026-10-18
+
+> v1.11.0 首批接入后的 CI 实测修正：构建日志显示 23 个 RSSHub 源仅 7 个成功。经两轮 GitHub Actions 诊断工作流（curl 直探测响应体与耗时）定位三类问题并修复。诊断工作流为临时设施，验证完成后已删除。
+
+### Fixed
+
+- **RSSHub 源超时 5s → 20s**（`scripts/fetch-feeds.mjs` 与 `scripts/feed-health-check.mjs` 同口径）：CI 诊断实证自托管 Worker 路由需「Worker 抓源站 → 解析 → 生成 RSS」，境外边缘抓中文站 3~8s，原 5s 必超时。仅对 `feeds.json` 带 `rsshub` 字段的源生效（`fetchSource` 按 `source.rsshub` 分档；健康检查 `probe(url, timeout)` 参数化），其余源维持 5s/8s 不变。
+- **回退 4 个未注册路由**（CI 诊断返回 "Welcome to RSSHub!" 欢迎页 = 路由在部署版本不存在，尽管其在 RSSHub master 与最新 release 源码中均存在，部署版本差异原因未定）：36氪 → `https://36kr.com/feed`、3DM游戏 → `https://www.3dmgame.com/rss/news.xml`、新浪体育 → `https://sports.sina.com.cn/rss`（均移除 `rsshub` 字段，恢复 v1.11.0 前条目）；美食天下（v1.11.0 新增条目）整体移除。
+
+### Verified / Known Issues
+
+- **19 个 RSSHub 源保留**（23 - 4）：诊断实证 17 个路由在 CI 环境返回完整真实 RSS（虎扑赛后新闻、第一财经头条、财联社快讯、豆瓣图书榜单等）；**2 个路由（AIbase 日报 `/aibase/daily`、新浪滚动新闻 `/sina/rollnews`）间歇失败**——响应为 `error code: 1102`（HTTP 503，17 字节），即 Cloudflare Workers **免费档 CPU 时间 10ms 上限**，重路由超限被杀。修复选项（需用户决策，未实施）：Workers Paid $5/月（CPU 上限 10ms → 30s + Smart Placement 亚洲边缘执行），或保持现状接受间歇失败（构建容错自动跳过，不影响站点可用性）。
+- **源总数 322 → 321**；`feeds.json` `_comment` 同步记录 v1.11.1 修正结论。
+- **沙箱仍无法实测**：沙箱网络屏蔽 `*.workers.dev`（对照组实证），本地构建中 19 个 RSSHub 源全部失败属预期；验收信号以下次 CI 构建日志中这 19 源的 ✓ 数量为准（v1.11.0 时为 7/23）。
+- 临时诊断工作流 `.github/workflows/rsshub-diag.yml` 已随本版本删除（两轮 run：39054862106、39055170623）。
+
 ## [v1.11.0] — 2026-10-18
 
 > RSSHub 首批接入（P1 第一阶段）：23 个源改走自托管 RSSHub Cloudflare Worker，修复「中文源在构建机房不可达」问题。触发决策：P2 健康检查线上实测 310 源中 103 个不可用（失败率 33.2%），其中约七成是中文源——多数并非源本身死亡，而是 GitHub Actions 境外机房直连超时/被反爬拦截；用户已完成 RSSHub Worker 部署并实测路由可用。

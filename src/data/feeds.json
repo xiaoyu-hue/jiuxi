@@ -1,5 +1,5 @@
 {
-  "_comment": "九溪 · 资讯源配置（唯一数据源）。运行端 feeds.ts 与构建端 scripts/fetch-feeds.mjs 共用本文件。2026-10-15 全行业扩容：31 源/4 板块 → 310 源/15 板块。每板块 = Google News 行业搜索（骨干，线上实证可用）+ 行业官方 RSS（质量锚点）。verified=true 为沙箱实测可用（46 个）；其余为知名稳定源标注「待线上验证」，由每小时定时构建自动验证，失败源自动跳过不阻断（fetch-feeds 容错），可据构建日志清理。 2026-10-18 P1 首批：23 个源改走自托管 RSSHub（Cloudflare Worker jiuxi-rsshub.xyyovo520.workers.dev；11 个替换线上失效源 + 12 个新增），带 rsshub 字段标注路由，路径均自 RSSHub master 源码逐个核实存在；未经沙箱实测（沙箱屏蔽 workers.dev），由 CI 构建自动验证。",
+  "_comment": "九溪 · 资讯源配置（唯一数据源）。运行端 feeds.ts 与构建端 scripts/fetch-feeds.mjs 共用本文件。2026-10-15 全行业扩容：31 源/4 板块 → 310 源/15 板块。每板块 = Google News 行业搜索（骨干，线上实证可用）+ 行业官方 RSS（质量锚点）。verified=true 为沙箱实测可用（46 个）；其余为知名稳定源标注「待线上验证」，由每小时定时构建自动验证，失败源自动跳过不阻断（fetch-feeds 容错），可据构建日志清理。 2026-10-18 P1 首批：23 个源改走自托管 RSSHub（Cloudflare Worker jiuxi-rsshub.xyyovo520.workers.dev；11 个替换线上失效源 + 12 个新增），带 rsshub 字段标注路由，路径均自 RSSHub master 源码逐个核实存在；未经沙箱实测（沙箱屏蔽 workers.dev），由 CI 构建自动验证。 2026-10-18 v1.11.1 修正：CI 诊断（两轮 curl 实测）发现 4 个路由在部署版本返回欢迎页（未注册）——36氪/3DM游戏/新浪体育回退原官方 URL，美食天下（新增条目）整体移除；AIbase 日报与新浪滚动新闻遇免费档 CPU 限制（error 1102）间歇失败；其余 17 路由 CI 实证可用。RSSHub 源专用超时 20s（fetch-feeds 与健康检查同口径）。",
   "sections": {
     "ai": [
       {
@@ -458,9 +458,8 @@
       },
       {
         "label": "36氪",
-        "url": "https://jiuxi-rsshub.xyyovo520.workers.dev/36kr/hot-list",
+        "url": "https://36kr.com/feed",
         "type": "rss",
-        "rsshub": "/36kr/hot-list",
         "note": "反爬待观察，失败自动跳过"
       },
       {
@@ -637,9 +636,8 @@
       },
       {
         "label": "3DM游戏",
-        "url": "https://jiuxi-rsshub.xyyovo520.workers.dev/3dmgame/news",
+        "url": "https://www.3dmgame.com/rss/news.xml",
         "type": "rss",
-        "rsshub": "/3dmgame/news",
         "note": "待线上验证"
       },
       {
@@ -962,9 +960,8 @@
       },
       {
         "label": "新浪体育",
-        "url": "https://jiuxi-rsshub.xyyovo520.workers.dev/sina/sports",
+        "url": "https://sports.sina.com.cn/rss",
         "type": "rss",
-        "rsshub": "/sina/sports",
         "note": "待线上验证"
       },
       {
@@ -1711,12 +1708,6 @@
         "label": "Google 新闻 · 食品消费",
         "url": "https://news.google.com/rss/search?q=%E9%A2%84%E5%88%B6%E8%8F%9C+%E9%A3%9F%E5%93%81%E5%AE%89%E5%85%A8+%E9%A3%9F%E5%93%81%E6%B6%88%E8%B4%B9&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
         "type": "rss"
-      },
-      {
-        "label": "美食天下",
-        "url": "https://jiuxi-rsshub.xyyovo520.workers.dev/meishichina/recipe",
-        "type": "rss",
-        "rsshub": "/meishichina/recipe"
       }
     ],
     "books": [

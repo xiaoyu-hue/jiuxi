@@ -29,19 +29,22 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const FEEDS = resolve(ROOT, 'src/data/feeds.json');
 
 const TIMEOUT = 8; // 比构建期的 5s 略宽：健康检查不赶时间，减少把慢源误判为死源
+// RSSHub 源专用超时（v1.11.1，与 fetch-feeds.mjs 同口径）：自托管 Worker 路由需
+// 「Worker 抓源站 → 解析 → 生成 RSS」，CI 诊断实证境外边缘抓中文站 3~8s。
+const RSSHUB_TIMEOUT = 20;
 const CONCURRENCY = 10; // 与 fetch-feeds.mjs 一致
 const MIN_BYTES = 200; // RSS/Atom 再小也有几百字节；低于此值视为空壳或挑战页
 const FAIL_WARN_RATIO = 0.2; // 与 fetch-feeds.mjs 的 20% 告警口径一致
 
 /** 探测单个源：返回 { ok, httpCode, bytes, seconds, reason? } */
-async function probe(url) {
+async function probe(url, timeout = TIMEOUT) {
   try {
     const { stdout } = await execFileAsync(
       'curl',
       [
         '-s',
         '--max-time',
-        String(TIMEOUT),
+        String(timeout),
         '-L',
         '-H',
         'User-Agent: Jiuxi/1.0',
@@ -52,7 +55,7 @@ async function probe(url) {
         '%{http_code} %{size_download} %{time_total}',
         url,
       ],
-      { encoding: 'utf8', timeout: (TIMEOUT + 2) * 1000 },
+      { encoding: 'utf8', timeout: (timeout + 2) * 1000 },
     );
     const [code, size, time] = stdout.trim().split(/\s+/);
     const httpCode = Number(code) || 0;
@@ -94,19 +97,22 @@ function main() {
     process.exit(1); // 配置文件读不出来是脚本自身故障，必须显式失败
   }
 
-  // 展平：每个源带上所属板块，便于按板块归因
+  // 展平：每个源带上所属板块与 rsshub 标记，便于按板块归因与分档超时
   const targets = [];
   for (const [section, sources] of Object.entries(feeds.sections || {})) {
     for (const s of sources || []) {
-      if (s && s.url) targets.push({ section, label: s.label || s.url, url: s.url });
+      if (s && s.url) targets.push({ section, label: s.label || s.url, url: s.url, rsshub: s.rsshub });
     }
   }
   console.log(
-    `[九溪] 开始探测 ${targets.length} 个资讯源（并发 ${CONCURRENCY}，单源超时 ${TIMEOUT}s）…`,
+    `[九溪] 开始探测 ${targets.length} 个资讯源（并发 ${CONCURRENCY}，普通源超时 ${TIMEOUT}s / RSSHub 源 ${RSSHUB_TIMEOUT}s）…`,
   );
 
   return runPool(
-    targets.map((t) => async () => ({ ...t, ...(await probe(t.url)) })),
+    targets.map((t) => async () => ({
+      ...t,
+      ...(await probe(t.url, t.rsshub ? RSSHUB_TIMEOUT : TIMEOUT)),
+    })),
     CONCURRENCY,
   ).then((results) => {
     const failed = results.filter((r) => !r.ok);

@@ -24,6 +24,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const OUT = resolve(ROOT, 'src/data/feed.json');
 const TIMEOUT = 5;
+// RSSHub 源专用超时（2026-10-18，v1.11.1）：自托管 Worker 的路由要「Worker 抓源站
+// → 解析 → 生成 RSS」，境外边缘抓中文站实测 3~8s（CI 诊断工作流两轮实证），5s 必超时。
+// 仅对 feeds.json 中带 rsshub 字段的源生效，其余源维持 5s 不变。
+const RSSHUB_TIMEOUT = 20;
 
 // ── 英文保底配额（2026-10-17 用户决策，v1.10.0）──────────────────────
 // 背景：中文候选量已远超每板块 24 条上限，「中文优先 + 纯时间序」在数学上
@@ -41,12 +45,12 @@ const DEFAULT_EN_QUOTA = 6;
 // 并行，总耗时约等于最慢单源而非全部源之和。
 const execFileAsync = promisify(execFile);
 
-async function curlGet(url) {
+async function curlGet(url, timeout = TIMEOUT) {
   try {
     const { stdout } = await execFileAsync(
       'curl',
-      ['-s', '--max-time', String(TIMEOUT), '-L', '-H', 'User-Agent: Jiuxi/1.0', '--globoff', url],
-      { encoding: 'utf8', timeout: (TIMEOUT + 2) * 1000, maxBuffer: 16 * 1024 * 1024 },
+      ['-s', '--max-time', String(timeout), '-L', '-H', 'User-Agent: Jiuxi/1.0', '--globoff', url],
+      { encoding: 'utf8', timeout: (timeout + 2) * 1000, maxBuffer: 16 * 1024 * 1024 },
     );
     return { ok: true, body: stdout };
   } catch {
@@ -55,8 +59,8 @@ async function curlGet(url) {
 }
 
 // 构建期在 Node 端运行，curl 可直接抓取 RSS（无浏览器 CORS 限制），无需第三方代理。
-async function fetchWithProxy(url) {
-  const r = await curlGet(url);
+async function fetchWithProxy(url, timeout = TIMEOUT) {
+  const r = await curlGet(url, timeout);
   if (r.ok && (r.body.includes('<?xml') || r.body.includes('<rss') || r.body.includes('<feed')))
     return r.body;
   return null;
@@ -132,9 +136,11 @@ const failedSources = []; // 抓取失败（网络/超时/非 XML）
 const emptySources = []; // 抓取成功但解析出 0 条（上游格式可能已变化）
 
 async function fetchSource(section, source) {
+  // RSSHub 路由需 Worker 回源解析，给 20s；其余源维持 5s（v1.11.1）
+  const t = source.rsshub ? RSSHUB_TIMEOUT : TIMEOUT;
   try {
     if (source.type === 'hn') {
-      const r = await curlGet(source.url);
+      const r = await curlGet(source.url, t);
       if (r.ok) {
         const items = parseHn(r.body);
         console.log(`  ✓ [${section}] ${source.label}: ${items.length} 条`);
@@ -142,7 +148,7 @@ async function fetchSource(section, source) {
         return items;
       }
     } else {
-      const xml = await fetchWithProxy(source.url);
+      const xml = await fetchWithProxy(source.url, t);
       if (xml) {
         const items = parseRss(xml).map((it) => ({ ...it, source: source.label }));
         console.log(`  ✓ [${section}] ${source.label}: ${items.length} 条`);
