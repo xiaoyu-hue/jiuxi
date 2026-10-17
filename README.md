@@ -92,7 +92,7 @@
 **📡 资讯引擎**
 
 - **浏览器端实时资讯聚合**：构建期预渲染兜底（各板块资讯在 `npm run build` 时抓取并注入页面内嵌 JSON）+ 浏览器端直连源实时刷新；打开即有内容，无需服务器。
-- **299 个资讯源 / 15 个板块**（每板块 = Google News 行业搜索骨干 + 行业官方 RSS；沙箱实测 34 个可用，其余「待线上验证」由每小时构建自动验证），每板块 24 条名额**中文优先**——中文资讯（标题含中文的条目）按发布时间降序排满名额，英文资讯按发布时间降序补位，兼顾中文站定位与最新实时。
+- **310 个资讯源 / 15 个板块**（每板块 = Google News 行业搜索骨干 + 行业官方 RSS；2026-10-17 补充中国新闻网 7 个频道 RSS（滚动/财经/体育/健康/生活/教育/汽车）与环球科学、有赞技术、开源中国、机核等官方源；沙箱实测 46 个可用，其余「待线上验证」由每小时构建自动验证），每板块 24 条名额**中文优先**——中文资讯（标题含中文的条目）按发布时间降序排满名额，英文资讯按发布时间降序补位，兼顾中文站定位与最新实时。
 - **首页「今日热点」**：读取构建期注入的聚合 JSON（`jiuxi-feed-all`），中文优先 + 按发布时间排序取前 10；纯静态，打开即有内容，永不白屏。
 - **全局热点榜 `/hot`**：跨 15 板块中文优先、按发布时间聚合前 60，顶部 `Filters` 按板块筛选。
 
@@ -114,7 +114,7 @@
 | 语言   | **TypeScript**                                                                                                                                                                                                                                                                                                                                                                                                                                | 类型安全                               |
 | 运行时 | **Node.js 22+**                                                                                                                                                                                                                                                                                                                                                                                                                               | 本地构建（部署侧由 CI 提供）           |
 | 内容   | Astro Content Collections（Zod schema）                                                                                                                                                                                                                                                                                                                                                                                                       | 时间线 / 工具箱 / 读书的结构化数据     |
-| 数据源 | 量子位 / OpenAI 新闻 / Google AI 博客 / Hacker News / ArXiv / The Decoder / Hugging Face / Google 新闻；Google 新闻 / IT之家 / 爱范儿 / 少数派 / 蓝点网 / 极客公园；Google 新闻 / Hacker News / TechCrunch / Ars Technica / The Verge / 阮一峰 / Solidot / MIT Technology Review / The Guardian；Google 新闻 / 机核 / 触乐 / IT之家 / Eurogamer / PC Gamer / Rock Paper Shotgun——共 299 源（15 板块），直连优先，失败回退构建期预渲染兜底数据 | 动态资讯实时抓取                       |
+| 数据源 | 量子位 / OpenAI 新闻 / Google AI 博客 / Hacker News / ArXiv / The Decoder / Hugging Face / Google 新闻；Google 新闻 / IT之家 / 爱范儿 / 少数派 / 蓝点网 / 极客公园；Google 新闻 / Hacker News / TechCrunch / Ars Technica / The Verge / 阮一峰 / Solidot / MIT Technology Review / The Guardian；Google 新闻 / 机核 / 触乐 / IT之家 / Eurogamer / PC Gamer / Rock Paper Shotgun——共 310 源（15 板块），直连优先，失败回退构建期预渲染兜底数据 | 动态资讯实时抓取                       |
 | 部署   | GitHub Actions + Cloudflare Pages                                                                                                                                                                                                                                                                                                                                                                                                             | 自动构建与单站发布                     |
 
 ---
