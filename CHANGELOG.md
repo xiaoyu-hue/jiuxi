@@ -2,6 +2,27 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [v1.11.0] — 2026-10-18
+
+> RSSHub 首批接入（P1 第一阶段）：23 个源改走自托管 RSSHub Cloudflare Worker，修复「中文源在构建机房不可达」问题。触发决策：P2 健康检查线上实测 310 源中 103 个不可用（失败率 33.2%），其中约七成是中文源——多数并非源本身死亡，而是 GitHub Actions 境外机房直连超时/被反爬拦截；用户已完成 RSSHub Worker 部署并实测路由可用。
+
+### Added
+
+- **12 个新源接入 RSSHub**：财联社电报 `/cls/telegraph`、金十快讯 `/jin10`、格隆汇 `/gelonghui/home`（finance）；AIbase 日报 `/aibase/daily`（ai）；钛媒体 `/tmtpost/new`、cnBeta `/cnbeta`（tech）；新浪滚动新闻 `/sina/rollnews`（news）；什么值得买好文 `/smzdm/haowen`（home，全站最弱板块 9 → 10 源）；考研热点 `/chsi/hotnews`、考研动态 `/chsi/kydt`（education）；9VG `/a9vg`（gaming）；美食天下 `/meishichina/recipe`（food）。
+- **`feeds.json` 新增 `rsshub` 字段**：标注每个经 RSSHub 取得的源所使用的路由路径（如 `"rsshub": "/hupu"`），便于路由失效时精准定位与回滚；`_comment` 同步记录 P1 首批说明。
+- **src/pages/feed-policy.astro 信源档位表新增脚注**：向读者明示部分媒体经自托管 RSSHub 路由加工后参与策展，信源档位与编辑标准不变（署名透明）。
+
+### Changed
+
+- **11 个线上失效源改走 RSSHub 路由**（URL 替换、label 不变、加 `rsshub` 标注）：虎扑体育 → `/hupu`、懂球帝 → `/dongqiudi/top_news`、新浪体育 → `/sina/sports`（sports）；游民星空 → `/gamersky/news`、3DM游戏 → `/3dmgame/news`（gaming）；虎嗅 → `/huxiu/article`、36氪 → `/36kr/hot-list`（tech）；第一财经 → `/yicai/headline`（finance）；马蜂窝 → `/mafengwo/note/hot`（travel）；下厨房 → `/xiachufang/popular`（food）；豆瓣读书 → `/douban/book/rank`（books）。
+- **源总数 310 → 322**；README 当前版本行 / 路线图 Phase 12 / 版本沿革叙述同步至 v1.11.0。
+
+### Verified / Known Issues
+
+- **路由路径全部自 RSSHub master 源码逐个核实存在**（GitHub API 拉取 `lib/routes/**` 源码确认 `path` 注册值），无参或参数可选；已避开需登录态的路由（`/zhihu/hot`、`/smzdm/ranking` 等，见调研报告 4.4 节）。
+- **沙箱无法实测**：沙箱网络屏蔽 `*.workers.dev`，本地构建中 23 个新源全部抓取失败属预期；真实验证以 CI 构建日志与每周健康检查为准——下次构建日志中这 23 源的 ✗/✓ 即为验收信号，失效路由单独回滚该条目即可。
+- **覆盖盲区仍在**：汽车之家、好好住、穷游、机器之心、微信读书无 RSSHub 路由（调研报告 4.4 节已列），继续靠现有源 + Google News 兜底；真死链（Google DeepMind 博客、智源社区、Yahoo Finance、Trip.com 博客等约 20 个）的清理列入后续独立提交，不与本功能混排。
+
 ## [v1.10.1] — 2026-10-18
 
 > 致谢与署名补充：RSSHub 自托管实例（P1）已部署上线，按开源礼节补全署名、许可证边界说明与基础设施致谢。触发决策：用户在 Cloudflare 完成 RSSHub Worker 一键部署后明确要求「加个说明，保持尊重与致敬致谢」。
