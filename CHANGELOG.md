@@ -2,6 +2,26 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [v1.12.0] — 2026-10-18
+
+> 时间线大扩充：用户评价现有 255 条时间线并要求「完整、具体、详细，国内外都要」，逐条盘点后新增 32 条（255 → 287）。所有 2026 年条目均经网络检索实证（官方公告 + 主流媒体报道交叉核实），附 source / sourceUrl 与站内交叉引用。
+
+### Added（AI 发展时间线 · 32 条新条目）
+
+- **理论起源补全（5 条）**：1943 McCulloch-Pitts 神经元模型（神经网络理论起点）、1948 维纳《控制论》（反馈与通信统一动物与机器）、1965 扎德模糊集合与模糊逻辑、1980 福岛邦彦神经认知机（CNN 直接祖先）、2006 Netflix Prize（竞赛文化与数据科学起点）。
+- **深度学习时代（5 条）**：2015-10 AlphaGo 5:0 樊麾（Nature 封面）、2017-05 乌镇 AlphaGo 3:0 柯洁后退役、2021-06 GitHub Copilot（AI 编程助手品类开创者）、2021-08 OpenAI Codex API、2022-04 Google PaLM 540B（Pathways 架构首秀）。
+- **大模型时代（6 条）**：2023-01 微软约百亿美元加注 OpenAI、2023-03 Anthropic 发布 Claude 1（宪法 AI 产品化）、2023-03 Google Bard 仓促应战、2023-07 Claude 2（10 万 token 上下文）、2024-07 GPT-4o mini（小模型性价比战争）、2024-07 SearchGPT（进攻搜索腹地）。
+- **2026 上半年（16 条，全部经 web 检索实证）**：Claude Cowork 桌面 Agent 发布（1/12，引爆桌面 Agent 赛道）、Claude 助力毅力号完成首次 AI 辅助地外驾驶（1/30）、斯坦福 AI 从零设计功能性病毒基因组登 Science（1 月，生物安全争议）、百度昆仑芯分拆递表港交所（1/1 申请，1/2 公告）、SpaceX 收购 xAI 合并估值 1.25 万亿美元（2/2，太空算力）、Meta 约 20 亿美元收购 Manus（2 月）、五角大楼将 Anthropic 列为供应链风险（2/27，AI 伦理 vs 国家安全）、Google Gemini 3.1 Pro（2/19，ARC-AGI-2 77.1%）、微软 M365 Copilot Wave 3 集成 Copilot Cowork（3/9，多模型策略）、OpenAI GPT-5.4（3/5，首个原生 computer-use 前沿模型）、OpenAI 完成 1220 亿美元融资创私募纪录（3/31，估值 8520 亿）、欧盟数字综合法案令高风险 AI 条款延期至 2027/2028（3 月）、Claude Managed Agents（4/8，Agent 基础设施托管化）、Claude Opus 4.7（4/16，SWE-bench Verified 87.6%）、ChatGPT Images 2.0（4/21，真假难辨引发深伪焦虑）、Claude Mythos Preview 内测（4/7，「过于强大」暂不公开发布）。
+
+### Changed
+
+- **README**：当前版本行 → v1.12.0；策展内容统计「时间线 255 → 287 条（1943–2026）」；「用时间线系统学 AI 史」导览段同步更新；版本沿革段 prepend v1.12.0 描述。
+- 时间线条目间新增交叉引用（blockquote）以增强可读性，如 Cowork ↔ Claude Code ↔ M365 ↔ Managed Agents 的 Agent 叙事链。
+
+### Verified
+
+- `npm test`：105/105 通过；`npm run build`：成功（dist/timeline 渲染验证新条目在页）；`npm run check`（astro check）：0 errors；`npm run format:check` + `npm run lint`：通过（lint 5 个 warning 为存量未用变量，与本次无关）。
+
 ## [v1.11.2] — 2026-10-18
 
 > 死链清理：依据每周健康检查实证（HTTP 404 = 源已消失）删除 40 个死源，兑现 v1.11.0 CHANGELOG 「死链清理独立成提交，不与功能混排」的承诺。触发决策：v1.11.1 健康检查 321 源中 98 个失败，其中 40 个为 HTTP 404——继续留存只拖累健康度数字、稀释真实失效信号。
