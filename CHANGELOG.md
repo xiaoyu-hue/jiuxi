@@ -2,6 +2,34 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [v1.12.1] — 2026-10-18
+
+> 工具箱大扩充：用户评价 151 个工具并要求「一次性补充完整，可调研 GitHub 开源项目与开源技术」。逐类盘点 24 个分类后新增 28 个（151 → 179），重点补齐 2025-2026 年爆红的新品类与官方框架；关键事实均经网络检索核实（官方文档 / GitHub / 主流媒体）。
+
+### Added（AI 工具箱 · 28 个新条目）
+
+- **桌面 Agent 新品类（2）**：Claude Cowork（Anthropic，2026-01 研究预览 / 04 GA）、OpenClaw（开源个人 Agent，原 ClawdBot/Moltbot，MIT，GitHub 30 万+ Star，住进聊天软件、模型可换）。
+- **Agent 框架与基建（6）**：OpenAI Agents SDK（2025-03 官方框架）、Google ADK（2025-04 官方套件）、PydanticAI（FastAPI 团队的类型安全框架）、Composio（200+ 工具集成层）、MCP（2024-11 Anthropic 开源，2025-12 捐入 Linux 基金会 AAIF，9700 万月下载 / 1 万+ server）、MS-Swift（魔搭官方微调框架，300+ 模型）。
+- **可观测性与记忆（3）**：Langfuse（开源 LLMOps）、LangSmith（LangChain 官方）、Zep（时序知识图谱 Agent 记忆）。
+- **图像（4）**：Nano Banana（Gemini 2.5 Flash Image 出道即顶流；Pro = Gemini 3 Pro Image，2026-05 GA，4K）、ChatGPT Images 2.0（GPT-Image-2，2026-04 登顶 Image Arena）、Seedream 4.0（字节，2025-09，4K + 10 参考图）、Qwen-Image（阿里开源 20B，中文渲染强）。
+- **视频（1）**：Seedance 1.0（字节，2025-06，原生多镜头叙事、1080p 一次成片）。
+- **3D（1）**：Trellis（微软开源 3D 生成）。
+- **编程（4）**：Qoder（阿里 Agentic IDE，500 万用户）、Replit（浏览器 AI 全栈）、Warp（AI 终端）、Roo Code（开源 VS Code 编码 Agent）。
+- **搜索（1）**：Exa（为 AI 设计的语义搜索 API）。
+- **对话（2）**：Microsoft Copilot（2026 Wave 3 多模型化）、阶跃星辰 Step（国内桌面 Agent 先行者）。
+- **智能体（1）**：MiniMax Agent（2025-06，三端通用 Agent）。
+- **研究（1）**：Deep Research（2025-02 开创的深度研究品类）。
+- **数据（1）**：MarkItDown（微软万物转 Markdown）。
+- **评测（1）**：LMArena（真人盲测竞技场）。
+
+### Changed
+
+- **README**：当前版本行 → v1.12.1；策展统计「工具箱 151 → 179 个（14 → 24 大类）」；工具箱导览段分类清单同步为全量 24 类；版本沿革段 prepend v1.12.1 描述。
+
+### Verified
+
+- frontmatter 全量校验（28/28：name/url/category/tagline 齐全、url 合法）；`npm test` 105/105；`npm run build` 成功（dist/tools 渲染验证新条目在页）；`npm run check` 0 errors；`npm run format:check` 通过。
+
 ## [v1.12.0] — 2026-10-18
 
 > 时间线大扩充：用户评价现有 255 条时间线并要求「完整、具体、详细，国内外都要」，逐条盘点后新增 32 条（255 → 287）。所有 2026 年条目均经网络检索实证（官方公告 + 主流媒体报道交叉核实），附 source / sourceUrl 与站内交叉引用。
