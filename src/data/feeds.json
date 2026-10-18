@@ -1,5 +1,5 @@
 {
-  "_comment": "九溪 · 资讯源配置（唯一数据源）。运行端 feeds.ts 与构建端 scripts/fetch-feeds.mjs 共用本文件。2026-10-15 全行业扩容：31 源/4 板块 → 310 源/15 板块。每板块 = Google News 行业搜索（骨干，线上实证可用）+ 行业官方 RSS（质量锚点）。verified=true 为沙箱实测可用（46 个）；其余为知名稳定源标注「待线上验证」，由每小时定时构建自动验证，失败源自动跳过不阻断（fetch-feeds 容错），可据构建日志清理。 2026-10-18 P1 首批：23 个源改走自托管 RSSHub（Cloudflare Worker jiuxi-rsshub.xyyovo520.workers.dev；11 个替换线上失效源 + 12 个新增），带 rsshub 字段标注路由，路径均自 RSSHub master 源码逐个核实存在；未经沙箱实测（沙箱屏蔽 workers.dev），由 CI 构建自动验证。 2026-10-18 v1.11.1 修正：CI 诊断（两轮 curl 实测）发现 4 个路由在部署版本返回欢迎页（未注册）——36氪/3DM游戏/新浪体育回退原官方 URL，美食天下（新增条目）整体移除；AIbase 日报与新浪滚动新闻遇免费档 CPU 限制（error 1102）间歇失败；其余 17 路由 CI 实证可用。RSSHub 源专用超时 20s（fetch-feeds 与健康检查同口径）。",
+  "_comment": "九溪 · 资讯源配置（唯一数据源）。运行端 feeds.ts 与构建端 scripts/fetch-feeds.mjs 共用本文件。2026-10-15 全行业扩容：31 源/4 板块 → 310 源/15 板块。每板块 = Google News 行业搜索（骨干，线上实证可用）+ 行业官方 RSS（质量锚点）。verified=true 为沙箱实测可用（46 个）；其余为知名稳定源标注「待线上验证」，由每小时定时构建自动验证，失败源自动跳过不阻断（fetch-feeds 容错），可据构建日志清理。 2026-10-18 P1 首批：23 个源改走自托管 RSSHub（Cloudflare Worker jiuxi-rsshub.xyyovo520.workers.dev；11 个替换线上失效源 + 12 个新增），带 rsshub 字段标注路由，路径均自 RSSHub master 源码逐个核实存在；未经沙箱实测（沙箱屏蔽 workers.dev），由 CI 构建自动验证。 2026-10-18 v1.11.1 修正：CI 诊断（两轮 curl 实测）发现 4 个路由在部署版本返回欢迎页（未注册）——36氪/3DM游戏/新浪体育回退原官方 URL，美食天下（新增条目）整体移除；AIbase 日报与新浪滚动新闻遇免费档 CPU 限制（error 1102）间歇失败；其余 17 路由 CI 实证可用。RSSHub 源专用超时 20s（fetch-feeds 与健康检查同口径）。 2026-10-18 死链清理：依据每周健康检查实证（HTTP 404 = 源已消失）删除 40 个死源，321 → 281 源；覆盖 ai(2)/auto(3)/books(1)/dev(1)/education(1)/finance(4)/gaming(2)/health(6)/news(4)/science(6)/sports(5)/tech(1)/travel(4)，各板块 Google News 骨干源均保留。（兑现 v1.11.0 CHANGELOG 承诺：死链清理独立成提交，不与功能混排。）",
   "sections": {
     "ai": [
       {
@@ -49,12 +49,6 @@
         "note": "官网无RSS，抓取页内链接"
       },
       {
-        "label": "Google DeepMind 博客",
-        "url": "https://deepmind.google/blog/rss/",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "MIT科技评论 · AI",
         "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed/",
         "type": "rss",
@@ -99,12 +93,6 @@
       {
         "label": "ArXiv · cs.CL",
         "url": "https://rss.arxiv.org/rss/cs.CL",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "智源社区",
-        "url": "https://hub.baai.ac.cn/feed",
         "type": "rss",
         "note": "待线上验证"
       },
@@ -230,20 +218,8 @@
         "type": "rss"
       },
       {
-        "label": "路透中文",
-        "url": "https://feedx.net/rss/reuters.xml",
-        "type": "rss",
-        "note": "feedx.net 全文驱动，待线上验证"
-      },
-      {
         "label": "纽约时报中文网",
         "url": "https://feedx.net/rss/nytimes.xml",
-        "type": "rss",
-        "note": "feedx.net 全文驱动，待线上验证"
-      },
-      {
-        "label": "FT中文网",
-        "url": "https://feedx.net/rss/ft.xml",
         "type": "rss",
         "note": "feedx.net 全文驱动，待线上验证"
       },
@@ -266,20 +242,8 @@
         "note": "feedx.net 全文驱动，待线上验证"
       },
       {
-        "label": "联合早报",
-        "url": "https://feedx.net/rss/zaobaotoday.xml",
-        "type": "rss",
-        "note": "feedx.net 全文驱动，待线上验证"
-      },
-      {
         "label": "共同网",
         "url": "https://feedx.net/rss/kyodo.xml",
-        "type": "rss",
-        "note": "feedx.net 全文驱动，待线上验证"
-      },
-      {
-        "label": "朝日新闻中文",
-        "url": "https://feedx.net/rss/asahi.xml",
         "type": "rss",
         "note": "feedx.net 全文驱动，待线上验证"
       },
@@ -493,12 +457,6 @@
         "note": "待线上验证"
       },
       {
-        "label": "CSDN 头条",
-        "url": "https://blog.csdn.net/rss.xml",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "ZDNet",
         "url": "https://www.zdnet.com/news/rss.xml",
         "type": "rss",
@@ -635,18 +593,6 @@
         "note": "待线上验证"
       },
       {
-        "label": "3DM游戏",
-        "url": "https://www.3dmgame.com/rss/news.xml",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "indienova",
-        "url": "https://indienova.com/feed",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "GameLook",
         "url": "https://www.gamelook.com.cn/feed",
         "type": "rss",
@@ -726,12 +672,6 @@
         "note": "待线上验证"
       },
       {
-        "label": "Yahoo Finance",
-        "url": "https://finance.yahoo.com/news/rssindex",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "Seeking Alpha",
         "url": "https://seekingalpha.com/feed.xml",
         "type": "rss",
@@ -781,18 +721,6 @@
         "note": "待线上验证"
       },
       {
-        "label": "每日经济新闻",
-        "url": "https://www.nbd.com.cn/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "证券时报",
-        "url": "https://www.stcn.com/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "智谷趋势",
         "url": "https://www.zgtrend.com/feed",
         "type": "rss",
@@ -801,12 +729,6 @@
       {
         "label": "经济观察报",
         "url": "https://www.eeo.com.cn/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "中国基金报",
-        "url": "https://www.chnfund.com/rss",
         "type": "rss",
         "note": "待线上验证"
       },
@@ -909,20 +831,8 @@
         "note": "待线上验证"
       },
       {
-        "label": "NBA",
-        "url": "https://www.nba.com/rss/nba_rss.xml",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "NFL",
         "url": "https://www.nfl.com/rss/rsslanding",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "The Athletic",
-        "url": "https://theathletic.com/rss/",
         "type": "rss",
         "note": "待线上验证"
       },
@@ -959,20 +869,8 @@
         "note": "待线上验证"
       },
       {
-        "label": "新浪体育",
-        "url": "https://sports.sina.com.cn/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "腾讯体育",
         "url": "https://sports.qq.com/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "网易体育",
-        "url": "https://sports.163.com/rss",
         "type": "rss",
         "note": "待线上验证"
       },
@@ -999,12 +897,6 @@
         "url": "https://news.google.com/rss/search?q=%E7%AF%AE%E7%90%83+NBA&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
         "type": "rss",
         "note": "Google News 骨干"
-      },
-      {
-        "label": "F1 官网",
-        "url": "https://www.formula1.com/rss/news/latest.xml",
-        "type": "rss",
-        "note": "待线上验证"
       },
       {
         "label": "UFC",
@@ -1051,18 +943,6 @@
         "note": "待线上验证"
       },
       {
-        "label": "HealthDay",
-        "url": "https://www.healthday.com/rss/health.xml",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "Medical News Today",
-        "url": "https://www.medicalnewstoday.com/news/feed",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "NIH 新闻",
         "url": "https://www.nih.gov/news-events/news-releases/feed.xml",
         "type": "rss",
@@ -1093,38 +973,14 @@
         "note": "待线上验证"
       },
       {
-        "label": "CDC",
-        "url": "https://tools.cdc.gov/podcasts/feed.aspx",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "Mayo Clinic",
         "url": "https://www.mayoclinic.org/rss/all-health-information",
         "type": "rss",
         "note": "待线上验证"
       },
       {
-        "label": "医学界",
-        "url": "https://www.yxj.org.cn/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "健康界",
-        "url": "https://www.cn-healthcare.com/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "生物探索",
         "url": "https://www.biodiscover.com/feed",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "Nature 健康",
-        "url": "https://www.nature.com/subjects/health/rss",
         "type": "rss",
         "note": "待线上验证"
       },
@@ -1197,12 +1053,6 @@
         "note": "待线上验证"
       },
       {
-        "label": "NSF",
-        "url": "https://www.nsf.gov/rss/rss_www_nsf_gov_news.xml",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "NASA 新闻",
         "url": "https://www.nasa.gov/rss/dyn/breaking_news.rss",
         "type": "rss",
@@ -1215,44 +1065,14 @@
         "note": "待线上验证"
       },
       {
-        "label": "ESA",
-        "url": "https://www.esa.int/rssfeed",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "中国科学院",
-        "url": "https://www.cas.cn/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "科普中国",
         "url": "https://www.kepuchina.cn/rss",
         "type": "rss",
         "note": "待线上验证"
       },
       {
-        "label": "果壳",
-        "url": "https://www.guokr.com/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "中科院物理所",
-        "url": "https://www.iop.cas.cn/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "EurekAlert",
         "url": "https://www.eurekalert.org/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "中国国家地理",
-        "url": "https://www.dili360.com/rss.xml",
         "type": "rss",
         "note": "待线上验证"
       },
@@ -1367,12 +1187,6 @@
         "note": "待线上验证"
       },
       {
-        "label": "edX 博客",
-        "url": "https://www.edx.org/blog/feed",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "Google 新闻 · 留学",
         "url": "https://news.google.com/rss/search?q=%E7%95%99%E5%AD%A6+%E8%80%83%E7%A0%94&hl=zh-CN&gl=CN&ceid=CN:zh-Hans",
         "type": "rss",
@@ -1461,24 +1275,6 @@
       {
         "label": "懂车帝",
         "url": "https://www.dongchedi.com/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "42号车库",
-        "url": "https://www.42how.com/feed",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "爱卡汽车",
-        "url": "https://www.xcar.com.cn/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "第一电动",
-        "url": "https://www.d1ev.com/rss",
         "type": "rss",
         "note": "待线上验证"
       },
@@ -1587,18 +1383,6 @@
         "verified": true
       },
       {
-        "label": "Lonely Planet",
-        "url": "https://www.lonelyplanet.com/feeds/blog",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "National Geographic",
-        "url": "https://www.nationalgeographic.com/feed/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "Travel + Leisure",
         "url": "https://www.travelandleisure.com/rss.xml",
         "type": "rss",
@@ -1618,20 +1402,8 @@
         "note": "待线上验证"
       },
       {
-        "label": "穷游",
-        "url": "https://www.qyer.com/rss",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
         "label": "Feekr 旅行",
         "url": "https://www.feekr.com/feed",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "Trip.com 博客",
-        "url": "https://www.trip.com/blog/feed",
         "type": "rss",
         "note": "待线上验证"
       },
@@ -1777,12 +1549,6 @@
         "url": "https://www.lifeweek.com.cn/rss",
         "type": "rss",
         "note": "待线上验证"
-      },
-      {
-        "label": "南方周末",
-        "url": "https://www.infzm.com/rss",
-        "type": "rss",
-        "note": "待线上验证"
       }
     ],
     "dev": [
@@ -1844,12 +1610,6 @@
       {
         "label": "字节前端",
         "url": "https://juejin.cn/rss/1838039172387262",
-        "type": "rss",
-        "note": "待线上验证"
-      },
-      {
-        "label": "V8 Blog",
-        "url": "https://v8.dev/blog/feed.xml",
         "type": "rss",
         "note": "待线上验证"
       },

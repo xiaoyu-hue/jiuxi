@@ -2,6 +2,21 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [v1.11.2] — 2026-10-18
+
+> 死链清理：依据每周健康检查实证（HTTP 404 = 源已消失）删除 40 个死源，兑现 v1.11.0 CHANGELOG 「死链清理独立成提交，不与功能混排」的承诺。触发决策：v1.11.1 健康检查 321 源中 98 个失败，其中 40 个为 HTTP 404——继续留存只拖累健康度数字、稀释真实失效信号。
+
+### Removed
+
+- **40 个 404 死源**（健康检查 run 39057751827 实证）：ai 2（Google DeepMind 博客、智源社区）、auto 3（42号车库、爱卡汽车、第一电动）、books 1（南方周末）、dev 1（V8 Blog）、education 1（edX 博客）、finance 4（Yahoo Finance、每日经济新闻、证券时报、中国基金报）、gaming 2（3DM游戏、indienova）、health 6（HealthDay、Medical News Today、CDC、医学界、健康界、Nature 健康）、news 4（路透中文、FT中文网、联合早报、朝日新闻中文）、science 6（NSF、ESA、中国科学院、果壳、中科院物理所、中国国家地理）、sports 5（NBA、The Athletic、新浪体育、网易体育、F1 官网）、tech 1（CSDN 头条）、travel 4（Lonely Planet、National Geographic、穷游、Trip.com 博客）。
+- **源总数 321 → 281**；各板块 Google News 骨干源均保留（删除后无空槽板块）。
+
+### Verified / Known Issues
+
+- **预期效果**：健康检查失败源 98 → 58，失败率 30.5% → 约 20.6%（首次低于 20% 告警线，以下周一定期健康检查实证为准）。
+- **403 反爬（17）与超时（13）源未动**：它们是第二批 RSSHub 接入的候选靶子（RSSHub Worker 正是为解决跨境超时与反爬而生），列入后续独立提交，不与本次清理混排。
+- feedx.net 镜像系（路透/FT/联合早报/朝日新闻中文）整组 404：若后续找到可用镜像或 RSSHub 路由，可整体恢复 news 板块的国际新闻覆盖。
+
 ## [v1.11.1] — 2026-10-18
 
 > v1.11.0 首批接入后的 CI 实测修正：构建日志显示 23 个 RSSHub 源仅 7 个成功。经两轮 GitHub Actions 诊断工作流（curl 直探测响应体与耗时）定位三类问题并修复。诊断工作流为临时设施，验证完成后已删除。
