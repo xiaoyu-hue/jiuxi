@@ -2,6 +2,33 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [v1.12.3] — 2026-10-19
+
+> 安全工程瘦身：安全门禁维护成本失控后，按「纯静态站真实威胁面」重新校准——先画威胁面（九溪无后端 / 无登录 / 无 API，真实威胁仅三类：密钥泄进仓库、npm 依赖投毒、CI 工作流自身被动手脚），再按「无人消费 / 能力重叠 / 防虚构威胁」三条标准砍掉 7 个 job；CodeQL 与 Lychee 降频为每周一定时。push 触发安全门禁 467s → 约 90s，`security.yml` 29KB → 约 13KB，Dependabot 维护面约 10 → 5 个 action，**真实威胁覆盖率不变**。
+
+### Removed（安全门禁 · 砍 7 项）
+
+- **Nuclei（153s，最贵）**：扫本地静态产物，纯 HTML/CSS/JS 没有服务端漏洞面——防虚构威胁。
+- **ZAP baseline + `dast-scan.yml`（82s + 部署后再跑一次）**：DAST 扫无攻击面的静态站——防虚构威胁。
+- **Trivy（24s）**：与 osv-scanner 扫同一个 npm 依赖树，能力重叠。
+- **Gitleaks（18s）**：与 TruffleHog 抢同一份钥匙（后者还扫全量提交历史）。
+- **Scorecard / SBOM（47s）**：合规产物，无审计方消费；Scorecard 徽章与 `SECURITY.md` 相关表述同步移除。
+- **dependency-review**：单人直推 `main` 无 PR 流程，永远 skipped 的死代码。
+- 连带清理：`deploy.yml` 的 `zap-baseline` job 与头部注释；`security.yml` 触发条件去掉 `pull_request`（push main + 每周定时 + 手动）。
+
+### Changed
+
+- **security.yml 重写**（494 → 235 行）：保留 5 jobs——TruffleHog（强制，唯一密钥引擎）、osv-scanner（强制）、zizmor、CodeQL（仅每周定时）、Lychee（仅每周定时）；头部注释记录威胁面模型与砍减理由，注明「勿随意加回，恢复先读 v1.12.3 提交说明」。
+- **README**：当前版本行 → v1.12.3；删除 Scorecard 徽章；「安全与工程」段改为威胁面描述；CI 工具链清单只留现役 6 项；可复用经验第 7 条重写为「按真实威胁面裁剪门禁」；致谢段 TruffleHog 隔离说明同步；版本沿革 prepend v1.12.3。
+- **SECURITY.md**：CI 扫描列举更新为现役工具；移除 Scorecard 扣分项表述与「为满足 Scorecard 检查」说明。
+- **docs/云端资源交接清单.md**：工作流分工表删除「ZAP 扫描」环节。
+- **docs/九溪-实施计划.md**：「下一步」更新为 v1.12.3 现状，新增工程侧瘦身条目。
+- **package.json**：version → 1.12.3。
+
+### Verified
+
+- `security.yml` YAML 结构断言通过（jobs = trufflehog / osv-scanner / zizmor / codeql / lychee，共 5 个；codeql / lychee 均带 `if: schedule || workflow_dispatch` 降频条件）；`deploy.yml` 无 DAST 残留（zap-baseline job 已删，`needs` 列表无悬空引用）；全仓 grep 确认 ZAP / Nuclei / Trivy / Gitleaks / Scorecard / SBOM / dependency-review 仅存于 `security.yml` 头注与 `CHANGELOG` 历史记录中；prettier / vitest / astro check / build 全绿；CI 双绿（security 5 jobs 正常、deploy 无 DAST 仍正常）。
+
 ## [v1.12.2] — 2026-10-18
 
 > 读书推荐大扩充：用户评价 128 本书单并要求「一次性补充完整各种类型，兴趣 AI/哲学/历史/经济学/商业/政治学等，小白书为主、专业书为辅但不能没有，希望都有在线链接可直接观看，可调研 GitHub 开源项目」。逐类盘点 128 本后新增 42 本（128 → 170，覆盖 16 个类别），重点补齐经济学（6 → 11）、商业（4 → 9）等用户高关注类别；新条目中 11 本附官方免费全文直链（Project Gutenberg / MIT / Datawhale / OpenIntro / CORE Econ / 伯克希尔等），链接均经逐一直连访问实证可用；其余现代读物沿用微信读书检索页。

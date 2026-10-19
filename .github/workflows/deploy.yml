@@ -1,7 +1,8 @@
 # 九溪 · 单站部署（Cloudflare Pages 纯静态站）
 # 站点：Cloudflare Pages（需仓库 Secrets: CLOUDFLARE_API_TOKEN、CLOUDFLARE_ACCOUNT_ID）
-# 安全增强：每个 job 第一步均装 harden-runner（出口审计模式，只记录不阻断）；
-# 部署完成后调用 dast-scan.yml 可复用工作流对生产主站做 ZAP 基线扫描（advisory）。
+# 安全增强：每个 job 第一步均装 harden-runner（出口审计模式，只记录不阻断）。
+# 注：v1.12.3 起本工作流不再调用 DAST 扫描——站点为纯静态站无攻击面，
+# ZAP baseline 扫描于 v1.12.3 随安全工程瘦身移除（见 security.yml 头注）。
 
 name: Deploy 九溪（Cloudflare）
 
@@ -133,17 +134,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=jiuxi --commit-dirty=true
-
-  # ── DAST：部署完成后立即扫描生产主站（调用可复用工作流）──
-  zap-baseline:
-    # 主站部署成功后才扫；未配 CF 密钥则本 job 自动跳过。
-    # ⚠️ 调用方可复用工作流的 job 不允许写 runs-on / continue-on-error（会解析失败），
-    # advisory 语义由 dast-scan.yml 内部 job 的 continue-on-error 承载。
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-    needs: [deploy-cloudflare]
-    # 自引用语法（GitHub 2026-07 起官方支持）：$/ 解析到当前运行的提交（zizmor
-    # self-repository 修复）；被调工作流不用 secrets，故不传（secrets-inherit 修复）。
-    uses: $/.github/workflows/dast-scan.yml
 
   # ── 部署后冒烟：验证纯静态站内容与构建期注入生效 ──
   # 背景（架构简化：移除后端 Pages Functions + D1）：站点现为纯静态，

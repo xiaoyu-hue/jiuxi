@@ -40,16 +40,17 @@
 
 - 修复发布后，经你同意我们会在致谢中署名（匿名亦可）。
 - 我们不鼓励、也不参与任何针对线上站点的未授权扫描或拒绝服务测试；
-  本项目的 CI 已内置 ZAP / Nuclei / Trivy / osv-scanner 等扫描，欢迎在合规前提下协助复核。
+  本项目的 CI 已内置密钥扫描（TruffleHog，强制）、依赖漏洞扫描（osv-scanner，强制）、
+  工作流安全审计（zizmor）与每周 CodeQL / 死链检查，欢迎在合规前提下协助复核。
 
 ## 范围说明
 
 以下行为**不在**本策略承诺的修复范围内（属设计取舍或个人项目结构性限制）：
 
-- 仅影响「单人维护」属性的 Scorecard 扣分项（如 Branch-Protection / Contributors 等需多人协作的项）；
+- 个人项目的结构性限制（如无多人分支保护评审——单人直推 `main` 的开发模式取舍）；
 - 依赖上游服务（RSS 源、Cloudflare 平台）自身的安全问题，我们会跟进升级但无法单方面控制。
 
 ---
 
-> 本文件用于满足 OpenSSF Scorecard 的 `Security-Policy` 检查。安全门禁详情见
+> 本文件描述九溪的安全报告渠道与处理流程。安全门禁详情见
 > `README.md`「致谢与开源声明」及 `.github/workflows/security.yml`。

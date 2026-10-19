@@ -1,56 +1,38 @@
 # 九溪 · 安全门禁（独立于 deploy.yml，便于分层查看）
 #
-# 涵盖：密钥扫描(gitleaks + trufflehog) / SAST(CodeQL) / 依赖漏洞(osv-scanner 强制 + trivy fs) /
-# 漏洞模板扫描(nuclei 扫本地构建产物) / 死链(lychee) / SBOM 供应链清单(anchore/sbom-action) /
-# PR 依赖审查(dependency-review) / CI 工作流审计(zizmor) / 供应链健康分(Scorecard) /
-# DAST 动态扫描(ZAP，见 dast-scan.yml 可复用工作流，每周+部署后由本文件与 deploy.yml 调用)。
-# 每个 job 第一步均装 harden-runner（出口审计模式）。
+# 2026-10-19 瘦身（v1.12.3，用户决策「砍掉难以维护的，保留重要的」）：
+# 按「防真实威胁 × 运行成本」评估，九溪是纯静态站（无后端 / 无登录 / 无 API），
+# 真实威胁只有三条：
+#   ① 密钥泄进仓库  → trufflehog（强制；扫全量提交历史，仅报实测有效的密钥）；
+#   ② npm 依赖投毒/漏洞 → osv-scanner（强制）；
+#   ③ CI 工作流自身被动手脚 → zizmor（+ 全量 SHA pin）。
+# 已砍掉 7 个 job（防的是虚构威胁、重叠能力或无人消费的产物，恢复理由不成立，
+#   勿随意加回；如确需恢复先读 git 历史里 v1.12.3 提交说明）：
+#   - nuclei（153s，最贵）：扫本地静态产物，纯 HTML/CSS/JS 没有服务端漏洞面；
+#   - zap-baseline + dast-scan.yml（82s + 部署后再跑一次）：DAST 扫无攻击面的静态站；
+#   - trivy（24s）：与 osv-scanner 扫同一个 npm 依赖树，能力重叠；
+#   - gitleaks（18s）：与 trufflehog 抢同一份钥匙（后者还扫全量历史）；
+#   - scorecard / sbom（47s）：合规产物，无审计方消费；
+#   - dependency-review：单人直推 main 无 PR 流程，永远 skipped 的死代码。
+# 降频 2 个：codeql / lychee 改为仅每周定时与手动触发，不再随每次 push 跑。
 #
-# 门禁强度（2026-10-15 审查后）：
-#   **强制**（无 continue-on-error，发现即红灯阻断合并）：
-#     osv-scanner（依赖漏洞，2026-10-13 起强制）；
-#     trufflehog（历史密钥扫描，2026-10-15 起强制，见 trufflehog job 内说明；
-#       扫描命令带 --no-update 禁用其自更新器，原因见 job 内注释）。
-#   **advisory**（job 级 continue-on-error，失败只标红本 job 不阻断）：
-#     gitleaks / codeql / trivy / nuclei / lychee / dependency-review /
-#     zizmor / scorecard / sbom。
-# 为什么 advisory 的 continue-on-error 必须写在 **job 级别**（不是 step 级别）：
-#   step 级别的 continue-on-error 无法覆盖 action 引用解析失败
-#   （失败发生在 "Set up job" 阶段，不属于任何 step），一旦某个门禁挂掉整条
-#   工作流就会变红，advisory 语义形同虚设。写在 job 级别才能真正做到
-#   "单个门禁失败不影响流水线结论"，同时在 job 行仍保留红叉便于排查。
-# 转强制的判据：门禁误报率已被实际运行验证可接受（osv-scanner 与 trufflehog
-#   均只报"实测有效/确定命中"，误报空间小），故敢于阻断。
+# 门禁强度：
+#   **强制**（无 continue-on-error，发现即红灯阻断合并）：trufflehog、osv-scanner。
+#   **advisory**（job 级 continue-on-error，单 job 红叉不阻断流水线）：codeql、lychee、zizmor。
+#   为什么 advisory 的 continue-on-error 必须写在 job 级别：step 级覆盖不了
+#   action 引用解析失败（发生在 "Set up job" 阶段，不属任何 step）。
 #
-# ⚠️ Action 引用约定（本文件已逐个实测，勿凭印象写版本号）：
-#   1. 不是所有 Action 都提供大版本移动标签。
-#      actions/dependency-review-action 的 v4 就不存在（404），只能 pin v4.9.0。
-#   2. 标签存在 ≠ Action 可用。
-#      google/osv-scanner-action 所有 tag 的 action.yml 都缺顶层 `runs:` 段，
-#      引用即失败，故本项目改用其官方 CLI 二进制（见 osv-scanner job）。
-#   3. 仅在 PR 触发的 job 本地永远验证不到（一直是 skipped），
-#      例如 dependency-review，引用前更需逐一核实。
-#   4. 仓库迁移会改路径：zizmor 的 action 旧路径 woodruffw/zizmor-action 已 404，
-#      现为 zizmorcore/zizmor-action（官方文档推荐 SHA pin，故本文件用 SHA）。
-#   5. 第三方 action 不是唯一形态：官方 CLI 二进制 + pin 版本 + SHA256 校验同样
-#      满足供应链安全，且不受 action.yml 损坏影响（osv-scanner 即因此改用 CLI）。
-#      trufflehog 沿用同一模式。
-#   已核实可用（2026-10-13 起全部 SHA pin，标签仅作注释；Dependabot 依据尾部
-#     版本注释把 SHA 滚动到各 action 最新发布，兼顾供应链安全与可更新性）：
-#     checkout@v7.0.1、gitleaks@v3.0.0、codeql@v4、lychee@v2、
-#     zaproxy/action-baseline@v0.15.0、zizmorcore/zizmor-action@v0.6.4（SHA cc914d7f…）、
-#     ossf/scorecard-action@v2.5.0、actions/dependency-review-action@v5.0.0、
-#     step-security/harden-runner@v2.22.1、actions/setup-node@v7.1.0（node-version 22）、
-#     anchore/sbom-action@v0.24.3（SHA 66cbf4bc…，本批新增）。
-#     trivy / nuclei 为官方 CLI 二进制（pin 版本 + SHA256 校验），非 Action，不在本列表。
-#     所有 SHA 已随 v1.4.0 的 CI 实测可用（绿）；升级时同步更新尾部版本注释。
+# Action 引用约定：全部 SHA pin + 尾部版本注释（Dependabot 依据注释滚动升级）；
+# 官方 action 不可用时改用官方 CLI 二进制 + pin 版本 + SHA256 校验（trufflehog、
+# osv-scanner 均如此，供应链面更小且不受 action.yml 损坏影响）。
+# 当前在役：checkout@v7.0.1、codeql-action@v4.38.3、lychee-action@v2、
+# zizmor-action@v0.6.4、harden-runner@v2.22.1、trufflehog v3.99.2、osv-scanner v2.6.0。
+# 每个 job 第一步均装 harden-runner（出口审计模式，只记录不阻断）。
 
 name: 安全门禁
 
 on:
   push:
-    branches: [main]
-  pull_request:
     branches: [main]
   schedule:
     - cron: '27 4 * * 1' # 每周一 04:27 UTC
@@ -58,51 +40,16 @@ on:
 
 permissions:
   contents: read
-  # ⚠️ 不要把 security-events: write 写在这里（工作流级）！
-  # scorecard-action v2 的 publish_results: true 要求：所在工作流不得有工作流级
-  # 写权限，且只有 scorecard 这个 job 能用 id-token: write（用于 GitHub OIDC
-  # 签名发布结果）。缺 id-token 时发布会退化为交互式设备流，CI 无人点浏览器，
-  # 300 秒后 expired_token → job 失败（2026-10-13 首跑实测踩坑）。
-  # 因此需要 security-events: write 的 job（gitleaks/codeql/zizmor/scorecard）
-  # 各自在 job 级单独声明。
+  # 需要写权限的 job（codeql / zizmor 上传 SARIF）在 job 级单独声明，
+  # 不写工作流级（历史教训：scorecard 的 id-token 约束要求工作流级无写权限，
+  # 该 job 已删；保持最小权限原则不变）。
 
 jobs:
-  # ── 密钥扫描 ──
-  gitleaks:
-    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
-    continue-on-error: true # advisory：失败只标红本 job，不阻断整条流水线
-    permissions:
-      contents: read
-      security-events: write # gitleaks-action 自动上传 SARIF 到代码扫描需要
-      # PR 事件扫描需要（gitleaks-action v2.3 起破坏性变更）：列 PR 提交走 GitHub API，
-      # 缺 pull-requests 读权限时 job 直接失败（本仓库此前无 PR，隐患一直未暴露）
-      pull-requests: read
-    steps:
-      # harden-runner 必须是每个 job 的第一步（pre 步骤，先于 checkout 运行）。
-      # audit = 只记录出口流量不阻断；block 模式会断掉本 job 的必要出站连接。
-      - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-          # 本 job 只读仓库、不推送，关闭凭据持久化（zizmor artipacked 修复）
-          persist-credentials: false
-      - name: Gitleaks（密钥扫描）
-        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
-          # gitleaks-action v2.3 起破坏性变更：PR 事件扫描强制要求 GITHUB_TOKEN
-          # （经 GitHub API 列 PR 提交、在 PR 上评论发现项），缺失即 job 失败
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # ── 密钥扫描 · 第二引擎（TruffleHog，全量历史 + 已验证，强制门禁）──
-  # 为什么在 gitleaks 之外再上一道：
-  #   1. gitleaks 扫的是当前文件与近期提交；TruffleHog 的 git 模式遍历**全部**
-  #      提交历史，能发现「早已删除但仍在历史里」的密钥；
-  #   2. --only-verified 会拿密钥去各云厂商 API 实测有效性，报出的必然是
-  #      「真的能用」的密钥（gitleaks 报的是模式匹配，误报率相对高）。
+  # ── 密钥扫描（TruffleHog，全量历史 + 已验证，强制门禁）──
+  # 选型理由（v1.12.3 瘦身后为唯一密钥引擎）：
+  #   1. git 模式遍历**全部**提交历史，能发现「早已删除但仍在历史里」的密钥；
+  #   2. --only-verified 拿密钥去各云厂商 API 实测有效性，只报「真的能用」
+  #      的密钥（模式匹配类工具误报率相对高，故敢设强制）。
   # 许可证：TruffleHog 为 AGPL-3.0，本项目代码为 Apache-2.0。CI 中以独立进程
   #   运行其官方二进制，不链接、不分发其源码，AGPL 的网络交互条款不触发，
   #   两许可证互不影响（README「致谢与开源声明」已注明）。
@@ -168,9 +115,10 @@ jobs:
         # pin + SHA256 校验固定，CI 环境不应运行时自更新，禁用不影响门禁语义。
         run: |
           trufflehog git "file://$GITHUB_WORKSPACE" --only-verified --fail --no-update
-
   # ── SAST：CodeQL（公开库免费，无需 token）──
+
   codeql:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' # 2026-10-19 降频：仅每周巡检与手动触发，不再随每次 push 跑
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     continue-on-error: true # advisory
     permissions:
@@ -190,8 +138,8 @@ jobs:
           languages: javascript-typescript
       - name: CodeQL 分析
         uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
-
   # ── 依赖漏洞扫描 ──
+
   osv-scanner:
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     # 2026-10-13 起转强制：eslint 工具链 5 个 high 已修复（升级 eslint-plugin-astro
@@ -236,124 +184,10 @@ jobs:
         # 若 CI 报错“发现漏洞”，先在本地方 `npm update` 对应依赖修复后再推送。
         run: |
           osv-scanner scan source -r ./
-
-  # ── 依赖漏洞 / 配置错误 / 密钥扫描（Trivy fs 模式）──
-  # 为什么在 osv-scanner 之外再上一道：
-  #   osv-scanner 只查依赖漏洞（OSV 数据库）；Trivy fs 一套扫描同时覆盖
-  #     依赖漏洞 + 文件系统配置错误(misconfig) + 密钥泄露(secret)，且内部库与 OSV 互补。
-  #   双引擎交叉验证，降低单一数据库漏报/误报风险。osv-scanner 已转强制，
-  #   Trivy 先以 advisory 运行观察误报率，后续再决定是否转强制。
-  # 形态同 trufflehog：官方 CLI + pin 版本 + SHA256 校验（不用第三方 action）。
-  trivy:
-    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
-    continue-on-error: true # advisory
-    steps:
-      - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: 安装 Trivy CLI（pin 版本 + SHA256 校验）
-        run: |
-          set -euo pipefail
-          VERSION="${TRIVY_VERSION}"
-          PKG="trivy_${VERSION#v}_Linux-64bit.tar.gz"
-          SUMS="trivy_${VERSION#v}_checksums.txt"
-          BASE="https://github.com/aquasecurity/trivy/releases/download/${VERSION}"
-          curl -sSfL -o /tmp/trivy.tar.gz "${BASE}/${PKG}"
-          curl -sSfL -o /tmp/trivy_checksums.txt "${BASE}/${SUMS}"
-          expected="$(awk -v pkg="$PKG" '{gsub(/^[*]/,"",$2); if($2==pkg) print $1}' /tmp/trivy_checksums.txt)"
-          actual="$(sha256sum /tmp/trivy.tar.gz | awk '{print $1}')"
-          if [ -z "$expected" ] || [ "$expected" != "$actual" ]; then
-            echo "::error::Trivy 压缩包 SHA256 校验失败（期望 ${expected:-<空>} 实际 $actual）"
-            exit 1
-          fi
-          tar -xzf /tmp/trivy.tar.gz -C /tmp trivy
-          sudo install -m 0755 /tmp/trivy /usr/local/bin/trivy
-          trivy --version
-        env:
-          TRIVY_VERSION: v0.75.0 # 升级时同步核对 releases 资产名与 checksums 文件名
-      - name: Trivy fs（依赖漏洞 + 配置错误 + 密钥）
-        # --scanners vuln,misconfig,secret：一套扫描三类问题；
-        # --exit-code 0：advisory 阶段发现不置红（与 trufflehog 同策略）；
-        # 待误报率可接受后改 --exit-code 1 转强制。
-        # --skip-dirs 排除构建产物与依赖目录，只扫源码与锁文件。
-        run: |
-          trivy fs --scanners vuln,misconfig,secret --exit-code 0 \
-            --skip-dirs dist --skip-dirs node_modules ./ \
-            || echo "::warning::Trivy 执行异常（advisory 阶段不阻断），详见上方日志"
-
-  # ── 漏洞模板扫描（Nuclei，本地构建产物）──
-  # 定位：与 ZAP 互补——ZAP 每周扫生产主站（见 dast-scan.yml），Nuclei 在每次
-  # 推送/PR 时扫**本地构建并临时起服务的产物**，不依赖生产站点、不产生外网攻击流量，
-  # 适合作为 PR/推送阶段的快速模板扫描（advisory）。
-  # 注意：本地起服务扫的是构建产物，与生产的 CDN/Headers/Functions 运行时有差异，
-  # 不能替代 ZAP 对生产站的扫描，两者互补而非替代。
-  nuclei:
-    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
-    continue-on-error: true # advisory
-    steps:
-      - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: 准备 Node 环境（与 deploy.yml 一致）
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-          cache: npm
-      - name: 安装 Nuclei CLI（pin 版本 + SHA256 校验）
-        run: |
-          set -euo pipefail
-          VERSION="${NUCLEI_VERSION}"
-          PKG="nuclei_${VERSION#v}_linux_amd64.zip"
-          SUMS="nuclei_${VERSION#v}_checksums.txt"
-          BASE="https://github.com/projectdiscovery/nuclei/releases/download/${VERSION}"
-          curl -sSfL -o /tmp/nuclei.zip "${BASE}/${PKG}"
-          curl -sSfL -o /tmp/nuclei_checksums.txt "${BASE}/${SUMS}"
-          expected="$(awk -v pkg="$PKG" '{gsub(/^[*]/,"",$2); if($2==pkg) print $1}' /tmp/nuclei_checksums.txt)"
-          actual="$(sha256sum /tmp/nuclei.zip | awk '{print $1}')"
-          if [ -z "$expected" ] || [ "$expected" != "$actual" ]; then
-            echo "::error::Nuclei 压缩包 SHA256 校验失败（期望 ${expected:-<空>} 实际 $actual）"
-            exit 1
-          fi
-          unzip -o -q /tmp/nuclei.zip -d /tmp/nuclei-bin
-          sudo install -m 0755 /tmp/nuclei-bin/nuclei /usr/local/bin/nuclei
-          nuclei -version 2>&1 | head -n 3 || true
-        env:
-          NUCLEI_VERSION: v3.11.1 # 升级时同步核对 releases 资产名与 checksums 文件名
-      - name: 构建站点并本地起静态服务
-        # dist/ 已被 .gitignore 忽略，故需临时构建；复用 deploy.yml 的 CF 主站构建参数
-        # （node 22 + npm ci + SITE_URL）。后台起 python3 http.server，扫描结束统一 kill。
-        env:
-          SITE_URL: https://jiuxi-bm1.pages.dev
-        run: |
-          set -euo pipefail
-          npm ci
-          npm run build
-          nohup python3 -m http.server 8080 --directory dist >/tmp/http.log 2>&1 &
-          echo $! > /tmp/http.pid
-          for i in $(seq 1 15); do
-            if curl -s -o /dev/null http://127.0.0.1:8080/; then break; fi
-            sleep 1
-          done
-      - name: Nuclei 模板扫描（本地产物）
-        # advisory：仅 critical/high 级，发现不置红；扫完由下一步收尾杀服务。
-        run: |
-          nuclei -target http://127.0.0.1:8080 -severity critical,high -no-color \
-            || echo "::warning::Nuclei 发现问题或运行异常（advisory 阶段不阻断），详见上方日志"
-      - name: 收尾（杀掉本地静态服务）
-        if: always()
-        run: |
-          if [ -f /tmp/http.pid ]; then kill "$(cat /tmp/http.pid)" 2>/dev/null || true; fi
-
   # ── 死链校验（文档/页面外链）──
+
   lychee:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' # 2026-10-19 降频：仅每周巡检与手动触发，不再随每次 push 跑
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     continue-on-error: true # advisory
     steps:
@@ -369,29 +203,8 @@ jobs:
         with:
           args: --no-progress --max-concurrency 4 --exclude-mail './**/*.md'
           fail: false
-
-  # ── PR 依赖审查（仅 PR 触发，比对 base 的依赖变更）──
-  dependency-review:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
-    continue-on-error: true # advisory
-    steps:
-      - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Dependency Review
-        # ⚠️ 该 action 的 v4/v5 移动标签均不存在（实测 404），只能 pin 具体版本。
-        # 该 job 仅在 PR 触发，本地无法验证，故更需谨慎核对标签。
-        # v5.0.0 为 Dependabot 漏开的升级（github-actions 更新任务部分失败），
-        # 经核实 v5.0.0 的 action.yml 输入与本 job 用法（无 with 参数）兼容后手动补上；
-        # 同时消除 Node 20 弃用告警（v4 基于 Node 20）。
-        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
-
   # ── CI 工作流自身安全审计（zizmor）──
+
   zizmor:
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     continue-on-error: true # advisory
@@ -417,77 +230,3 @@ jobs:
         #    下载自上游仓库的二进制，移动标签风险高于普通 action），此处照办。
         #    当前 SHA 对应 v0.6.4（实施时与官方文档交叉核对一致）。
         uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
-
-  # ── 供应链健康分（OpenSSF Scorecard，公开库免费）──
-  scorecard:
-    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
-    continue-on-error: true # advisory
-    permissions:
-      contents: read
-      security-events: write # 上传 Scorecard SARIF 需要；读仓库元数据用内置 GITHUB_TOKEN
-      # publish_results: true 必需：scorecard 用 GitHub OIDC 令牌对结果做
-      # 密钥less 签名后发布到 scorecard.dev（徽章/REST API 的前提）。
-      # 官方约束：本工作流内仅此 job 可用 id-token: write，且工作流级不得有写权限。
-      id-token: write
-    steps:
-      - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Scorecard 分析
-        uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e # v2.5.0
-        with:
-          results_file: results.sarif
-          results_format: sarif
-          # 公开库：把分数发布到 scorecard.dev，徽章可直接引用
-          # https://api.scorecard.dev/projects/github.com/xiaoyu-hue/jiuxi/badge
-          publish_results: true
-      - name: 上传 Scorecard SARIF 到代码扫描告警
-        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
-        with:
-          sarif_file: results.sarif
-          category: scorecard
-
-  # ── SBOM 供应链清单生成（每次推送留档 90 天，漏洞应急时反查）──
-  # 用途：生成 CycloneDX JSON 格式的软件物料清单，作为 workflow artifact 留存 90 天。
-  # 出事时（某依赖爆 0day）可按 SBOM 秒级定位「我们具体哪些版本受影响」。
-  # 用 anchore/sbom-action（官方 action，Syft 引擎，SHA pin + 版本注释供 Dependabot 滚动）。
-  sbom:
-    runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
-    continue-on-error: true # advisory：生成失败不影响流水线结论
-    permissions:
-      contents: read
-    steps:
-      - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: 生成 SBOM（CycloneDX JSON）
-        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
-        with:
-          path: ./
-          format: cyclonedx-json
-          artifact-name: jiuxi-sbom.cdx.json
-          output-file: jiuxi-sbom.cdx.json
-          upload-artifact: true
-          upload-artifact-retention: 90
-          upload-release-assets: false # 本工作流不触发 release，关闭避免非预期上传
-          # dependency-snapshot 默认 false：不上传依赖快照到 GitHub（无需额外权限）；
-          # 仅生成并留存 SBOM artifact。
-
-  # ── DAST：每周定时扫描生产主站（调用可复用工作流，避免与部署后扫描配置漂移）──
-  zap-baseline:
-    # ⚠️ 调用可复用工作流的 job 只允许 name/uses/with/secrets/needs/if/permissions/strategy
-    # 这几个键——runs-on 与 continue-on-error 写在这里会导致工作流解析失败（红叉）。
-    # advisory 语义由被调用工作流 dast-scan.yml 内部的 job 级 continue-on-error 承载。
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    # 自引用语法（GitHub 2026-07 起官方支持）：$/ 解析到当前运行的提交，
-    # 比 ./ 更安全（zizmor self-repository 告警的修复）。
-    # 被调工作流不使用任何 secrets，故不传 secrets（zizmor secrets-inherit 修复）。
-    uses: $/.github/workflows/dast-scan.yml
