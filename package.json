@@ -40,7 +40,7 @@
     "eslint-plugin-jsx-a11y-x": "^0.2.0",
     "fake-indexeddb": "^6.2.5",
     "globals": "^15.14.0",
-    "happy-dom": "^20.14.6",
+    "happy-dom": "^21.0.3",
     "prettier": "^3.4.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.71.1",
