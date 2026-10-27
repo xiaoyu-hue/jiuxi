@@ -2,6 +2,25 @@
 
 所有重要变更均记录于此文件。遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式。
 
+## [v1.12.4] — 2026-10-27
+
+> 许可与门禁收口：文档许可写成可执行的七要件、把 OFL 字体的义务落到仓库里，顺手把两处长期红叉修掉。
+
+### 📄 许可
+
+- **LICENSE-DOCS 重写为七要件结构**：版权行 / `SPDX-License-Identifier: CC-BY-NC-4.0` / 覆盖范围 / 授权与条件 / 署名示例 / 第三方除外 / 官方全文。范围按目录枚举，删掉已不存在的 `functions/`、`worker/` 等历史路径。
+- **`LICENSE-CONTENT.md` 合并**：此前它与 `LICENSE-DOCS` 是两份 CC BY-NC 4.0、内容重复且容易改一处漏一处；现保留为指向 `LICENSE-DOCS` 的说明页。
+- **新增 `NOTICE`**：`@fontsource/noto-sans-sc`、`noto-serif-sc` 是 SIL OFL-1.1，分发时必须随附许可证全文与版权行，此前只有 README 一句话；现连同 CI 工具（TruffleHog 为 AGPL-3.0，仅作为独立 action 运行、不进入站点产物）一并写明。
+
+### 🐛 修复
+
+- **`quality` 门禁长期红**：`prettier --check .` 只报 `README.md`。README 的表格单元格里塞了整段变更说明，Prettier 的表格对齐会把 36KB 撑到 57KB，可读性反而下降。改为把长文文档排除在格式校验外（`.prettierignore` 并写明原因），代码与配置仍强制 Prettier。
+- **`osv-scanner` 长期红**：按报告升级 4 个包到修复版本——`fast-uri` 3.1.8→3.1.9（dev）、`happy-dom` 20.14.6→21.0.4（dev，仅测试环境）、`undici` 8.11.2→8.12.2、`zod` 4.6.5→4.6.6。
+
+### 📝 文档
+
+- README 的「当前版本」表格单元格不再塞整段 changelog，改为一行摘要 + 链到本文件；历史变更在 CHANGELOG 里本来就有，不必维护两份。
+
 ## [v1.12.3] — 2026-10-19
 
 > 安全工程瘦身：安全门禁维护成本失控后，按「纯静态站真实威胁面」重新校准——先画威胁面（九溪无后端 / 无登录 / 无 API，真实威胁仅三类：密钥泄进仓库、npm 依赖投毒、CI 工作流自身被动手脚），再按「无人消费 / 能力重叠 / 防虚构威胁」三条标准砍掉 7 个 job；CodeQL 与 Lychee 降频为每周一定时。push 触发安全门禁 467s → 约 90s，`security.yml` 29KB → 约 13KB，Dependabot 维护面约 10 → 5 个 action，**真实威胁覆盖率不变**。
