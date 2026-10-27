@@ -2,10 +2,7 @@
 
 本仓库中的 **文档与策展内容** 采用 **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)** 许可。
 
-## 涵盖范围
-
-- **项目文档**：`README.md`、`九溪-调研报告.md`、`九溪-PRD.md`、`九溪-实施计划.md` 等。
-- **策展内容**：`src/content/` 目录下的所有原创文字，包括 AI 发展时间线、AI 工具箱、读书推荐等的描述与笔记。
+> **覆盖范围以 [`LICENSE-DOCS`](./LICENSE-DOCS) 为准**（`README.md`、`CHANGELOG.md`、`CONTRIBUTING.md`、`docs/` 下的全部文档、`src/content/` 下的原创文字）。本文件只保留「文档许可与代码许可的关系」说明，避免两份文件各自维护、范围漂移。
 
 ## 你可以
 

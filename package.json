@@ -3,6 +3,7 @@
   "type": "module",
   "version": "1.12.3",
   "private": true,
+  "license": "Apache-2.0",
   "description": "九溪 · 综合信息聚集地（AI 为主，热点新闻为辅）。本地优先的静态信息站。",
   "scripts": {
     "dev": "astro dev",

@@ -9,7 +9,7 @@
 | 当前版本 | **v1.12.3**（安全工程瘦身：按「纯静态站真实威胁面」重新校准门禁——砍掉 7 个防虚构威胁 / 能力重叠 / 无人消费的 job：Nuclei（153s 扫本地静态产物，无服务端漏洞面）、ZAP baseline（82s 扫无攻击面静态站）、Trivy（与 osv-scanner 重叠扫同一 npm 依赖树）、Gitleaks（与 TruffleHog 抢同一份钥匙，后者还扫全量历史）、Scorecard 与 SBOM（合规产物，无审计方消费）、dependency-review（单人直推 main 无 PR 流程，永远 skipped 的死代码）；CodeQL 与 Lychee 降频为每周一定时；保留 TruffleHog + osv-scanner（强制）+ zizmor + harden-runner。push 触发安全门禁 467s → 约 90s，security.yml 29KB → 约 13KB，真实威胁覆盖率不变） |
 | 技术栈   | Astro 7 · Tailwind CSS 4 · TypeScript（纯静态输出 + 构建期预渲染）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | 托管目标 | [Cloudflare Pages](https://jiuxi-bm1.pages.dev/)（纯静态单站）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| 许可证   | 代码 Apache-2.0 / 文档与内容 CC BY-NC 4.0                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 许可证   | 代码 Apache-2.0 / 文档与内容 CC BY-NC 4.0 / 第三方组件见 NOTICE |
 
 ---
 
@@ -21,6 +21,7 @@
 ![Last Commit](https://img.shields.io/github/last-commit/xiaoyu-hue/jiuxi?style=flat)
 ![Astro](https://img.shields.io/badge/Astro-BC52EE?style=flat&logo=astro&logoColor=white)
 ![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)
+![Docs License](https://img.shields.io/badge/Docs%20License-CC%20BY--NC%204.0-8B5CF6.svg)
 
 </div>
 
@@ -341,7 +342,7 @@ jiuxi/
 | 类别           | 许可证                               | 覆盖范围                                                                                                              |
 | -------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | **代码**       | [Apache License 2.0](./LICENSE)      | `src/`（组件、样式、脚本、配置）、`astro.config.mjs`、`wrangler.toml`、CI 配置等所有源代码与构建配置                  |
-| **文档与内容** | [CC BY-NC 4.0](./LICENSE-CONTENT.md) | `README.md`、四份规划与架构文档（`docs/` 下），以及 `src/content/` 下所有原创文字（时间线 / 工具箱 / 读书等策展内容） |
+| **文档与内容** | [CC BY-NC 4.0](./LICENSE-DOCS) | `README.md`、四份规划与架构文档（`docs/` 下），以及 `src/content/` 下所有原创文字（时间线 / 工具箱 / 读书等策展内容） |
 | **第三方**     | 保留各自原有许可证                   | 依赖包见 `package.json`；借鉴的开源项目见「九、致谢与致敬」                                                           |
 
 要点：
@@ -357,7 +358,7 @@ jiuxi/
 
 - **自托管字体（OFL-1.1）**：`@fontsource/noto-serif-sc` / `noto-sans-sc`（思源宋体 / 黑体）遵循 **SIL Open Font License 1.1**，允许随项目自由嵌入与再分发；但字体文件本身不得作为独立商品出售、也不得施加比 OFL 更严格的限制。九溪将字体子集内嵌进产物，符合该条款。
 - **TruffleHog（AGPL-3.0，已隔离）**：CI 密钥扫描工具 TruffleHog 为 AGPL-3.0（具传染性），但**仅在 GitHub Actions 中以独立 CLI 进程运行、不链接进九溪代码、不进入站点产物**，AGPL 义务不传导至九溪本身；其余 CI 工具（osv-scanner / zizmor / Lychee 等）均为 MIT / Apache-2.0。
-- **完整清单**：逐包版本与许可证以 `package-lock.json` 为准；需生成人类可读的第三方许可清单，可运行 `npx license-report`（或 `license-checker`）。
+- **完整清单**：随附的 OFL-1.1 字体许可全文、组件版权与致谢见仓库根目录 [`NOTICE`](./NOTICE)；逐包版本与许可证以 `package-lock.json` 为准；需生成人类可读的第三方许可清单，可运行 `npx license-report`（或 `license-checker`）。
 
 版权人：xiaoyu-hue，2026。
 
