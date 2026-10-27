@@ -7,3 +7,10 @@ pnpm-lock.yaml
 package-lock.json
 wrangler.toml
 worker/wrangler.toml
+
+# 长文文档：表格内含大段中文说明，Prettier 的表格对齐会把可读性变差（曾把 36KB 的
+# README 撑到 57KB），因此只对代码与配置做格式校验，文档交给人来排版。
+README.md
+README.en.md
+CHANGELOG.md
+docs/
