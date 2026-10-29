@@ -319,12 +319,7 @@ body.sheet-open {
 }
 .sk-block {
   border-radius: 6px;
-  background: linear-gradient(
-    90deg,
-    var(--rule) 25%,
-    var(--bg-2) 37%,
-    var(--rule) 63%
-  );
+  background: linear-gradient(90deg, var(--rule) 25%, var(--bg-2) 37%, var(--rule) 63%);
   background-size: 400% 100%;
   animation: sk-shimmer 1.4s ease infinite;
 }
