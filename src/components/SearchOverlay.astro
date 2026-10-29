@@ -20,7 +20,7 @@
   <div class="search-backdrop" data-search-close></div>
   <div class="search-panel glass">
     <div class="search-bar">
-      <span class="search-icon" aria-hidden="true">🔍</span>
+      <span class="search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
       <input
         id="search-input"
         class="search-input"
@@ -73,6 +73,14 @@
   }
   .search-icon {
     color: var(--text-muted);
+    display: grid;
+    place-items: center;
+    flex: none;
+  }
+  .search-icon svg {
+    width: 18px;
+    height: 18px;
+    display: block;
   }
   .search-input {
     flex: 1;

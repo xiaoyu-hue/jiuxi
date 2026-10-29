@@ -1,0 +1,138 @@
+---
+// 九溪 · 移动端板块导航（仅小屏显示，桌面由 SiteNav 承载）
+//
+// 解决移动端「15 个板块 + 时间线/读书 不可达」的结构性缺陷：
+//   - 横向可滑动的板块条（scroll-snap），呈报刊分栏气质；
+//   - 覆盖全部 15 个资讯板块（SECTION_ORDER）+ 时间线/读书两个策展页；
+//   - 粘性置顶（紧贴 header 之下），滚动时板块切换始终可达；
+//   - 与底部 TabBar（首页/热点/工具/我的）分工：TabBar 管应用级入口，本组件管板块切换。
+// 桌面端 display:none，不挤占分组主导航。
+import { withBase } from '../lib/site';
+import { SECTION_ORDER, SECTION_META } from '../lib/sections';
+
+const path = Astro.url.pathname;
+
+// 15 个资讯板块（动态派生，新增板块自动出现）
+const sections = SECTION_ORDER.map((s) => ({
+  href: `/${s}`,
+  label: SECTION_META[s].label,
+}));
+// 策展页（非资讯板块，但同样需在移动端可达）
+const features = [
+  { href: '/timeline', label: '时间线' },
+  { href: '/reading', label: '读书' },
+];
+
+const isActive = (href: string) =>
+  path === withBase(href) || path.startsWith(withBase(href) + '/');
+---
+
+<nav class="mobile-sections" aria-label="板块导航">
+  <ul class="ms-list">
+    {
+      sections.map((s) => (
+        <li class="ms-item">
+          <a
+            class:list={['ms-chip', { active: isActive(s.href) }]}
+            href={withBase(s.href)}
+            aria-current={isActive(s.href) ? 'page' : undefined}
+          >
+            {s.label}
+          </a>
+        </li>
+      ))
+    }
+    <li class="ms-sep" aria-hidden="true"></li>
+    {
+      features.map((f) => (
+        <li class="ms-item">
+          <a
+            class:list={['ms-chip', 'ms-chip--feature', { active: isActive(f.href) }]}
+            href={withBase(f.href)}
+            aria-current={isActive(f.href) ? 'page' : undefined}
+          >
+            {f.label}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+
+<style>
+  /* 默认（桌面）隐藏；由 SiteNav 承载 */
+  .mobile-sections {
+    display: none;
+  }
+  @media (max-width: 768px) {
+    .mobile-sections {
+      display: block;
+      position: sticky;
+      top: 0; /* 移动端 header 改为静态（见 BaseLayout），板块条吸顶常驻 */
+      z-index: 25;
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .ms-list {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
+      padding: 8px 12px;
+      list-style: none;
+      overflow-x: auto;
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; /* Firefox 隐藏滚动条 */
+    }
+    .ms-list::-webkit-scrollbar {
+      display: none; /* WebKit 隐藏滚动条 */
+    }
+    .ms-item {
+      flex: 0 0 auto;
+      scroll-snap-align: start;
+    }
+    .ms-chip {
+      display: inline-block;
+      padding: 7px 14px;
+      min-height: 36px;
+      box-sizing: border-box;
+      border-radius: 999px;
+      white-space: nowrap;
+      text-decoration: none;
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-size: 0.92rem;
+      font-weight: 500;
+      line-height: 1.2;
+      border: 1px solid transparent;
+      transition:
+        color 0.2s,
+        background 0.2s,
+        border-color 0.2s;
+    }
+    .ms-chip:hover {
+      color: var(--text-strong);
+      background: var(--accent-soft);
+    }
+    .ms-chip.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+      font-weight: 700;
+    }
+    .ms-chip--feature {
+      font-family: var(--font-serif);
+      letter-spacing: 0.04em;
+    }
+    /* 策展页前的细分隔，区分「资讯板块 / 策展」两组 */
+    .ms-sep {
+      flex: 0 0 auto;
+      width: 1px;
+      height: 18px;
+      margin: 0 4px;
+      background: var(--rule);
+    }
+  }
+</style>

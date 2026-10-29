@@ -8,10 +8,23 @@
 import { withBase } from '../lib/site';
 
 const path = Astro.url.pathname;
+
+// 内联 SVG 线性图标（零依赖、跨平台渲染一致，规避 Astro 7 集成兼容风险）
+const icons = {
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M9.5 20v-6h5v6"/></svg>',
+  hot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+  tools: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>',
+  user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+  settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+};
+
 const tabs = [
-  { href: '/', label: '首页', icon: '⌂' },
-  { href: '/hot', label: '热点', icon: '🔥' },
-  { href: '/tools', label: '工具', icon: '🛠' },
+  { href: '/', label: '首页', icon: icons.home },
+  { href: '/hot', label: '热点', icon: icons.hot },
+  { href: '/tools', label: '工具', icon: icons.tools },
 ];
 const moreActive = ['/starred', '/settings', '/about', '/search'].some(
   (p) => path === withBase(p) || path.startsWith(withBase(p) + '/'),
@@ -29,7 +42,7 @@ const isActive = (href: string) =>
         href={withBase(t.href)}
         aria-current={isActive(t.href) ? 'page' : undefined}
       >
-        <span class="tabbar-icon" aria-hidden="true">{t.icon}</span>
+        <span class="tabbar-icon" aria-hidden="true" set:html={t.icon}></span>
         <span class="tabbar-label">{t.label}</span>
       </a>
     ))
@@ -41,7 +54,7 @@ const isActive = (href: string) =>
     aria-haspopup="dialog"
     aria-expanded="false"
   >
-    <span class="tabbar-icon" aria-hidden="true">☰</span>
+    <span class="tabbar-icon" aria-hidden="true" set:html={icons.user}></span>
     <span class="tabbar-label">我的</span>
   </button>
 </nav>
@@ -60,10 +73,22 @@ const isActive = (href: string) =>
       <span>我的九溪</span>
       <button type="button" class="tabbar-sheet-close" data-close aria-label="关闭">×</button>
     </div>
-    <a class="tabbar-sheet-link" href={withBase('/starred')}>♥ 收藏</a>
-    <button type="button" class="tabbar-sheet-link" id="tabbar-search">🔍 搜索</button>
-    <a class="tabbar-sheet-link" href={withBase('/settings')}>⚙ 设置</a>
-    <a class="tabbar-sheet-link" href={withBase('/about')}>ℹ 关于</a>
+    <a class="tabbar-sheet-link" href={withBase('/starred')}>
+      <span class="ssl-icon" aria-hidden="true" set:html={icons.star}></span>
+      <span>收藏</span>
+    </a>
+    <button type="button" class="tabbar-sheet-link" id="tabbar-search">
+      <span class="ssl-icon" aria-hidden="true" set:html={icons.search}></span>
+      <span>搜索</span>
+    </button>
+    <a class="tabbar-sheet-link" href={withBase('/settings')}>
+      <span class="ssl-icon" aria-hidden="true" set:html={icons.settings}></span>
+      <span>设置</span>
+    </a>
+    <a class="tabbar-sheet-link" href={withBase('/about')}>
+      <span class="ssl-icon" aria-hidden="true" set:html={icons.info}></span>
+      <span>关于</span>
+    </a>
   </div>
 </div>
 
@@ -91,7 +116,9 @@ const isActive = (href: string) =>
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    justify-content: center;
+    gap: 3px;
+    min-height: 44px; /* WCAG 2.5.5 触控目标下限 */
     flex: 1;
     background: none;
     border: none;
@@ -100,16 +127,28 @@ const isActive = (href: string) =>
     text-decoration: none;
     font-family: var(--font-sans);
     padding: 4px 0;
+    border-radius: 14px;
+    transition:
+      color 0.2s,
+      background 0.2s;
   }
   .tabbar-icon {
-    font-size: 1.2rem;
+    display: grid;
+    place-items: center;
     line-height: 1;
   }
+  .tabbar-icon svg {
+    width: 22px;
+    height: 22px;
+    display: block;
+  }
   .tabbar-label {
-    font-size: 0.7rem;
+    font-size: 0.72rem;
+    line-height: 1;
   }
   .tabbar-item.active {
     color: var(--accent);
+    background: var(--accent-soft);
   }
 
   /* ── 我的 sheet（底部弹层）── */
@@ -172,7 +211,9 @@ const isActive = (href: string) =>
     border-radius: 50%;
   }
   .tabbar-sheet-link {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 14px;
     padding: 12px 8px;
     border-radius: 10px;
     color: var(--text-strong);
@@ -184,6 +225,19 @@ const isActive = (href: string) =>
     border: none;
     cursor: pointer;
     width: 100%;
+  }
+  .ssl-icon {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    flex: none;
+    color: var(--accent);
+  }
+  .ssl-icon svg {
+    width: 20px;
+    height: 20px;
+    display: block;
   }
   .tabbar-sheet-link:hover {
     background: var(--accent-soft);

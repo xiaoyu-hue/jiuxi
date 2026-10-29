@@ -29,6 +29,19 @@ const { section, title, description = '', showRefresh = false } = Astro.props;
     <p>{description}</p>
     <div class="feed-status" id={`status-${section}`}>正在加载最新资讯…</div>
   </header>
+  <div class="feed-skeleton" id={`skeleton-${section}`} aria-hidden="true">
+    {
+      Array.from({ length: 5 }).map(() => (
+        <div class="sk-card">
+          <div class="sk-block sk-kicker"></div>
+          <div class="sk-block sk-title"></div>
+          <div class="sk-block sk-meta"></div>
+          <div class="sk-block sk-snippet"></div>
+          <div class="sk-block sk-snippet short"></div>
+        </div>
+      ))
+    }
+  </div>
   <div class="feed-grid" id={`feed-${section}`} data-section={section}></div>
 </BaseLayout>
 
@@ -79,6 +92,7 @@ const { section, title, description = '', showRefresh = false } = Astro.props;
   document.querySelectorAll<HTMLElement>('.feed-grid').forEach((el) => {
     const section = el.dataset.section as any;
     const status = document.getElementById(`status-${section}`);
+    const skeleton = document.getElementById(`skeleton-${section}`);
     const script = document.getElementById(`jiuxi-feed-${section}`);
     try {
       const items = script ? (JSON.parse(script.textContent ?? '[]') as any[]) : [];
@@ -86,11 +100,13 @@ const { section, title, description = '', showRefresh = false } = Astro.props;
         renderItems(el, items);
         wireFavorites(el);
         if (status) status.textContent = `已加载 · ${new Date().toLocaleString('zh-CN')}`;
+        if (skeleton) skeleton.hidden = true;
         return;
       }
     } catch {
       /* 解析失败，走下方空态 */
     }
+    if (skeleton) skeleton.hidden = true;
     if (status) status.textContent = '暂无可展示的资讯';
   });
 </script>
