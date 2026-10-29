@@ -17,10 +17,196 @@ import GlassCard from '../components/GlassCard.astro';
 
   <GlassCard>
     <p>
-      九溪是一个以 <strong>AI</strong> 为主、覆盖 15 个全行业板块的综合信息聚集地——AI、新闻、科技、游戏、财经、体育、健康、科学、教育、汽车、家居、旅行、美食、读书、开发，聚合多源交叉的今日热点，并附带历史回顾、时间线、工具箱与读书推荐。
+      九溪是一个以 <strong>AI</strong> 为主、覆盖 15 个全行业板块的综合信息聚集地——AI、新闻、科技、游戏、财经、体育、健康、科学、教育、汽车、家居、旅行、美食、读书、开发，聚合多源交叉的今日热点，并附带时间线、工具箱与读书推荐。
     </p>
     <p class="masthead-date">
       更新于 {new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}。
     </p>
   </GlassCard>
+
+  <header class="page-head">
+    <h2>第三方开源组件致谢</h2>
+    <p>
+      九溪是一个纯静态、零后端的小站，背后却站着一整套高质量的开源基础设施。
+      以下组件以开放许可证免费提供，特此致谢——没有它们，就没有这个站点。
+    </p>
+  </header>
+
+  <GlassCard>
+    <h3 class="thanks-subhead">运行时依赖（随站点产物分发）</h3>
+    <ul class="thanks-list">
+      <li class="thanks-item">
+        <div class="thanks-head">
+          <a class="thanks-name" href="https://astro.build" target="_blank" rel="noopener">Astro</a>
+          <span class="license-pill">MIT</span>
+        </div>
+        <p class="thanks-role">静态站点框架，整站的构建骨架与路由。</p>
+      </li>
+      <li class="thanks-item">
+        <div class="thanks-head">
+          <a class="thanks-name" href="https://tailwindcss.com" target="_blank" rel="noopener">Tailwind CSS · @tailwindcss/vite</a>
+          <span class="license-pill">MIT</span>
+        </div>
+        <p class="thanks-role">原子化 CSS 与构建插件，承载全站样式体系。</p>
+      </li>
+      <li class="thanks-item">
+        <div class="thanks-head">
+          <a class="thanks-name" href="https://docs.astro.build" target="_blank" rel="noopener">@astrojs/rss · @astrojs/sitemap</a>
+          <span class="license-pill">MIT</span>
+        </div>
+        <p class="thanks-role">生成 RSS 订阅源与站点地图，便于聚合与索引。</p>
+      </li>
+      <li class="thanks-item">
+        <div class="thanks-head">
+          <a class="thanks-name" href="https://github.com/extractus/feed-extractor" target="_blank" rel="noopener">@extractus/feed-extractor</a>
+          <span class="license-pill">MIT</span>
+        </div>
+        <p class="thanks-role">构建期抓取并解析 RSS / Atom 源，是多源聚合的数据入口。</p>
+      </li>
+      <li class="thanks-item">
+        <div class="thanks-head">
+          <a class="thanks-name" href="https://auto-animate.formkit.com" target="_blank" rel="noopener">@formkit/auto-animate</a>
+          <span class="license-pill">MIT</span>
+        </div>
+        <p class="thanks-role">为收藏增删、列表变动提供自然的过渡动画。</p>
+      </li>
+      <li class="thanks-item">
+        <div class="thanks-head">
+          <a class="thanks-name" href="https://github.com/darkroomengineering/lenis" target="_blank" rel="noopener">lenis</a>
+          <span class="license-pill">MIT</span>
+        </div>
+        <p class="thanks-role">平滑滚动，让长资讯流的浏览更顺滑克制。</p>
+      </li>
+      <li class="thanks-item">
+        <div class="thanks-head">
+          <a class="thanks-name" href="https://zod.dev" target="_blank" rel="noopener">zod</a>
+          <span class="license-pill">MIT</span>
+        </div>
+        <p class="thanks-role">运行时数据校验，确保各源数据结构正确、页面不崩。</p>
+      </li>
+    </ul>
+
+    <h3 class="thanks-subhead">字体（SIL Open Font License 1.1）</h3>
+    <ul class="thanks-list">
+      <li class="thanks-item">
+        <div class="thanks-head">
+          <a class="thanks-name" href="https://fontsource.org" target="_blank" rel="noopener">Noto Sans SC · Noto Serif SC（经 @fontsource 内嵌子集）</a>
+          <span class="license-pill">OFL-1.1</span>
+        </div>
+        <p class="thanks-role">中文无衬线与衬线字体，构成九溪「报刊版式」的字形基底。版权归 Google 及 Noto 贡献者所有，依 OFL-1.1 再分发。</p>
+      </li>
+    </ul>
+
+    <h3 class="thanks-subhead">构建期工具（仅 CI 使用，不进入站点产物）</h3>
+    <ul class="thanks-list">
+      <li class="thanks-item">
+        <div class="thanks-head">
+          <a class="thanks-name" href="https://github.com/trufflesecurity/trufflehog" target="_blank" rel="noopener">TruffleHog</a>
+          <span class="license-pill">AGPL-3.0</span>
+        </div>
+        <p class="thanks-role">密钥泄露扫描，守护仓库凭证安全。</p>
+      </li>
+      <li class="thanks-item">
+        <div class="thanks-head">
+          <a class="thanks-name" href="https://github.com/google/osv-scanner" target="_blank" rel="noopener">osv-scanner</a>
+          <span class="license-pill">Apache-2.0</span>
+        </div>
+        <p class="thanks-role">依赖漏洞扫描，持续盯防已知风险。</p>
+      </li>
+      <li class="thanks-item">
+        <div class="thanks-head">
+          <a class="thanks-name" href="https://github.com/woodruffw/zizmor" target="_blank" rel="noopener">zizmor</a>
+          <span class="license-pill">MIT</span>
+        </div>
+        <p class="thanks-role">GitHub Actions 工作流安全审计。</p>
+      </li>
+      <li class="thanks-item">
+        <div class="thanks-head">
+          <a class="thanks-name" href="https://github.com/lycheeverse/lychee" target="_blank" rel="noopener">Lychee</a>
+          <span class="license-pill">Apache-2.0</span>
+        </div>
+        <p class="thanks-role">死链检测，避免页面出现失效链接。</p>
+      </li>
+    </ul>
+
+    <p class="thanks-foot">
+      以上组件的完整许可证文本与版权声明见仓库根目录的
+      <a href="https://github.com/xiaoyu-hue/jiuxi/blob/main/NOTICE" target="_blank" rel="noopener">NOTICE</a>。
+      九溪自有代码以 Apache-2.0 授权，自有文档与策展内容以 CC BY-NC 4.0 授权。
+    </p>
+  </GlassCard>
 </BaseLayout>
+
+<style>
+  .thanks-subhead {
+    margin: 22px 0 10px;
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    color: var(--text-strong);
+  }
+  .thanks-subhead:first-of-type {
+    margin-top: 4px;
+  }
+  .thanks-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .thanks-item {
+    padding: 12px 14px;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+  .thanks-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .thanks-name {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 0.98rem;
+    color: var(--text-strong);
+    text-decoration: none;
+  }
+  .thanks-name:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+  .license-pill {
+    flex: none;
+    font-size: 0.72rem;
+    font-family: var(--font-sans);
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .thanks-role {
+    margin: 6px 0 0;
+    font-size: 0.86rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+  .thanks-foot {
+    margin: 18px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+  .thanks-foot a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .thanks-foot a:hover {
+    text-decoration: underline;
+  }
+</style>

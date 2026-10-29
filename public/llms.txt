@@ -7,7 +7,6 @@
 - 新闻: https://jiuxi-bm1.pages.dev/news
 - 科技: https://jiuxi-bm1.pages.dev/tech
 - 游戏: https://jiuxi-bm1.pages.dev/gaming
-- 历史回顾: https://jiuxi-bm1.pages.dev/history
 - AI 发展时间线: https://jiuxi-bm1.pages.dev/timeline
 - AI 工具箱: https://jiuxi-bm1.pages.dev/tools
 - 阅读推荐: https://jiuxi-bm1.pages.dev/reading
