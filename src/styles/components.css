@@ -101,6 +101,8 @@
   right: 0;
   width: 28px;
   height: 28px;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
   border: 1px solid var(--rule);
   background: var(--surface);
@@ -112,6 +114,11 @@
     transform 0.15s,
     color 0.2s,
     border-color 0.2s;
+}
+.fav-btn .fav-heart {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 /* 2026-10-15 审查 M15：视觉尺寸保持 28px（卡片版式），触控目标用透明
    ::before 扩展到 44×44（WCAG 2.5.5），兼顾版式与可达性 */
@@ -263,5 +270,92 @@ body.sheet-open {
 @media (max-width: 768px) {
   .site-main {
     padding-bottom: 76px;
+  }
+}
+
+/* ── 移动端间距收紧（≤768px）：信息密度更合理，保留报刊克制感 ── */
+@media (max-width: 768px) {
+  .feed-grid {
+    /* 单列下 column-gap 本不影响排版，设为多列兜底；主修卡片内边距 */
+    column-gap: 16px;
+  }
+  .feed-head {
+    margin: 26px 0 14px;
+    padding-bottom: 10px;
+  }
+  .page-head {
+    margin: 26px 0 14px;
+    padding-bottom: 10px;
+  }
+  .feed-card {
+    padding: 16px 0;
+  }
+  .feed-card .fav-btn {
+    top: 12px;
+  }
+  .feed-kicker {
+    font-size: 0.74rem;
+  }
+  .feed-meta {
+    font-size: 0.8rem;
+  }
+}
+
+/* ── Feed 骨架屏（加载态，弱网下给「内容即将到来」预期）──
+ * 纯 CSS shimmer，零依赖；全局 prefers-reduced-motion / .reduce-motion
+ * 守卫会把动画压到 0.001ms，自动退化为静态灰块。 */
+.feed-skeleton {
+  display: block;
+}
+.feed-skeleton[hidden] {
+  display: none;
+}
+.sk-card {
+  padding: 24px 0;
+  border-top: 1px solid var(--rule);
+}
+.sk-card:first-child {
+  border-top: none;
+}
+.sk-block {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--rule) 25%,
+    var(--bg-2) 37%,
+    var(--rule) 63%
+  );
+  background-size: 400% 100%;
+  animation: sk-shimmer 1.4s ease infinite;
+}
+.sk-kicker {
+  width: 28%;
+  height: 11px;
+  margin: 0 0 10px;
+}
+.sk-title {
+  width: 82%;
+  height: 18px;
+  margin: 0 0 10px;
+}
+.sk-meta {
+  width: 42%;
+  height: 11px;
+  margin: 0 0 10px;
+}
+.sk-snippet {
+  width: 100%;
+  height: 11px;
+  margin: 0 0 6px;
+}
+.sk-snippet.short {
+  width: 64%;
+}
+@keyframes sk-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
   }
 }

@@ -366,7 +366,9 @@ export function renderItems(container: HTMLElement, items: FeedItem[]): void {
     fav.dataset.title = escapeHtml(it.title || '');
     fav.dataset.source = escapeHtml(it.source || '');
     fav.setAttribute('aria-label', '收藏');
-    fav.textContent = '♥';
+    // 内联 SVG 线性爱心（零依赖，currentColor 跟随激活态变 accent 色）
+    fav.innerHTML =
+      '<svg class="fav-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
     card.appendChild(fav);
 
     frag.appendChild(card);

@@ -7,6 +7,7 @@ import '../styles/components.css';
 import { ClientRouter, fade } from 'astro:transitions';
 import ThemeSwitcher from '../components/ThemeSwitcher.astro';
 import SiteNav from '../components/SiteNav.astro';
+import MobileSectionNav from '../components/MobileSectionNav.astro';
 import MobileTabBar from '../components/MobileTabBar.astro';
 import SearchOverlay from '../components/SearchOverlay.astro';
 import JiuxiMark from '../components/JiuxiMark.astro';
@@ -97,11 +98,26 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
           id="header-search"
           aria-label="搜索"
           title="搜索（/ 或 Cmd/Ctrl+K）"
-        >🔍</button>
+        >
+          <svg
+            class="icon-search"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+        </button>
         <ThemeSwitcher />
       </div>
     </header>
     <SiteNav />
+    <MobileSectionNav />
     <main class="site-main">
       <slot />
     </main>
@@ -196,6 +212,10 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
     color: var(--text-strong);
     border-color: var(--accent);
   }
+  .icon-search {
+    width: 20px;
+    height: 20px;
+  }
   .site-main {
     flex: 1;
     width: 100%;
@@ -209,5 +229,16 @@ const ogImageURL = new URL(withBase('/og-image.png'), Astro.site ?? Astro.url);
     padding: 20px;
     color: var(--text-muted);
     font-size: 0.8rem;
+  }
+  /* 移动端：header 由 sticky 改为静态（让位给吸顶板块条），并收紧为全宽 */
+  @media (max-width: 768px) {
+    .site-header {
+      position: static;
+      margin: 8px 10px;
+      padding: 8px 14px;
+    }
+    .brand-name {
+      font-size: 1.15rem;
+    }
   }
 </style>
