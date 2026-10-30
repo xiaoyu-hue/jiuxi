@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
         with:
           egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -104,7 +104,7 @@ jobs:
       cancel-in-progress: false
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
         with:
           egress-policy: audit
       # 拉取仓库：wrangler pages deploy dist 上传静态产物。本仓库已是纯静态站点
@@ -152,7 +152,7 @@ jobs:
     runs-on: ubuntu-24.04 # 固定版本：ubuntu-latest 将于 2026-10-19 迁移到 Ubuntu 26
     steps:
       - name: Harden-Runner（出口审计）
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
         with:
           egress-policy: audit
       - name: 冒烟测试：静态站必须返回 200 且首页含构建期注入的聚合 JSON
